@@ -22,10 +22,14 @@ on:
         description: "Cho toi da bao nhieu giay"
         required: false
         default: "1800"
+      runner:
+        description: "Nhan runner: colab-driver (may 1, TK1) hoac colab-driver-tk2 (may 2, TK2)"
+        required: false
+        default: "colab-driver"
 
 jobs:
   run-colab:
-    runs-on: [self-hosted, colab-driver]
+    runs-on: [self-hosted, ${{ inputs.runner }}]
     steps:
       - uses: actions/checkout@v4
       - name: Run notebook on Colab T4 (vncolab)
