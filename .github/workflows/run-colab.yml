@@ -29,7 +29,7 @@ on:
 
 jobs:
   run-colab:
-    runs-on: [self-hosted, ${{ inputs.runner }}]
+    runs-on: [self-hosted, "${{ inputs.runner }}"]
     steps:
       - uses: actions/checkout@v4
       - name: Run notebook on Colab T4 (vncolab)
