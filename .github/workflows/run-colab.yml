@@ -1,0 +1,37 @@
+name: Run Colab notebook
+
+# GitHub dieu khien Colab: bam "Run workflow" (hoac goi API dispatch) ->
+# self-hosted runner tren InstaBox chay scripts/colab_driver.py (CDP),
+# mo notebook tren Colab T4, bam Run all, gom output ve artifact.
+# Khong dung browser task, khong ton token.
+on:
+  workflow_dispatch:
+    inputs:
+      notebook_url:
+        description: "Colab notebook URL (dang github)"
+        required: true
+        default: "https://colab.research.google.com/github/LangTieu/vn-stock-ai/blob/main/notebooks/p0_qwen15b_vcb_real.ipynb"
+      timeout:
+        description: "Cho toi da bao nhieu giay"
+        required: false
+        default: "1800"
+
+jobs:
+  run-colab:
+    runs-on: [self-hosted, colab-driver]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run notebook on Colab
+        run: |
+          python3 scripts/colab_driver.py "${{ inputs.notebook_url }}" colab_result.json "${{ inputs.timeout }}"
+      - name: Show result
+        if: always()
+        run: |
+          echo "--- COLAB RESULT ---"
+          cat colab_result.json
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colab-result
+          path: colab_result.json
