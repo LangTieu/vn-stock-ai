@@ -64,7 +64,11 @@ bnb = BitsAndBytesConfig(
 tok = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-32B-Instruct")
 model = AutoModelForCausalLM.from_pretrained(
     "Qwen/Qwen2.5-32B-Instruct", quantization_config=bnb, device_map="auto",
-    offload_folder="/tmp/offload")
+    offload_folder="/tmp/offload",
+    # Bat buoc khi co module bi day xuong CPU: khong co flag nay transformers
+    # nem ValueError "Some modules are dispatched on the CPU or the disk"
+    # (gap o run 42473983158). Flag nay cho phep offload module len CPU.
+    llm_int8_enable_fp32_cpu_offload=True)
 print("model loaded on:", model.device)
 print("VRAM used (GB):", torch.cuda.memory_allocated() / 1e9)
 # Xem model chia the nao giua GPU/CPU (offload)
