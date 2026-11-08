@@ -333,39 +333,42 @@ def _kernel_client(url, token):
     raise last_err
 
 
-def execute_code(url, token, code, timeout=1800):
-    """Chay 1 doan code tren kernel, tra list outputs (dicts kieu Jupyter)."""
+def execute_code(kc, code, timeout=1800):
+    """Chay 1 doan code tren kernel DA MO (dung chung 1 kernel cho ca
+    notebook — bien cell truoc (vd DATA_TEXT) moi ton tai o cell sau).
+    Tra list outputs (dicts kieu Jupyter) + shell reply."""
     import queue
 
-    kc = _kernel_client(url, token)
+    mgr = kc._manager.client
+    msg_id = mgr.execute(code, allow_stdin=False)
+    outputs = []
+    deadline = time.monotonic() + timeout
+    while True:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise TimeoutError("khong co message nao tu kernel qua timeout")
+        try:
+            msg = mgr.get_iopub_msg(timeout=min(1.0, left))
+        except queue.Empty:
+            continue
+        if msg["parent_header"].get("msg_id") != msg_id:
+            continue
+        mtype = msg["header"]["msg_type"]
+        if mtype == "status" and msg["content"].get("execution_state") == "idle":
+            break
+        outputs.append(msg)
+    reply = mgr.get_shell_msg(timeout=30)
+    return outputs, reply
+
+
+def close_client(kc):
     try:
         mgr = kc._manager.client
-        msg_id = mgr.execute(code, allow_stdin=False)
-        outputs = []
-        deadline = time.monotonic() + timeout
-        while True:
-            left = deadline - time.monotonic()
-            if left <= 0:
-                raise TimeoutError("khong co message nao tu kernel qua timeout")
-            try:
-                msg = mgr.get_iopub_msg(timeout=min(1.0, left))
-            except queue.Empty:
-                continue
-            if msg["parent_header"].get("msg_id") != msg_id:
-                continue
-            mtype = msg["header"]["msg_type"]
-            if mtype == "status" and msg["content"].get("execution_state") == "idle":
-                break
-            outputs.append(msg)
-        reply = mgr.get_shell_msg(timeout=30)
-        return outputs, reply
-    finally:
-        try:
-            mgr.stop_channels()
-            if mgr.kernel_socket:
-                mgr.kernel_socket.close()
-        except Exception:
-            pass
+        mgr.stop_channels()
+        if mgr.kernel_socket:
+            mgr.kernel_socket.close()
+    except Exception:
+        pass
 
 
 def outputs_to_text(outputs):
@@ -504,6 +507,7 @@ def cmd_run(args):
     # Moi thu sau assign() deu nam trong try/finally: crash o bat ky cho
     # nao cung tat may, khong de runtime mo coi chiem slot (free chi 1 may).
     endpoint = name = url = token = None
+    kc = None
     ok = True
     result = {"ok": False, "accelerator": res.get("accelerator"), "cells": []}
     try:
@@ -517,6 +521,8 @@ def cmd_run(args):
         sessions[name] = {"endpoint": endpoint, "url": url, "token": token,
                           "accelerator": res.get("accelerator")}
         _save_sessions(sessions)
+        # 1 kernel duy nhat cho ca file (bien cell truoc ton tai o cell sau).
+        kc = _kernel_client(url, token)
         if args.file.endswith(".ipynb"):
             import nbformat
 
@@ -532,8 +538,7 @@ def cmd_run(args):
                                            "output": "", "error": ""})
                     continue
                 print(f"[cell {i}] running...", file=sys.stderr)
-                outputs, reply = execute_code(url, token, src,
-                                              timeout=args.timeout)
+                outputs, reply = execute_code(kc, src, timeout=args.timeout)
                 text = outputs_to_text(outputs)
                 err = ""
                 if reply.get("content", {}).get("status") == "error":
@@ -545,8 +550,7 @@ def cmd_run(args):
         else:
             with open(args.file) as f:
                 code = f.read()
-            outputs, reply = execute_code(url, token, code,
-                                          timeout=args.timeout)
+            outputs, reply = execute_code(kc, code, timeout=args.timeout)
             text = outputs_to_text(outputs)
             if reply.get("content", {}).get("status") == "error":
                 ok = False
@@ -558,6 +562,8 @@ def cmd_run(args):
         print(f"error: {e}", file=sys.stderr)
         ok = False
     finally:
+        if kc is not None:
+            close_client(kc)
         if args.out:
             with open(args.out, "w") as f:
                 json.dump(result, f, ensure_ascii=False, indent=2)
