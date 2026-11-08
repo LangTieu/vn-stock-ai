@@ -1,8 +1,9 @@
 """VN Stock AI — Space demo (ZeroGPU).
 
-Ban demo dung model Qwen2.5-7B-Instruct 4-bit (Chot 16:39 08/11: len 7B luon,
-bo buoc 1.5B) + skill phan tich CK VN lam prompt. Muc dich: chung minh duong
-host ZeroGPU chay duoc. Khi co adapter LoRA (buoc P2) se nap them adapter vao day.
+Ban demo dung model Qwen2.5-14B-Instruct 4-bit (Chot 19:20 08/11: dung o 14B,
+tran tren T4 free; 32B khong chay duoc) + skill phan tich CK VN lam prompt.
+Muc dich: chung minh duong host ZeroGPU chay duoc. Khi co adapter LoRA
+(buoc P2) se nap them adapter vao day.
 
 ZeroGPU: GPU chi duoc cap trong luc ham @spaces.GPU chay (free 5 phut/ngay).
 Model cache o CPU (global), moi lan bam nut thi chuyen len GPU, sinh xong
@@ -14,7 +15,7 @@ import torch
 import gradio as gr
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_ID = "Qwen/Qwen2.5-14B-Instruct"
 
 SYSTEM_PROMPT = (
     "Ban la chuyen gia phan tich chung khoan Viet Nam. Tra loi bang tieng Viet, "
@@ -88,7 +89,7 @@ def analyze(ticker: str, data: str) -> str:
 with gr.Blocks(title="VN Stock AI — Demo") as demo:
     gr.Markdown(
         "# VN Stock AI — Demo\n"
-        "Ban demo chay model Qwen2.5-7B (4-bit) **chua fine-tune**, chi de thu ha tang "
+        "Ban demo chay model Qwen2.5-14B (4-bit) **chua fine-tune**, chi de thu ha tang "
         "ZeroGPU. Ket qua chua dung de dau tu."
     )
     ticker = gr.Textbox(label="Ma co phieu", value=DEFAULT_TICKER)
