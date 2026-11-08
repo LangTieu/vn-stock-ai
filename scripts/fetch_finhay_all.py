@@ -28,8 +28,12 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
-FROM_TS = int(datetime(2025, 1, 1, tzinfo=timezone.utc).timestamp())
+FROM_TS = int(datetime(2014, 1, 1, tzinfo=timezone.utc).timestamp())
 TO_TS = int(datetime(2026, 11, 8, tzinfo=timezone.utc).timestamp())
+# LUU Y: Finhay chi co du lieu tu 2017-01-03 (do that VCB: 2456 dong, som nhat
+# 2017-01-03). 2014-2016 lay them tu finfo (VNDirect) roi gop — xem
+# scripts/fetch_finfo_backfill_1416.py. FROM=2014 de ro y dinh; Finhay tu
+# tra ve tu 2017.
 ENV_PATH = os.path.expanduser("~/.finhay/credentials/.env")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASETS_DIR = os.path.join(BASE_DIR, "..", "datasets")
@@ -126,7 +130,8 @@ def combine():
             if os.path.exists(p):
                 tick[sym] = json.load(open(p))
         out = {"source": "finhay-fhsc-openapi", "universe": "ALL-MARKET",
-               "floor": fl, "from": "2025-01-01", "to": "2026-11-08",
+               "floor": fl, "from": "2014-01-01 (finhay tu 2017-01-03)",
+               "to": "2026-11-08",
                "fetched_at": fetched_at, "tickers": tick, "ok": len(tick)}
         path = os.path.join(DATASETS_DIR, f"finhay_train_{fl}.json")
         with open(path, "w") as f:
