@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run notebook on Colab
         run: |
-          python3 scripts/colab_driver.py "${{ inputs.notebook_url }}" colab_result.json "${{ inputs.timeout }}"
+          python3 scripts/colabctl.py run "${{ inputs.notebook_url }}" --timeout "${{ inputs.timeout }}" --out colab_result.json
       - name: Show result
         if: always()
         run: |
