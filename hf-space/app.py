@@ -1,8 +1,8 @@
 """VN Stock AI — Space demo (ZeroGPU).
 
-Ban demo dung model goc Qwen2.5-1.5B-Instruct (CHUA fine-tune) + skill
-phan tich CK VN lam prompt. Muc dich: chung minh duong host ZeroGPU chay
-duoc. Khi co adapter LoRA (buoc P2) se nap them adapter vao day.
+Ban demo dung model Qwen2.5-7B-Instruct 4-bit (Chot 16:39 08/11: len 7B luon,
+bo buoc 1.5B) + skill phan tich CK VN lam prompt. Muc dich: chung minh duong
+host ZeroGPU chay duoc. Khi co adapter LoRA (buoc P2) se nap them adapter vao day.
 
 ZeroGPU: GPU chi duoc cap trong luc ham @spaces.GPU chay (free 5 phut/ngay).
 Model cache o CPU (global), moi lan bam nut thi chuyen len GPU, sinh xong
@@ -12,9 +12,9 @@ chuyen ve CPU de giai phong GPU.
 import spaces
 import torch
 import gradio as gr
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 
 SYSTEM_PROMPT = (
     "Ban la chuyen gia phan tich chung khoan Viet Nam. Tra loi bang tieng Viet, "
@@ -45,8 +45,14 @@ def _load_model_cpu():
     global _model, _tokenizer
     if _model is None:
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+        bnb = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.float16,
+        )
         _model = AutoModelForCausalLM.from_pretrained(
-            MODEL_ID, torch_dtype=torch.float16
+            MODEL_ID, quantization_config=bnb
         )
     return _model, _tokenizer
 
@@ -82,7 +88,7 @@ def analyze(ticker: str, data: str) -> str:
 with gr.Blocks(title="VN Stock AI — Demo") as demo:
     gr.Markdown(
         "# VN Stock AI — Demo\n"
-        "Ban demo chay model goc Qwen2.5-1.5B **chua fine-tune**, chi de thu ha tang "
+        "Ban demo chay model Qwen2.5-7B (4-bit) **chua fine-tune**, chi de thu ha tang "
         "ZeroGPU. Ket qua chua dung de dau tu."
     )
     ticker = gr.Textbox(label="Ma co phieu", value=DEFAULT_TICKER)
