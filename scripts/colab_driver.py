@@ -12,6 +12,7 @@ to the result path. Read it back with: ibctl exec <machine> --cmd "cat <path>"
 """
 import json
 import os
+import pwd
 import subprocess
 import sys
 import time
@@ -19,7 +20,9 @@ import urllib.request
 
 import websocket
 
-PROFILE = os.path.expanduser("~/.config/chromium")
+# Home that: passwd entry, NOT $HOME — ibctl exec sets HOME=/home/hatch
+# while the real home (and the desktop Chromium profile) is /data/home.
+PROFILE = os.path.join(pwd.getpwuid(os.getuid()).pw_dir, ".config/chromium")
 PORT = 9333  # 9222 is taken by ZCode's Electron DevTools on this machine
 
 
