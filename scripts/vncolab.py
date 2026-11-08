@@ -254,7 +254,7 @@ class Client:
         if body.startswith(")]}'\n"):
             body = body[5:]
         data = json.loads(body) if body.strip() else {}
-        if "endpoint" in data and "runtime_proxy_info" in data:
+        if "endpoint" in data and "runtimeProxyInfo" in data:
             return data
         token = data.get("token")
         if not token:
@@ -422,17 +422,26 @@ def cmd_new(args):
     client = Client(authorized_session())
     res = client.assign(accelerator=args.gpu or None,
                         variant=_variant_for(args.gpu) if args.gpu else None)
-    name = args.name or ("s-" + uuid.uuid4().hex[:6])
-    sessions = _load_sessions()
-    sessions[name] = {"endpoint": res["endpoint"],
-                      "url": res["runtime_proxy_info"]["url"],
-                      "token": res["runtime_proxy_info"]["token"],
-                      "accelerator": res.get("accelerator")}
-    _save_sessions(sessions)
+    try:
+        rpi = res["runtimeProxyInfo"]
+        name = args.name or ("s-" + uuid.uuid4().hex[:6])
+        sessions = _load_sessions()
+        sessions[name] = {"endpoint": res["endpoint"],
+                          "url": rpi["url"],
+                          "token": rpi["token"],
+                          "accelerator": res.get("accelerator")}
+        _save_sessions(sessions)
+    except Exception:
+        # Phan hoi lac: may da cap nhung khong luu duoc session -> tat ngay.
+        try:
+            client.unassign(res["endpoint"])
+        except Exception:
+            pass
+        raise
     print(f"session: {name}")
     print(f"endpoint: {res['endpoint']}")
     print(f"accelerator: {res.get('accelerator')}")
-    print(f"proxy: {res['runtime_proxy_info']['url']}")
+    print(f"proxy: {res['runtimeProxyInfo']['url']}")
     return 0
 
 
@@ -477,18 +486,22 @@ def cmd_run(args):
     accel = args.gpu or None
     res = client.assign(accelerator=accel,
                         variant=_variant_for(accel) if accel else None)
-    url = res["runtime_proxy_info"]["url"]
-    token = res["runtime_proxy_info"]["token"]
-    endpoint = res["endpoint"]
-    print(f"runtime: {res.get('accelerator')} endpoint={endpoint}", file=sys.stderr)
-    name = "run-" + uuid.uuid4().hex[:6]
-    sessions = _load_sessions()
-    sessions[name] = {"endpoint": endpoint, "url": url, "token": token,
-                      "accelerator": res.get("accelerator")}
-    _save_sessions(sessions)
+    # Moi thu sau assign() deu nam trong try/finally: crash o bat ky cho
+    # nao cung tat may, khong de runtime mo coi chiem slot (free chi 1 may).
+    endpoint = name = url = token = None
     ok = True
     result = {"ok": False, "accelerator": res.get("accelerator"), "cells": []}
     try:
+        url = res["runtimeProxyInfo"]["url"]
+        token = res["runtimeProxyInfo"]["token"]
+        endpoint = res["endpoint"]
+        print(f"runtime: {res.get('accelerator')} endpoint={endpoint}",
+              file=sys.stderr)
+        name = "run-" + uuid.uuid4().hex[:6]
+        sessions = _load_sessions()
+        sessions[name] = {"endpoint": endpoint, "url": url, "token": token,
+                          "accelerator": res.get("accelerator")}
+        _save_sessions(sessions)
         if args.file.endswith(".ipynb"):
             import nbformat
 
@@ -533,14 +546,15 @@ def cmd_run(args):
         if args.out:
             with open(args.out, "w") as f:
                 json.dump(result, f, ensure_ascii=False, indent=2)
-        if not args.keep:
+        if not args.keep and endpoint:
             try:
                 client.unassign(endpoint)
                 print(f"stopped {endpoint}", file=sys.stderr)
             except Exception as e:  # noqa: BLE001 — may da tat hoac loi mang
                 print(f"khong tat duoc runtime: {e}", file=sys.stderr)
             sessions = _load_sessions()
-            sessions.pop(name, None)
+            if name:
+                sessions.pop(name, None)
             _save_sessions(sessions)
     return 0 if ok else 1
 
