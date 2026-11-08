@@ -296,6 +296,11 @@ class Client:
 
 # ---------------------------------------------------------------- runtime
 def _kernel_client(url, token):
+    """Noi WebSocket toi kernel cua runtime. Runtime moi cap can vai giay
+    moi san sang nen thu lai 3 lan (giong CLI chinh thuc) khi ket noi
+    timeout — lan dau thuong rot (ReadTimeout 10s) vi kernel chua len."""
+    import requests as _rq
+
     import jupyter_kernel_client
 
     if hasattr(jupyter_kernel_client, "ColabKernelClient"):
@@ -304,18 +309,28 @@ def _kernel_client(url, token):
         cls, kw = jupyter_kernel_client.KernelClient, "token"
     else:
         cls, kw = jupyter_kernel_client.JupyterKernelClient, "token"
-    client = cls(
-        server_url=url, **{kw: token},
-        client_kwargs={
-            "subprotocol": jupyter_kernel_client.JupyterSubprotocol.DEFAULT,
-            "extra_params": {"colab-runtime-proxy-token": token},
-        },
-        headers={"X-Colab-Client-Agent": "vncolab",
-                 "X-Colab-Runtime-Proxy-Token": token},
-    )
-    client._own_kernel = False
-    client.start()
-    return client
+    last_err = None
+    for attempt in range(3):
+        try:
+            client = cls(
+                server_url=url, **{kw: token},
+                client_kwargs={
+                    "subprotocol": jupyter_kernel_client.JupyterSubprotocol.DEFAULT,
+                    "extra_params": {"colab-runtime-proxy-token": token},
+                },
+                headers={"X-Colab-Client-Agent": "vncolab",
+                         "X-Colab-Runtime-Proxy-Token": token},
+            )
+            client._own_kernel = False
+            client.start()
+            return client
+        except (_rq.exceptions.ReadTimeout, _rq.exceptions.ConnectTimeout) as e:
+            last_err = e
+            if attempt < 2:
+                time.sleep(2 ** (attempt + 1))
+                continue
+            raise last_err
+    raise last_err
 
 
 def execute_code(url, token, code, timeout=1800):
