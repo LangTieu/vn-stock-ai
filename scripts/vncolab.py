@@ -103,10 +103,11 @@ def _make_flow():
 
 def cmd_auth_url(args):
     flow = _make_flow()
-    auth_url, _ = flow.authorization_url(
+    # authorization_url() TRA VE (url, state) — state khong nam tren flow.
+    auth_url, state = flow.authorization_url(
         prompt="consent", token_usage="remote", access_type="offline")
     _save_0600(_flow_path(), {
-        "state": flow.state,
+        "state": state,
         "code_verifier": getattr(flow, "code_verifier", None),
     })
     print(auth_url)
