@@ -1,5 +1,34 @@
 const rateMap = new Map();
 
+// Lay danh sach LiteLLM host tu env LITELLM_URLS (cach nhau bang dau phay).
+// Vi du: "https://lv1.example.com,https://lv2.example.com,https://m1.example.com"
+// Tuong thich nguoc: neu chi co LITELLM_URL (1 host) thi dung no.
+function upstreamUrls(env) {
+  const raw = env.LITELLM_URLS || env.LITELLM_URL || '';
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Thu goi 1 host; tra Response neu duoc (ke ca 4xx tu LiteLLM — do la
+// loi cua request, khong phai host chet), null neu host khong tra loi
+// duoc (loi mang) hoac tra 5xx (host loi). Nguoi goi se thu host tiep.
+async function tryUpstream(base, body, masterKey) {
+  let resp;
+  try {
+    resp = await fetch(`${base}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${masterKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    return null;
+  }
+  if (resp.status >= 500) return null;
+  return resp;
+}
+
 export default {
   async fetch(request, env) {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -18,7 +47,7 @@ export default {
     const path = url.pathname;
 
     if (request.method === 'GET' && path === '/health') {
-      const resp = new Response(JSON.stringify({ok: true}), {status: 200, headers: {'Content-Type': 'application/json'}});
+      const resp = new Response(JSON.stringify({ok: true, upstreams: upstreamUrls(env).length}), {status: 200, headers: {'Content-Type': 'application/json'}});
       console.log('GET', path, 200);
       return resp;
     }
@@ -48,19 +77,22 @@ export default {
 
       body.model = 'vn-stock';
 
-      const upstreamUrl = `${env.LITELLM_URL}/v1/chat/completions`;
-      const upstreamHeaders = new Headers();
-      upstreamHeaders.set('Authorization', `Bearer ${env.LITELLM_MASTER_KEY}`);
-      upstreamHeaders.set('Content-Type', 'application/json');
+      const hosts = upstreamUrls(env);
+      if (hosts.length === 0) {
+        const resp = new Response(JSON.stringify({error: 'no upstream configured'}), {status: 502, headers: {'Content-Type': 'application/json'}});
+        console.log('POST', path, 502);
+        return resp;
+      }
 
-      let upstreamResp;
-      try {
-        upstreamResp = await fetch(upstreamUrl, {
-          method: 'POST',
-          headers: upstreamHeaders,
-          body: JSON.stringify(body)
-        });
-      } catch {
+      // Thu lan luot tung host; host nao tra loi duoc (ke ca 4xx) thi dung.
+      let upstreamResp = null;
+      let usedHost = '';
+      for (const base of hosts) {
+        upstreamResp = await tryUpstream(base, body, env.LITELLM_MASTER_KEY);
+        if (upstreamResp) { usedHost = base; break; }
+        console.log('POST', path, 'upstream failover, host khong tra loi:', base);
+      }
+      if (!upstreamResp) {
         const resp = new Response(JSON.stringify({error: 'upstream unavailable'}), {status: 502, headers: {'Content-Type': 'application/json'}});
         console.log('POST', path, 502);
         return resp;
@@ -69,7 +101,7 @@ export default {
       const contentType = upstreamResp.headers.get('content-type') || 'application/json';
       const headers = new Headers();
       headers.set('Content-Type', contentType);
-      console.log('POST', path, upstreamResp.status);
+      console.log('POST', path, upstreamResp.status, 'via', usedHost);
       return new Response(upstreamResp.body, {status: upstreamResp.status, headers});
     }
 
