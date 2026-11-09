@@ -1,0 +1,8 @@
+name = "vn-stock-ai-gateway"
+main = "index.js"
+compatibility_date = "2026-11-09"
+
+# Secrets (KHONG ghi vao file nay — dat bang `wrangler secret put`):
+#   LITELLM_URL         — base URL cua LiteLLM Proxy (vd https://llm.example.com)
+#   GATEWAY_API_KEY     — key client phai gui (Authorization: Bearer ...)
+#   LITELLM_MASTER_KEY  — key gui len LiteLLM Proxy
