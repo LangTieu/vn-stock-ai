@@ -1,0 +1,68 @@
+# LiteLLM Proxy config — VN Stock AI (chay tren may, port 4001).
+# TACH RIENG khoi router coding (port 4000) de khong anh huong Qoder/Perch.
+# Chi dung model FREE da co key tren may: Cerebras + BeatAPI.
+# (Leg LLM7/Gemini/Radox/Workers AI trong plan can key rieng — chua co
+#  tren may; them vao day khi co key, theo mau ben duoi.)
+# Key doc tu bien moi truong (start.sh doc tu file 0600) — khong ghi
+#  key that vao file nay.
+model_list:
+  - model_name: vn-stock-cerebras
+    litellm_params:
+      model: openai/gpt-oss-120b
+      api_base: https://api.cerebras.ai/v1
+      api_key: os.environ/CEREBRAS_API_KEY
+      timeout: 60
+  - model_name: vn-stock-deepseek
+    litellm_params:
+      model: openai/deepseek-v4.1-flash-free
+      api_base: https://direct.beatapi.io/v1
+      api_key: os.environ/BEATAPI_API_KEY
+      timeout: 60
+  - model_name: vn-stock-glm
+    litellm_params:
+      model: openai/glm-5.3-flash-free
+      api_base: https://direct.beatapi.io/v1
+      api_key: os.environ/BEATAPI_API_KEY
+      timeout: 60
+  - model_name: vn-stock
+    litellm_params:
+      model: openai/gpt-oss-120b
+      api_base: https://api.cerebras.ai/v1
+      api_key: os.environ/CEREBRAS_API_KEY
+      timeout: 60
+
+# Khi co key, bo comment cac leg nay (them key vao start.sh):
+#  - model_name: vn-stock-llm7
+#    litellm_params:
+#      model: openai/gpt-oss:20b
+#      api_base: https://api.llm7.io/v1
+#      api_key: os.environ/LLM7_API_KEY
+#      timeout: 60
+#  - model_name: vn-stock-gemini
+#    litellm_params:
+#      model: gemini/gemini-3.5-flash-lite
+#      api_key: os.environ/GEMINI_API_KEY
+#      timeout: 60
+#  - model_name: vn-stock-radox
+#    litellm_params:
+#      model: openai/radox-default
+#      api_base: https://radoxai.com/v1
+#      api_key: os.environ/RADOX_API_KEY
+#      timeout: 60
+#  - model_name: vn-stock-workersai
+#    litellm_params:
+#      model: openai/@cf/openai/gpt-oss-120b
+#      api_base: https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/v1
+#      api_key: os.environ/CLOUDFLARE_API_TOKEN
+#      timeout: 60
+
+router_settings:
+  fallbacks:
+    - vn-stock: [vn-stock-cerebras, vn-stock-deepseek, vn-stock-glm]
+    - vn-stock-cerebras: [vn-stock-deepseek, vn-stock-glm]
+    - vn-stock-deepseek: [vn-stock-glm, vn-stock-cerebras]
+    - vn-stock-glm: [vn-stock-cerebras, vn-stock-deepseek]
+  num_retries: 0
+
+litellm_settings:
+  drop_params: true
