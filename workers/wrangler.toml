@@ -3,6 +3,9 @@ main = "index.js"
 compatibility_date = "2026-11-09"
 
 # Secrets (KHONG ghi vao file nay — dat bang `wrangler secret put`):
-#   LITELLM_URL         — base URL cua LiteLLM Proxy (vd https://llm.example.com)
+#   LITELLM_URLS        — danh sach LiteLLM host, cach nhau bang dau phay
+#                         (vd "https://lv1.example.com,https://lv2.example.com").
+#                         Workers thu lan luot; host chet thi chuyen host sau.
+#                         (Ten cu LITELLM_URL 1 host van dung duoc.)
 #   GATEWAY_API_KEY     — key client phai gui (Authorization: Bearer ...)
-#   LITELLM_MASTER_KEY  — key gui len LiteLLM Proxy
+#   LITELLM_MASTER_KEY  — key gui len LiteLLM Proxy (GIONG nhau tren moi host)
