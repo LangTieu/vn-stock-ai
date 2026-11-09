@@ -34,6 +34,9 @@ này, không được mắc lại các lỗi đó.
 - Hai khung cùng dương (vd PVT +280,5 tỷ cả năm, +27,7 tỷ 20 phiên) là
   tín hiệu mạnh. Đảo chiều (vd CTG cả năm −410,5 tỷ nhưng 20 phiên +193,6
   tỷ) là tín hiệu mạnh hơn — ghi rõ "đảo chiều thật".
+- **Định nghĩa bắt buộc (model từng đảo chiều):** "bán ròng" = KHỐI NGOẠI
+  BÁN (số âm, tin xấu), "mua ròng" = KHỐI NGOẠI MUA (số dương, tin tốt).
+  Không được đảo chiều hướng dòng tiền khi diễn giải.
 - Kinh doanh tốt mà bị rút tiền lớn (vd HDB bị rút −3.170 tỷ) thì phải hỏi
   "ai hiểu gì đó mà mình không thấy?" — không được bỏ qua.
 
