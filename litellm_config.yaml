@@ -1,0 +1,51 @@
+# LiteLLM Proxy config — VN Stock AI, P3 Gateway (Mode A: fallback chain).
+# Viet tay, nho. Moi provider 1 alias; client goi model "vn-stock",
+# LiteLLM tu fallback theo thu tu khi gap loi.
+# TAT CA key lay tu bien moi truong — khong ghi key that vao file.
+# (Ban nhap do Cerebras gpt-oss-120b viet; da sua: indentation api_key,
+#  dinh dang fallbacks, them fallback cho alias "vn-stock".)
+# Luu y: DeepSeek tren LLM7 la pro (tra phi), khong dung — leg LLM7 dung
+#  gpt-oss:20b (turbo/free). Radox model id la placeholder, server tu route.
+model_list:
+  - model_name: vn-stock-cerebras
+    litellm_params:
+      model: cerebras/gpt-oss-120b
+      api_base: https://api.cerebras.ai/v1
+      api_key: os.environ/CEREBRAS_API_KEY
+  - model_name: vn-stock-llm7
+    litellm_params:
+      model: openai/gpt-oss:20b
+      api_base: https://api.llm7.io/v1
+      api_key: os.environ/LLM7_API_KEY
+  - model_name: vn-stock-gemini
+    litellm_params:
+      model: gemini/gemini-3.5-flash-lite
+      api_key: os.environ/GEMINI_API_KEY
+  - model_name: vn-stock-radox
+    litellm_params:
+      model: openai/radox-default
+      api_base: https://radoxai.com/v1
+      api_key: os.environ/RADOX_API_KEY
+  - model_name: vn-stock-workersai
+    litellm_params:
+      model: openai/@cf/openai/gpt-oss-120b
+      api_base: https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/v1
+      api_key: os.environ/CLOUDFLARE_API_TOKEN
+  - model_name: vn-stock
+    litellm_params:
+      model: cerebras/gpt-oss-120b
+      api_base: https://api.cerebras.ai/v1
+      api_key: os.environ/CEREBRAS_API_KEY
+
+fallbacks:
+  - vn-stock: [vn-stock-cerebras, vn-stock-llm7, vn-stock-gemini, vn-stock-radox, vn-stock-workersai]
+  - vn-stock-cerebras: [vn-stock-llm7, vn-stock-gemini, vn-stock-radox, vn-stock-workersai]
+  - vn-stock-llm7: [vn-stock-gemini, vn-stock-radox, vn-stock-workersai]
+  - vn-stock-gemini: [vn-stock-radox, vn-stock-workersai]
+  - vn-stock-radox: [vn-stock-workersai]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  drop_params: true
