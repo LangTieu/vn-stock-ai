@@ -37,7 +37,7 @@ DESIRED_FALLBACK = [
 def main():
     import yaml
     d = sys.argv[1]
-    start_args = sys.argv[2:] or ["bash", os.path.join(d, "start.sh")]
+    start_args = sys.argv[2:] or ["bash", os.path.join(d, "start.sh"), d]
     cfg = os.path.join(d, "config.yaml")
     data = yaml.safe_load(open(cfg))
     models = {m["model_name"]: m for m in data.get("model_list", [])}
