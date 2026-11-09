@@ -1,6 +1,6 @@
 # VN Stock AI — Plan v0.4 (Model phân tích chứng khoán Việt Nam)
 
-Ngày: 2026-11-09 (cập nhật theo tình hình mới — dữ liệu train đủ, chỉ báo P1 xong, Perch lên 4 máy)
+Ngày: 2026-11-09
 Chat: side chat ac20b59f (chat riêng xây model AI)
 Trạng thái: **CHƯA CODE** cho các bước build (Henrry 20:23 07/11) — chỉ chuẩn bị + test. P0.0 xong (trừ test sinh 14B trên Space). Dữ liệu train thô ĐÃ ĐỦ. Model chính: Qwen2.5-14B-Instruct (Chốt 19:20 08/11).
 
@@ -34,7 +34,7 @@ Trạng thái: **CHƯA CODE** cho các bước build (Henrry 20:23 07/11) — ch
 - **P0.0 — Hạ tầng thử: XONG (trừ 1 test).** Space https://huggingface.co/spaces/Jerlob/vn-stock-ai (public, Gradio, zero-a10g) đã đổi sang 14B 4-bit 19:22 08/11, đang RUNNING; test sinh 14B trên Space kẹt quota ZeroGPU 08/11 (5 phút/ngày đã hết) — **test lại khi quota reset (09/11 trở đi)**. Notebook test VCB thật (dữ liệu 06/11, `datasets/vcb_test.json`) đã chạy trên Colab T4 cho 1.5B/7B/14B/32B: 14B tốt nhất; 32B không chạy được; 4-bit cho kết quả lệch giữa các lần chạy → eval phải chạy nhiều lần. Dữ liệu test + kết quả đã đẩy lên Drive.
 - **P0 — Skill-as-prompt (không train):** đóng gói skill thành system prompt + tool spec, chạy trên 14B, đo trên 20 mã đã có phân tích từ bot. 6 điểm: (1) khung prompt 3 lớp (wrapper + brief + bảng tóm tắt + language instruction); (2) luật pipeline-safe (số chỉ lấy từ khối dữ liệu đính kèm, không bịa, không tự tính); (3) verified snapshot làm source of truth (OHLCV + MA + RSI + MACD + khối ngoại/tự doanh, tính bằng Python); (4) signal-text block (mỗi chỉ báo 1 dòng `TÊN: TÍN HIỆU (giá trị + lý do)`); (5) output section cố định + trường máy-đọc-được (khuyến nghị + độ tin cậy + mã); (6) abstain + cache theo hash input (bắt buộc vì ZeroGPU 5 phút/ngày) + eval 2 lớp (rubric vs bài bot + hit-rate hướng vs VN-Index).
 - **P1 — Dataset: DỮ LIỆU THÔ ĐÃ ĐỦ (09/11), còn ráp dataset + mẫu CoT.**
-  - (a) Spec chỉ số: **module chỉ báo ĐÃ XONG** — `scripts/indicators.py` (port từ `signal_engine.py` của bot LightVela 1, đã backtest; RSI(14) Wilder, EMA, MACD 12/26/9, SMA, ATR(14), Bollinger 20/2σ, OBV + logic tín hiệu đáy/đỉnh + winrate; đã kiểm chứng trên VCB thật; commit 90a5836). Ichimoku + volume-surge + buy-pressure + sector-flow + HAR-RV chưa có trong module — bổ sung khi ráp dataset. **RSI đã xác minh: VCB tại 06/11 = 34,9 (Wilder chuẩn), KHÔNG phải 37,3 ghi trong vcb_test.json (số 37,3 chưa xác minh cách tính — bỏ).** VCB hiện deep_now=True (RSI<35), chờ MACD flip.
+  - (a) Spec chỉ số: **module chỉ báo ĐÃ XONG** — `scripts/indicators.py` (port từ `signal_engine.py` của bot LightVela 1, đã backtest; RSI(14) Wilder, EMA, MACD 12/26/9, SMA, ATR(14), Bollinger 20/2σ, OBV + logic tín hiệu đáy/đỉnh + winrate; đã kiểm chứng trên VCB thật; commit 90a5836). Ichimoku + volume-surge + buy-pressure + sector-flow + HAR-RV chưa có trong module — bổ sung khi ráp dataset. **RSI VCB tại 06/11 = 34,9 (Wilder chuẩn).** VCB hiện deep_now=True (RSI<35), chờ MACD flip.
   - (b) Dữ liệu thô: **ĐỦ 1.564 mã, 2014–2026, đã lên Drive.** Finhay (2017–2026: OHLCV + khối ngoại + tự doanh) 1.564/1.564 + finfo backfill (2014–2016: OHLCV) 1.564/1.564, gộp thành `datasets/train_2014_2026_<HOSE|HNX|UPCOM|OTC>.json` (0 mã thiếu; HOSE 154M, HNX 116M, UPCOM 251M, OTC nhỏ). Khối ngoại/tự doanh chỉ có từ 2017 (finfo không có). Script: `fetch_finhay_all.py`, `fetch_finfo_backfill_1416.py`, `merge_2014_2026.py`.
   - (c) Còn lại: schema FinGPT instruction/input/output, loss chỉ trên output; ~200 mẫu CoT viết tay tiếng Việt trước + bulk, hold-out tách theo thời gian; nguồn phụ Entrade/KBS/VPS/RSS (cần gọi thử live trước khi đưa vào). Không dùng vnstock (đã chết, proprietary).
   - (d) Vĩ mô: World Bank 2014–2025 đã lấy (CPI/GDP/lãi suất/M2, `datasets/macro_worldbank_2014.json`); USD/VND hằng ngày chạy cron 17:45 (`macro-tier1-daily-1745`, ghi `datasets/macro_daily.jsonl`). Treasury API bị chặn từ VM — cần FRED key hoặc đường máy cloud. FRED key vẫn chờ anh đăng ký.
@@ -58,7 +58,6 @@ Trạng thái: **CHƯA CODE** cho các bước build (Henrry 20:23 07/11) — ch
 - Gói 122k/tháng đăng ký bằng email nào (chưa trả lời).
 - FRED key (anh đăng ký tại fredaccount.stlouisfed.org, gửi qua form bảo mật) — mở Tier 2 vĩ mô (Fed funds, CPI Mỹ, DGS10) + lịch sử USD/VND.
 - Verify live trước khi Chốt các bước liên quan: Radox api_base + model id; endpoint Entrade/VPS/KBS; per-key RPM/TPM LiteLLM; free tier Cerebras/Radox tại thời điểm build P3.
-- ~~RSI(14) 37,3 trong vcb_test.json~~ — **ĐÃ XÁC MINH 09/11: Wilder chuẩn cho 34,9; số 37,3 chưa xác minh cách tính, bỏ.**
 
 ## 8. Giấy phép (đọc từ file thật trong clone 18 repo)
 - Dùng được (giữ notice): FinGPT/AlphaFin/PIXIU/FinMem/litellm-free-models/freelm/lotusmarket/ai-hedge-fund MIT; TradingAgents/FinRobot/colabsh Apache-2.0. LiteLLM là MIT (metadata GitHub NOASSERTION sai) — không đụng `litellm/enterprise/` (thương mại).
@@ -68,11 +67,3 @@ Trạng thái: **CHƯA CODE** cho các bước build (Henrry 20:23 07/11) — ch
 - Không train lại model lớn, không đụng production stock.
 - Không ghi token/key vào chat/file/log (trừ cách anh tự chọn: paste 1 lần dùng 1 lần rồi bỏ).
 - Không premium-gate: tính năng mới free hết.
-
-## 10. Thay đổi v0.3 → v0.4 (09/11)
-- Dữ liệu train thô ĐỦ: Finhay 1.564/1.564 (2017–2026) + finfo 1.564/1.564 (2014–2016) → gộp `train_2014_2026_*.json`, đã lên Drive.
-- Module chỉ báo P1 xong: `scripts/indicators.py` (port signal_engine bot, đã kiểm chứng VCB).
-- RSI xác minh: 34,9 (Wilder), bỏ số 37,3 chưa xác minh.
-- Vĩ mô: World Bank 2014–2025 xong; cron USD/VND 17:45 chạy; FRED key vẫn chờ.
-- Perch lên 4 máy InstaBox + LightVela 1; làm rõ token 1 giờ + tự refresh.
-- Đánh giá skill/code bot xong (`bot-lightvela1/EVALUATION.md`); `backtest_full.py` chết, không dùng.
