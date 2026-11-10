@@ -25,6 +25,17 @@ Quy tac:
   (vd STATE.md chua "ALL DONE"). Thoat 0 ma khong co marker = Qoder dung
   giua chung (gap 10/11: GLM Router dinh 429 1 req/phut, model tra end_turn
   rong, Qoder thoat 0 trong khi chua lam gi) -> resume model tiep theo.
+- NGOAI LE — DATA PROVIDER CHET (11/11): Qoder thoat 0, thieu marker, NHUNG
+  output/STATE.md co dau hieu provider chet (Finhay RemoteDisconnected /
+  ConnectionError / Connection reset, nmquan 403 / Forbidden / rate-limit)
+  thi KHONG doi model — thoat 3, de sync 5 phut relaunch sau (doi model vo
+  ich vi moi model deu gap cung provider chet; gap 11/11: wrapper dot 9 model
+  trong ~15 phut vi Finhay RemoteDisconnected + nmquan 403).
+- BLOCKED LA TERMINAL (11/11): done-file chua "BLOCKED" thi dung ngay (thoat
+  4), khong doi model, khong doi Qoder thoat — sync se doc STATE.md + bao cao.
+- PAT TU NAP (11/11): neu QODER_PERSONAL_ACCESS_TOKEN chua co trong env thi
+  wrapper tu doc <config-dir>/.pat (IB3/IB4) va export — khong phu thuoc vao
+  export ngoai nua. Khong co .pat (vd IB2) thi chay nhu cu.
 - Khong bao gio ghi gia tri key/token vao log.
 - Session UUID tim o ca projects/<slug>/*.jsonl (transcript, dang tin nhat)
   lan sites/sessions/*.json; loi quota quet ca stdout log lan file JSONL
@@ -77,6 +88,29 @@ QUOTA_PATTERNS = [
 ]
 QUOTA_RE = re.compile("|".join(QUOTA_PATTERNS), re.IGNORECASE)
 MESSAGE_FIELDS = {"message", "error", "text"}
+
+# Pattern nhan biet DATA PROVIDER chet (khong phai model chet) — 11/11.
+# Khi Qoder thoat 0 nhung khong co ALL DONE va output/STATE.md co dau hieu
+# nay, doi model vo ich (moi model deu gap cung provider chet) -> dung lai,
+# de sync relaunch sau (exit 3). Khong dung cho truong hop quota/rate-limit
+# cua MODEL (router tra 429/402 — do la loi model, van doi model).
+# - Finhay: RemoteDisconnected / ConnectionError / Connection reset.
+# - nmquan: 403 / Forbidden / rate-limit (kem ten provider de tranh nham
+#   voi 429/rate-limit cua model).
+PROVIDER_DOWN_STRONG = [
+    "remotedisconnected",   # Finhay: http.client.RemoteDisconnected
+    "connectionerror",      # requests/urllib3 ConnectionError (fetch that bai)
+    "connection reset",     # Finhay/network
+    "connection refused",   # network (provider down)
+    "connection aborted",   # network
+]
+PROVIDER_DOWN_PROVIDERS = ["finhay", "nmquan"]
+PROVIDER_DOWN_ERRORS = [
+    "403", "forbidden", "rate limit", "rate-limit", "too many requests",
+]
+BLOCKED_MARKER = "BLOCKED"
+EXIT_PROVIDER_DOWN = 3
+EXIT_BLOCKED = 4
 
 
 def log(msg, logf):
@@ -259,6 +293,54 @@ def done_marker_ok(done_file, done_text):
         return False
 
 
+def blocked_marker_present(done_file):
+    """True neu done-file chua chuoi BLOCKED (Qoder ket luan khong lam duoc).
+
+    BLOCKED la terminal: wrapper dung ngay, khong doi model nua (tranh dot
+    model vo ich nhu truoc 11/11 — sync se doc STATE.md + bao cao + go cron).
+    """
+    if not done_file:
+        return False
+    try:
+        with open(done_file, "r", errors="replace") as f:
+            return BLOCKED_MARKER in f.read()
+    except OSError:
+        return False
+
+
+def provider_down_signal(stdout_path, done_file):
+    """True neu stdout cua Qoder HOAC done-file co dau hieu DATA PROVIDER chet.
+
+    Quet TOAN BO file (khong dung offset tang dan) vi tin hieu co the xuat
+    hien bat ky luc nao trong luot chay (vd Qoder audit dau luot roi thoat).
+    Chi goi khi Qoder da thoat 0 nhung thieu done marker — luc do neu co tin
+    hieu nay thi nguyen nhan dung la provider chet, khong phai model yeu.
+    """
+    texts = []
+    try:
+        with open(stdout_path, "r", errors="replace") as f:
+            texts.append(f.read())
+    except OSError:
+        pass
+    if done_file:
+        try:
+            with open(done_file, "r", errors="replace") as f:
+                texts.append(f.read())
+        except OSError:
+            pass
+    for text in texts:
+        low = text.lower()
+        for sig in PROVIDER_DOWN_STRONG:
+            if sig in low:
+                return True
+        for prov in PROVIDER_DOWN_PROVIDERS:
+            if prov in low:
+                for err in PROVIDER_DOWN_ERRORS:
+                    if err in low:
+                        return True
+    return False
+
+
 def no_progress_elapsed(last_progress_ts, now, window_minutes):
     """True when no tracked progress signal advanced for the whole window."""
     return now - last_progress_ts >= window_minutes * 60
@@ -310,6 +392,21 @@ def main():
     logf = args.log_file
     os.makedirs(os.path.dirname(logf) or ".", exist_ok=True)
     log("autoswitch bat dau: %d model, workdir=%s" % (len(models), args.workdir), logf)
+
+    # Tu nap QODER_PERSONAL_ACCESS_TOKEN tu <config-dir>/.pat (IB3/IB4) neu
+    # chua co trong env — wrapper khong phu thuoc vao export ngoai nua.
+    # Khong co .pat (vd IB2 chay khong can PAT) thi bo qua, chay nhu cu.
+    # KHONG BAO GIO ghi gia tri token vao log.
+    if not os.environ.get("QODER_PERSONAL_ACCESS_TOKEN"):
+        pat_path = os.path.join(args.config_dir, ".pat")
+        try:
+            with open(pat_path, "r") as f:
+                token = f.read().strip()
+            if token:
+                os.environ["QODER_PERSONAL_ACCESS_TOKEN"] = token
+                log("da nap QODER_PERSONAL_ACCESS_TOKEN tu %s" % pat_path, logf)
+        except OSError:
+            pass
 
     switches = 0
     idx = 0
@@ -419,6 +516,18 @@ def main():
                     stall_since = time.time()
 
         if rc is None:
+            # BLOCKED la terminal — Qoder viet BLOCKED vao done-file thi dung
+            # ngay, khong doi Qoder thoat hay doi model (tranh dot model).
+            if blocked_marker_present(args.done_file):
+                log("done-file chua BLOCKED — dung ngay, khong doi model", logf)
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=30)
+                try:
+                    log_handle.close()
+                except Exception:
+                    pass
+                return EXIT_BLOCKED
             now = time.time()
             progress = False
             if args.done_file:
@@ -459,11 +568,24 @@ def main():
             log_handle.close()
         except Exception:
             pass
+        # BLOCKED la terminal — dung ngay du Qoder thoat kieu gi.
+        if blocked_marker_present(args.done_file):
+            log("done-file chua BLOCKED — dung ngay, khong doi model", logf)
+            return EXIT_BLOCKED
         if rc == 0:
             if done_marker_ok(args.done_file, args.done_text):
                 log("Qoder thoat 0 + marker '%s' co trong %s — XONG VIEC (model '%s')"
                     % (args.done_text, args.done_file, models[idx]), logf)
                 return 0
+            # Thoat 0 nhung thieu marker: co the la model yeu (doi model)
+            # HOAC DATA PROVIDER chet (dung lai, de sync relaunch sau —
+            # doi model vo ich vi moi model deu gap cung provider chet).
+            if provider_down_signal(stdout_path, args.done_file):
+                log("Qoder thoat 0, thieu marker '%s', NHUNG output/STATE.md "
+                    "co dau hieu DATA PROVIDER chet (Finhay/nmquan) — DUNG "
+                    "LAI, khong doi model; sync se relaunch sau"
+                    % args.done_text, logf)
+                return EXIT_PROVIDER_DOWN
             log("Qoder thoat 0 NHUNG khong co marker '%s' trong %s — coi nhu "
                 "chua xong, doi model" % (args.done_text, args.done_file), logf)
             rc = -98  # dung giua chung
