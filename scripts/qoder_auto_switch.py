@@ -251,7 +251,7 @@ def done_marker_ok(done_file, done_text):
         return True  # khong yeu cau marker -> tin exit 0 nhu cu
     try:
         with open(done_file, "r", errors="replace") as f:
-            return done_text in f.read()
+            return any(line.strip() == done_text.strip() for line in f.read().splitlines())
     except OSError:
         return False
 
