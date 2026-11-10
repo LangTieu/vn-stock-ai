@@ -1,0 +1,500 @@
+{
+  "eval_type": "retryable",
+  "cutoff": "2026-04-07",
+  "horizon_sessions": 20,
+  "index_outcome": {
+    "entry_date": "2026-04-07",
+    "exit_date": "2026-05-08",
+    "entry_close": 1677.54,
+    "exit_close": 1915.37,
+    "return_pct": 14.177307,
+    "direction": "UP"
+  },
+  "index_direction_hit_rate": 0.0,
+  "index_direction_predictions_n": 7,
+  "stock_direction_hit_rate": 0.2857142857142857,
+  "stock_direction_predictions_n": 7,
+  "direction_coverage": {
+    "directional_n": 7,
+    "unknown_n": 53,
+    "total_n": 60,
+    "directional_fraction": 0.11666666666666667
+  },
+  "recommendation_counts": {
+    "BUY": 0,
+    "WAIT": 0,
+    "REDUCE": 0,
+    "ABSTAIN": 60
+  },
+  "rubric_mean": 10.0,
+  "rubric_max": 10,
+  "rubric_method": "Automated heuristic checks; not human adjudication or comparison to absent bot-analysis prose",
+  "symbols_evaluated": [
+    "HDB",
+    "VHM",
+    "CTG",
+    "ACB",
+    "STB",
+    "MBB",
+    "HCM",
+    "VCB",
+    "MWG",
+    "FRT",
+    "PVT",
+    "HPG",
+    "HVN",
+    "VCI",
+    "TCB",
+    "KDH",
+    "NVL",
+    "BID",
+    "VPB",
+    "VJC"
+  ],
+  "symbols_with_model_output": [
+    "HDB",
+    "VHM",
+    "CTG",
+    "ACB",
+    "STB",
+    "MBB",
+    "HCM",
+    "VCB",
+    "MWG",
+    "FRT",
+    "PVT",
+    "HPG",
+    "HVN",
+    "VCI",
+    "TCB",
+    "KDH",
+    "NVL",
+    "BID",
+    "VPB",
+    "VJC"
+  ],
+  "per_ticker": [
+    {
+      "ticker": "HDB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 8.959089,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "VHM",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 42.622359,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "CTG",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 7.411871,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "ACB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "DOWN",
+      "stock_return_20_pct": -1.50075,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "STB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 19.124797,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "MBB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 2.146341,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "HCM",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 15.255858,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "VCB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 4.659249,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "MWG",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 8.470775,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "DOWN",
+        "DOWN",
+        "DOWN"
+      ],
+      "outputs": [
+        "DOWN",
+        "DOWN",
+        "DOWN"
+      ]
+    },
+    {
+      "ticker": "FRT",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "DOWN",
+      "stock_return_20_pct": -3.00604,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "DOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "PVT",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 5.736842,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "DOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "DOWN"
+      ]
+    },
+    {
+      "ticker": "HPG",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 3.886335,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "HVN",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 3.971963,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "VCI",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "DOWN",
+      "stock_return_20_pct": -4.595588,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "TCB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 17.929562,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "KDH",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "DOWN",
+      "stock_return_20_pct": -2.991641,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "NVL",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 16.593245,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "BID",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 7.626886,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "VPB",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 7.287051,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "ticker": "VJC",
+      "repeat_count": 3,
+      "model_runs": [
+        "gpt-6-sol"
+      ],
+      "mean_rubric": 10.0,
+      "stock_direction_20": "UP",
+      "stock_return_20_pct": 7.768766,
+      "vnindex_direction_20": "UP",
+      "predicted_directions": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "outputs": [
+        "UNKNOWN",
+        "UNKNOWN",
+        "UNKNOWN"
+      ]
+    }
+  ],
+  "outputs_recorded": 60,
+  "generated_at": "2026-11-10T08:19:22.660667+00:00"
+}
