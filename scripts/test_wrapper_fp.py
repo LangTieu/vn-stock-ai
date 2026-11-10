@@ -36,7 +36,30 @@ def main():
         print("c PASS")
 
 
+def test_done_marker():
+    cases = [
+        ("guard sentence", "Do not mark ALL DONE until all 1,564 tickers have been attempted and outputs are verified.\n", "ALL DONE", False),
+        ("bare marker", "Status: complete\nALL DONE\n", "ALL DONE", True),
+        ("surrounding whitespace", "  ALL DONE  \n", "ALL DONE", True),
+        ("no marker", "Status: IN PROGRESS\n", "ALL DONE", False),
+        ("marker argument whitespace", "ALL DONE\n", "  ALL DONE  ", True),
+    ]
+    with tempfile.TemporaryDirectory() as root:
+        done_path = os.path.join(root, "done.txt")
+        for name, content, done_text, expected in cases:
+            with open(done_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            assert wrapper.done_marker_ok(done_path, done_text) is expected, name
+            print(f"done marker {name} PASS")
+        missing_path = os.path.join(root, "missing.txt")
+        assert wrapper.done_marker_ok(missing_path, "ALL DONE") is False
+        print("done marker missing file PASS")
+        assert wrapper.done_marker_ok(None, "ALL DONE") is True
+        assert wrapper.done_marker_ok(missing_path, "") is True
+        print("done marker optional arguments PASS")
+
 
 if __name__ == "__main__":
     main()
+    test_done_marker()
     sys.exit(0)
