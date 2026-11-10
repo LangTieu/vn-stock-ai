@@ -21,6 +21,9 @@ async function tryUpstream(base, body, masterKey) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      // Host treo (khong tra loi) thi bo sau 30s de chuyen host tiep,
+      // khong de ca request treo theo (gap 09-10/11: IB public URL treo).
+      signal: AbortSignal.timeout(30000),
     });
   } catch {
     return null;
