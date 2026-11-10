@@ -251,6 +251,10 @@ def main():
     logf = args.log_file
     os.makedirs(os.path.dirname(logf) or ".", exist_ok=True)
     log("autoswitch bat dau: %d model, workdir=%s" % (len(models), args.workdir), logf)
+    if args.done_file and args.done_text and done_marker_ok(args.done_file, args.done_text):
+        log("Cong viec da xong: marker '%s' co trong %s — khong launch model" %
+            (args.done_text, args.done_file), logf)
+        return 0
 
     switches = 0
     idx = 0
@@ -422,6 +426,10 @@ def main():
             log("Qoder thoat 0 NHUNG khong co marker '%s' trong %s — coi nhu "
                 "chua xong, doi model" % (args.done_text, args.done_file), logf)
             rc = -98  # dung giua chung
+        if args.done_file and args.done_text and done_marker_ok(args.done_file, args.done_text):
+            log("Cong viec da xong: marker '%s' co trong %s sau khi process dung — khong doi model"
+                % (args.done_text, args.done_file), logf)
+            return 0
         # loi: doi model
         if switches >= max_switches:
             log("HET MODEL (da doi %d lan) — dung, bao loi" % switches, logf)
