@@ -1,0 +1,17 @@
+{
+  "purpose": "Mục đích: hợp đồng tool chỉ đọc verified snapshot do Python tính; model không tự tính số.",
+  "type": "function",
+  "function": {
+    "name": "get_verified_snapshot",
+    "description": "Trả snapshot có provenance, OHLCV, chỉ báo Python, signal_text, missing-data và abstain_reasons. Không truy cập nguồn ngoài.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "ticker": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "as_of": {"type": "string", "format": "date"}
+      },
+      "required": ["ticker", "as_of"],
+      "additionalProperties": false
+    }
+  }
+}
