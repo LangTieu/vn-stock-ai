@@ -164,6 +164,31 @@ def session_log_has_quota(config_dir, workdir):
         return False
 
 
+def session_tool_call_count(path):
+    """Count tool.requested records in a Qoder session JSONL."""
+    count = 0
+    try:
+        with open(path, "r", errors="replace") as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if event.get("type") == "tool.requested":
+                    count += 1
+    except OSError:
+        return 0
+    return count
+
+
+def session_log_tool_calls(config_dir, workdir):
+    """Return newest session log and its tool-request count."""
+    p = newest_session_log(config_dir, workdir)
+    if not p:
+        return None, 0
+    return p, session_tool_call_count(p)
+
+
 def done_marker_ok(done_file, done_text):
     """True neu done_file ton tai va chua done_text."""
     if not done_file or not done_text:
@@ -173,6 +198,11 @@ def done_marker_ok(done_file, done_text):
             return done_text in f.read()
     except OSError:
         return False
+
+
+def no_progress_elapsed(last_progress_ts, now, window_minutes):
+    """True when no tracked progress signal advanced for the whole window."""
+    return now - last_progress_ts >= window_minutes * 60
 
 
 def run_qoder(cmd, log_path):
@@ -194,6 +224,8 @@ def main():
     ap.add_argument("--check-interval", type=int, default=30)
     ap.add_argument("--stall-minutes", type=int, default=10,
                     help="no log growth + quota pattern -> coi nhu ket")
+    ap.add_argument("--no-progress-minutes", type=int, default=20,
+                    help="no progress detection window")
     ap.add_argument("--max-switches", type=int, default=0,
                     help="0 = xoay het danh sach 1 vong")
     ap.add_argument("--done-file", default="",
@@ -228,6 +260,25 @@ def main():
     log_size = 0
     log_mtime = 0
     stall_since = None
+    last_progress_ts = time.time()
+    done_mtime = None
+    tool_log_path = None
+    tool_call_count = 0
+    no_progress_switch = False
+
+    def reset_no_progress():
+        nonlocal last_progress_ts, done_mtime, tool_log_path, tool_call_count
+        nonlocal no_progress_switch
+        last_progress_ts = time.time()
+        no_progress_switch = False
+        done_mtime = None
+        if args.done_file:
+            try:
+                done_mtime = os.path.getmtime(args.done_file)
+            except OSError:
+                pass
+        tool_log_path, tool_call_count = session_log_tool_calls(
+            args.config_dir, args.workdir)
 
     def launch(model, resume_uuid=None):
         nonlocal session_uuid
@@ -267,6 +318,7 @@ def main():
         session_uuid = args.resume_uuid
     log_size = os.path.getsize(logf) if os.path.exists(logf) else 0
     log_mtime = time.time()
+    reset_no_progress()
 
     while True:
         time.sleep(args.check_interval)
@@ -322,6 +374,40 @@ def main():
                     pass
 
         if rc is None:
+            now = time.time()
+            progress = False
+            if args.done_file:
+                try:
+                    current_done_mtime = os.path.getmtime(args.done_file)
+                except OSError:
+                    current_done_mtime = None
+                if current_done_mtime is not None and (
+                        done_mtime is None or current_done_mtime > done_mtime):
+                    progress = True
+                done_mtime = current_done_mtime
+            current_tool_log_path, current_tool_call_count = session_log_tool_calls(
+                args.config_dir, args.workdir)
+            if current_tool_log_path == tool_log_path:
+                if current_tool_call_count > tool_call_count:
+                    progress = True
+                tool_call_count = current_tool_call_count
+            else:
+                if current_tool_call_count > 0:
+                    progress = True
+                tool_log_path = current_tool_log_path
+                tool_call_count = current_tool_call_count
+            if progress:
+                last_progress_ts = now
+            if no_progress_elapsed(last_progress_ts, now, args.no_progress_minutes):
+                log("no progress for %d minutes; killing and switching"
+                    % args.no_progress_minutes, logf)
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=30)
+                rc = -99
+                no_progress_switch = True
+
+        if rc is None:
             continue  # van chay tot
         # process da dung (0 = xong, khac 0 / -99 = loi)
         try:
@@ -341,8 +427,10 @@ def main():
             log("HET MODEL (da doi %d lan) — dung, bao loi" % switches, logf)
             return 2
         reason = {-99: "quota/rate-limit",
-                  -98: "thoat 0 nhung chua xong (thieu done marker)"}.get(
-                      rc, "exit code %s" % rc)
+                  -98: "thoat 0 nhung chua xong (thieu done marker)",
+                  "no progress": "no progress"}.get(
+                      "no progress" if no_progress_switch else rc,
+                      "exit code %s" % rc)
         idx = (idx + 1) % len(models)
         switches += 1
         log("doi model %d/%d: '%s' -> '%s' (ly do: %s)"
@@ -357,6 +445,7 @@ def main():
         log_size = os.path.getsize(logf) if os.path.exists(logf) else 0
         log_mtime = time.time()
         stall_since = None
+        reset_no_progress()
 
 
 if __name__ == "__main__":
