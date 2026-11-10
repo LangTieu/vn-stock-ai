@@ -1,0 +1,459 @@
+{
+  "cutoff": "2026-04-07",
+  "horizon_sessions": 20,
+  "requested_repeats": 3,
+  "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+  "model_group": "space-14b",
+  "params": {
+    "temperature": 0.1,
+    "top_p": 0.75,
+    "top_k": 40,
+    "max_tokens": 1200
+  },
+  "tickers": [
+    "HDB",
+    "VHM",
+    "CTG",
+    "ACB",
+    "STB",
+    "MBB",
+    "HCM",
+    "VCB",
+    "MWG",
+    "FRT",
+    "PVT",
+    "HPG",
+    "HVN",
+    "VCI",
+    "TCB",
+    "KDH",
+    "NVL",
+    "BID",
+    "VPB",
+    "VJC"
+  ],
+  "started_at": "2026-11-10T13:51:44.841651+00:00",
+  "outputs": [
+    {
+      "ticker": "HDB",
+      "repeat": 1,
+      "file": "raw_14b_HDB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+      "error": null
+    },
+    {
+      "ticker": "HDB",
+      "repeat": 2,
+      "file": "raw_14b_HDB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+      "error": null
+    },
+    {
+      "ticker": "HDB",
+      "repeat": 3,
+      "file": "raw_14b_HDB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+      "error": null
+    },
+    {
+      "ticker": "VHM",
+      "repeat": 1,
+      "file": "raw_14b_VHM_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+      "error": null
+    },
+    {
+      "ticker": "VHM",
+      "repeat": 2,
+      "file": "raw_14b_VHM_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Space Jerlob/vn-stock-ai)",
+      "error": null
+    },
+    {
+      "ticker": "VHM",
+      "repeat": 3,
+      "file": "raw_14b_VHM_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "CTG",
+      "repeat": 1,
+      "file": "raw_14b_CTG_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "CTG",
+      "repeat": 2,
+      "file": "raw_14b_CTG_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "CTG",
+      "repeat": 3,
+      "file": "raw_14b_CTG_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "ACB",
+      "repeat": 1,
+      "file": "raw_14b_ACB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "ACB",
+      "repeat": 2,
+      "file": "raw_14b_ACB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "ACB",
+      "repeat": 3,
+      "file": "raw_14b_ACB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "STB",
+      "repeat": 1,
+      "file": "raw_14b_STB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "STB",
+      "repeat": 2,
+      "file": "raw_14b_STB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "STB",
+      "repeat": 3,
+      "file": "raw_14b_STB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MBB",
+      "repeat": 1,
+      "file": "raw_14b_MBB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MBB",
+      "repeat": 2,
+      "file": "raw_14b_MBB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MBB",
+      "repeat": 3,
+      "file": "raw_14b_MBB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HCM",
+      "repeat": 1,
+      "file": "raw_14b_HCM_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HCM",
+      "repeat": 2,
+      "file": "raw_14b_HCM_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HCM",
+      "repeat": 3,
+      "file": "raw_14b_HCM_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCB",
+      "repeat": 1,
+      "file": "raw_14b_VCB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCB",
+      "repeat": 2,
+      "file": "raw_14b_VCB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCB",
+      "repeat": 3,
+      "file": "raw_14b_VCB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MWG",
+      "repeat": 1,
+      "file": "raw_14b_MWG_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MWG",
+      "repeat": 2,
+      "file": "raw_14b_MWG_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "MWG",
+      "repeat": 3,
+      "file": "raw_14b_MWG_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "FRT",
+      "repeat": 1,
+      "file": "raw_14b_FRT_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "FRT",
+      "repeat": 2,
+      "file": "raw_14b_FRT_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "FRT",
+      "repeat": 3,
+      "file": "raw_14b_FRT_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "PVT",
+      "repeat": 1,
+      "file": "raw_14b_PVT_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "PVT",
+      "repeat": 2,
+      "file": "raw_14b_PVT_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "PVT",
+      "repeat": 3,
+      "file": "raw_14b_PVT_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HPG",
+      "repeat": 1,
+      "file": "raw_14b_HPG_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HPG",
+      "repeat": 2,
+      "file": "raw_14b_HPG_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HPG",
+      "repeat": 3,
+      "file": "raw_14b_HPG_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HVN",
+      "repeat": 1,
+      "file": "raw_14b_HVN_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HVN",
+      "repeat": 2,
+      "file": "raw_14b_HVN_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "HVN",
+      "repeat": 3,
+      "file": "raw_14b_HVN_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCI",
+      "repeat": 1,
+      "file": "raw_14b_VCI_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCI",
+      "repeat": 2,
+      "file": "raw_14b_VCI_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VCI",
+      "repeat": 3,
+      "file": "raw_14b_VCI_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "TCB",
+      "repeat": 1,
+      "file": "raw_14b_TCB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "TCB",
+      "repeat": 2,
+      "file": "raw_14b_TCB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "TCB",
+      "repeat": 3,
+      "file": "raw_14b_TCB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "KDH",
+      "repeat": 1,
+      "file": "raw_14b_KDH_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "KDH",
+      "repeat": 2,
+      "file": "raw_14b_KDH_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "KDH",
+      "repeat": 3,
+      "file": "raw_14b_KDH_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "NVL",
+      "repeat": 1,
+      "file": "raw_14b_NVL_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "NVL",
+      "repeat": 2,
+      "file": "raw_14b_NVL_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "NVL",
+      "repeat": 3,
+      "file": "raw_14b_NVL_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "BID",
+      "repeat": 1,
+      "file": "raw_14b_BID_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "BID",
+      "repeat": 2,
+      "file": "raw_14b_BID_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "BID",
+      "repeat": 3,
+      "file": "raw_14b_BID_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VPB",
+      "repeat": 1,
+      "file": "raw_14b_VPB_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VPB",
+      "repeat": 2,
+      "file": "raw_14b_VPB_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VPB",
+      "repeat": 3,
+      "file": "raw_14b_VPB_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VJC",
+      "repeat": 1,
+      "file": "raw_14b_VJC_run1.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VJC",
+      "repeat": 2,
+      "file": "raw_14b_VJC_run2.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    },
+    {
+      "ticker": "VJC",
+      "repeat": 3,
+      "file": "raw_14b_VJC_run3.json",
+      "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+      "error": null
+    }
+  ],
+  "updated_at": "2026-11-10T15:56:56.539709+00:00"
+}
