@@ -1,0 +1,55 @@
+{
+  "ticker": "KDH",
+  "repeat": 2,
+  "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+  "model_group": "space-14b",
+  "actual_model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+  "timestamp_started_utc": "2026-11-10T15:02:13.320880+00:00",
+  "timestamp_completed_utc": "2026-11-10T15:04:25.520391+00:00",
+  "elapsed_seconds": 132.2,
+  "params": {
+    "temperature": 0.1,
+    "top_p": 0.75,
+    "top_k": 40,
+    "max_tokens": 1200
+  },
+  "input_hash": "7ec839d329de6e6cf693a62cb4c9dfa4604bcecc20a25ac750f1591b1771f480",
+  "cache_hit": false,
+  "content": "{\n    \"ticker\": \"KDH\",\n    \"recommendation\": \"ABSTAIN\",\n    \"confidence\": \"LOW\",\n    \"direction\": \"UNKNOWN\",\n    \"sections\": {\n        \"KẾT LUẬN\": \"LNST YoY: không có số liệu; khối ngoại cả năm/YTD: không có số liệu; 20 phiên: không có số liệu; kết luận + WHEN: không có số liệu\",\n        \"BẢNG SỐ LIỆU\": \"Giá đóng cửa: 22.73; MA20: 23.3825; MA50: 24.1988; MA200: 27.93405; RSI14: 42.115018; MACD histogram: 0.020895; ATR14: 0.875746; OBV: 202510038.0; EMA12: 23.289905; EMA26: 23.637179; không có số liệu\",\n        \"TÍN HIỆU\": \"MA20: DƯỚI (giá 22.73; trung bình 23.3825; so sánh giá đóng cửa); MA50: DƯỚI (giá 22.73; trung bình 24.1988; so sánh giá đóng cửa); MA200: DƯỚI (giá 22.73; trung bình 27.93405; so sánh giá đóng cửa); RSI: CHƯA QUÁ BÁN (42.115018; Wilder từ toàn bộ lịch sử đến ngày phân tích); MACD: CHƯA ĐẢO DƯƠNG (hist 0.020895; hist trước 0.055345; xác nhận cần âm sang dương); ATR: QUAN SÁT (0.875746; Python tính từ OHLCV); OBV: QUAN SÁT (202510038.0; Python tính từ OHLCV); BOLLINGER: QUAN SÁT (23.3825; Python tính từ OHLCV)\",\n        \"BCTC VÀ DÒNG TIỀN\": \"không có số liệu\",\n        \"XẾP HẠNG\": \"không xếp hạng — không có số liệu\",\n        \"KỊCH BẢN VÀ VỊ THẾ\": \"WHEN: không có số liệu; CPI: không có số liệu; Fed: không có số liệu; position_size: không có số liệu; không có số liệu\",\n        \"GIỚI HẠN\": \"Đây là phân tích dữ liệu, không phải khuyến nghị đầu tư.\"\n    }\n}",
+  "tool_calls": null,
+  "finish_reason": "stop",
+  "usage": null,
+  "rubric": {
+    "checks": {
+      "machine_json": true,
+      "correct_ticker": true,
+      "abstain_when_missing": true,
+      "no_unsupported_lnst_claim": true,
+      "roe_trailing_rule": true,
+      "flow_sign_not_reversed": true,
+      "when_or_no_entry": false,
+      "ranking_has_score_or_abstains": true,
+      "signal_values_grounded": true,
+      "macro_position_caveat": true
+    },
+    "score": 9,
+    "max_score": 10,
+    "direction_output": "UNKNOWN"
+  },
+  "stock_outcome_20": {
+    "entry_date": "2026-04-07",
+    "exit_date": "2026-05-08",
+    "entry_close": 22.73,
+    "exit_close": 22.05,
+    "return_pct": -2.991641,
+    "direction": "DOWN"
+  },
+  "vnindex_outcome_20": {
+    "entry_date": "2026-04-07",
+    "exit_date": "2026-05-08",
+    "entry_close": 1677.54,
+    "exit_close": 1915.37,
+    "return_pct": 14.177307,
+    "direction": "UP"
+  }
+}
