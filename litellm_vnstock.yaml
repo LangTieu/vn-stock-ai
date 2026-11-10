@@ -35,6 +35,42 @@ model_list:
     api_base: https://tuokeapi.com/v1
     api_key: os.environ/TUOKE_API_KEY
     timeout: 300
+- model_name: vn-stock-fosta-sol
+  litellm_params:
+    model: openai/gpt-6.1-sol
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY
+    timeout: 60
+- model_name: vn-stock-fosta-astra
+  litellm_params:
+    model: openai/gpt-6-astra
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY
+    timeout: 60
+- model_name: vn-stock-fosta-luna
+  litellm_params:
+    model: openai/gpt-6-luna
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY
+    timeout: 60
+- model_name: vn-stock-fosta2-sol
+  litellm_params:
+    model: openai/gpt-6.1-sol
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY2
+    timeout: 60
+- model_name: vn-stock-fosta2-astra
+  litellm_params:
+    model: openai/gpt-6-astra
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY2
+    timeout: 60
+- model_name: vn-stock-fosta2-luna
+  litellm_params:
+    model: openai/gpt-6-luna
+    api_base: https://codex.fosta.app/v1
+    api_key: os.environ/FOSTA_API_KEY2
+    timeout: 60
 - model_name: vn-stock-itera-qwen
   litellm_params:
     model: openai/qwen/qwen3.8-27b
@@ -66,6 +102,21 @@ router_settings:
     - vn-stock-tuoke-6.1-sol
     - vn-stock-gonka-glm
     - vn-stock-fosta-sol
+  - vn-stock-fosta-sol:
+    - vn-stock-fosta2-sol
+  - vn-stock-fosta-astra:
+    - vn-stock-fosta2-astra
+  - vn-stock-fosta-luna:
+    - vn-stock-fosta2-luna
+  - vn-stock-fosta2-sol:
+    - vn-stock-fosta2-astra
+    - vn-stock-fosta2-luna
+  - vn-stock-fosta2-astra:
+    - vn-stock-fosta2-luna
+    - vn-stock-fosta2-sol
+  - vn-stock-fosta2-luna:
+    - vn-stock-fosta2-sol
+    - vn-stock-fosta2-astra
   num_retries: 0
 litellm_settings:
   drop_params: true
