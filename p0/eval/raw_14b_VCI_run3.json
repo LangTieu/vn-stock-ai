@@ -1,0 +1,55 @@
+{
+  "ticker": "VCI",
+  "repeat": 3,
+  "model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+  "model_group": "space-14b",
+  "actual_model": "Qwen/Qwen2.5-14B-Instruct (Colab T4)",
+  "timestamp_started_utc": "2026-11-10T14:50:57.546077+00:00",
+  "timestamp_completed_utc": "2026-11-10T14:53:10.476626+00:00",
+  "elapsed_seconds": 132.931,
+  "params": {
+    "temperature": 0.1,
+    "top_p": 0.75,
+    "top_k": 40,
+    "max_tokens": 1200
+  },
+  "input_hash": "dd494fca8c924a6af86cf2442fad8376bde1849d922c1306e767eb57c31dd381",
+  "cache_hit": false,
+  "content": "{\n    \"ticker\": \"VCI\",\n    \"recommendation\": \"ABSTAIN\",\n    \"confidence\": \"LOW\",\n    \"direction\": \"UNKNOWN\",\n    \"sections\": {\n        \"KẾT LUẬN\": \"LNST YoY: không có số liệu; khối ngoại cả năm/YTD: không có số liệu; 20 phiên: không có số liệu; kết luận + WHEN: không có số liệu\",\n        \"BẢNG SỐ LIỆU\": \"Giá đóng cửa: 27.2; MA20: 26.4975; MA50: 26.756; MA200: 28.1108; RSI: 53.623763; MACD histogram: 0.080673; không có số liệu\",\n        \"TÍN HIỆU\": \"MA20: TRÊN (giá 27.2; trung bình 26.4975; so sánh giá đóng cửa)\\nMA50: TRÊN (giá 27.2; trung bình 26.756; so sánh giá đóng cửa)\\nMA200: DƯỚI (giá 27.2; trung bình 28.1108; so sánh giá đóng cửa)\\nRSI: CHƯA QUÁ BÁN (53.623763; Wilder từ toàn bộ lịch sử đến ngày phân tích)\\nMACD: CHƯA ĐẢO DƯƠNG (hist 0.080673; hist trước 0.040348; xác nhận cần âm sang dương)\\nATR: QUAN SÁT (1.052932; Python tính từ OHLCV)\\nOBV: QUAN SÁT (388101177.0; Python tính từ OHLCV)\\nBOLLINGER: QUAN SÁT (26.4975; Python tính từ OHLCV)\\nKHỐI NGOẠI: không có số liệu (5 phiên không có số liệu tỷ; 20 phiên không có số liệu; YTD không có số liệu)\\nTỰ DOANH: không có số liệu (5 phiên không có số liệu tỷ; 20 phiên không có số liệu; YTD không có số liệu)\",\n        \"BCTC VÀ DÒNG TIỀN\": \"không có số liệu\",\n        \"XẾP HẠNG\": \"không xếp hạng — không có số liệu\",\n        \"KỊCH BẢN VÀ VỊ THẾ\": \"WHEN: không có số liệu; CPI: không có số liệu; Fed: không có số liệu; position_size: không có số liệu; không có số liệu\",\n        \"GIỚI HẠN\": \"Đây là phân tích dữ liệu, không phải khuyến nghị đầu tư.\"\n    }\n}",
+  "tool_calls": null,
+  "finish_reason": "stop",
+  "usage": null,
+  "rubric": {
+    "checks": {
+      "machine_json": true,
+      "correct_ticker": true,
+      "abstain_when_missing": true,
+      "no_unsupported_lnst_claim": true,
+      "roe_trailing_rule": true,
+      "flow_sign_not_reversed": true,
+      "when_or_no_entry": false,
+      "ranking_has_score_or_abstains": true,
+      "signal_values_grounded": true,
+      "macro_position_caveat": true
+    },
+    "score": 9,
+    "max_score": 10,
+    "direction_output": "UNKNOWN"
+  },
+  "stock_outcome_20": {
+    "entry_date": "2026-04-07",
+    "exit_date": "2026-05-08",
+    "entry_close": 27.2,
+    "exit_close": 25.95,
+    "return_pct": -4.595588,
+    "direction": "DOWN"
+  },
+  "vnindex_outcome_20": {
+    "entry_date": "2026-04-07",
+    "exit_date": "2026-05-08",
+    "entry_close": 1677.54,
+    "exit_close": 1915.37,
+    "return_pct": 14.177307,
+    "direction": "UP"
+  }
+}
