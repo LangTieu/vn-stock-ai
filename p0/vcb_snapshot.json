@@ -1,0 +1,103 @@
+{
+  "ticker": "VCB",
+  "as_of": "2026-11-06",
+  "source": {
+    "ohlcv": "inputs/bot-data/stocks_vnstock.json",
+    "ohlcv_sha256": "45035ec12bbacd05aad9137efe6a5a889f5c5886d3415ed56ae67deecf327c26",
+    "indicator_module_sha256": "959c4843d4bcce261c125d2b3773a2dda8c8ebe2e36442af3ca04b9cff3c3c6f",
+    "row_count": 1006,
+    "flow": "inputs/vcb_test.json: net_value_ty; chỉ 5 phiên, không thay cho 20 phiên/YTD"
+  },
+  "price": {
+    "unit": "nghìn VND/cổ phiếu; volume: cổ phiếu",
+    "ohlcv": {
+      "open": 53.5,
+      "high": 53.9,
+      "low": 53.3,
+      "close": 53.6,
+      "volume": 5202300
+    },
+    "change_pct_1d": -1.107011,
+    "high_close_150": 64.36,
+    "low_close_150": 53.5,
+    "from_peak_pct": -16.718459,
+    "from_bottom_pct": 0.186916,
+    "support_low_20": 53.1
+  },
+  "indicators": {
+    "ma20": 55.855,
+    "ma50": 57.414,
+    "ma200": 60.1611,
+    "rsi14": 34.934273,
+    "macd_hist": -0.220056,
+    "atr14": 1.097684,
+    "boll_mid": 55.855,
+    "boll_up": 58.243703,
+    "boll_lo": 53.466297,
+    "obv": 138316747.0,
+    "macd": -0.894246,
+    "macd_signal": -0.67419,
+    "ema12": 55.12466,
+    "ema26": 56.018906
+  },
+  "state": {
+    "close": 53.6,
+    "rsi": 34.934273,
+    "hist": -0.220056,
+    "dd_from_150_high": -0.167185,
+    "deep_now": true,
+    "flip_now": false,
+    "top_now": false
+  },
+  "flows": {
+    "foreign": {
+      "year_ytd_ty": "không có số liệu",
+      "last20_ty": "không có số liệu",
+      "last5_ty": -587.5
+    },
+    "proprietary": {
+      "year_ytd_ty": "không có số liệu",
+      "last20_ty": "không có số liệu",
+      "last5_ty": 35.5
+    }
+  },
+  "fundamentals": {
+    "lnst_yoy_pct": "không có số liệu",
+    "roe_trailing4q_pct": "không có số liệu",
+    "pe": "không có số liệu",
+    "pb": "không có số liệu",
+    "ranking_score": "không có số liệu"
+  },
+  "macro": {
+    "cpi_yoy_pct": 5.09,
+    "fed_rate_pct": "không có số liệu",
+    "position_size": "HALF_OR_LESS; CPI cao, Fed không có số liệu",
+    "source": "inputs/bot-data/macro_monthly.json; fetched=2026-11-04T08:44:31"
+  },
+  "abstain_reasons": [
+    "Thiếu LNST YoY/ROE trailing/PE/PB: không đủ bằng chứng BCTC",
+    "Thiếu khối ngoại YTD và 20 phiên: không đủ căn cứ xếp hạng",
+    "Thiếu Fed: không xác nhận vị thế đầy đủ"
+  ],
+  "signal_text": "MA20: DƯỚI (giá 53.6; trung bình 55.855; so sánh giá đóng cửa)\nMA50: DƯỚI (giá 53.6; trung bình 57.414; so sánh giá đóng cửa)\nMA200: DƯỚI (giá 53.6; trung bình 60.1611; so sánh giá đóng cửa)\nRSI: ĐÁY SÂU (34.934273; Wilder từ toàn bộ lịch sử đến ngày phân tích)\nMACD: CHƯA ĐẢO DƯƠNG (hist -0.220056; hist trước -0.191372; xác nhận cần âm sang dương)\nATR: QUAN SÁT (1.097684; Python tính từ OHLCV)\nOBV: QUAN SÁT (138316747.0; Python tính từ OHLCV)\nBOLLINGER: QUAN SÁT (55.855; Python tính từ OHLCV)\nKHỐI NGOẠI: SELL/âm (5 phiên -587.5 tỷ; 20 phiên không có số liệu; YTD không có số liệu)\nTỰ DOANH: BUY/dương (5 phiên 35.5 tỷ; 20 phiên không có số liệu; YTD không có số liệu)",
+  "allowed_enums": {
+    "recommendation": [
+      "BUY",
+      "WAIT",
+      "REDUCE",
+      "ABSTAIN"
+    ],
+    "confidence": [
+      "LOW",
+      "MEDIUM",
+      "HIGH"
+    ],
+    "direction": [
+      "UP",
+      "DOWN",
+      "FLAT",
+      "UNKNOWN"
+    ]
+  },
+  "input_data_hash": "feced1af64ac1871c2096e535b2444b611dfde735f009edefa3a58f8add4b92a"
+}
