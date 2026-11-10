@@ -73,6 +73,7 @@ QUOTA_PATTERNS = [
     r"insufficient_quota", r"billing", r"exhausted",
 ]
 QUOTA_RE = re.compile("|".join(QUOTA_PATTERNS), re.IGNORECASE)
+MESSAGE_FIELDS = {"message", "error", "text"}
 
 
 def log(msg, logf):
@@ -150,18 +151,73 @@ def newest_session_log(config_dir, workdir):
     return best
 
 
-def session_log_has_quota(config_dir, workdir):
-    """True neu file log session moi nhat chua pattern quota/rate-limit."""
+def _read_appended(path, offsets, complete_lines=False):
+    """Read bytes added since the last scan without rereading old content."""
+    try:
+        with open(path, "rb") as f:
+            stat = os.fstat(f.fileno())
+            identity = (stat.st_dev, stat.st_ino)
+            size = stat.st_size
+            previous = offsets.get(path)
+            if previous is None or previous[0] != identity or size < previous[1]:
+                offsets[path] = (identity, size, b"")
+                return b""
+            offset, pending = previous[1], previous[2]
+            f.seek(offset)
+            added = f.read()
+            if not added:
+                return b""
+            bytes_read = len(added)
+            if complete_lines:
+                combined = pending + added
+                cut = combined.rfind(b"\n") + 1
+                result, pending = combined[:cut], combined[cut:]
+            else:
+                result = added
+                pending = b""
+            offsets[path] = (identity, offset + bytes_read, pending)
+            return result
+    except OSError:
+        return b""
+
+
+def _message_texts(value):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in MESSAGE_FIELDS:
+                if isinstance(child, str):
+                    yield child
+                elif isinstance(child, (dict, list)):
+                    yield from _message_texts(child)
+            elif isinstance(child, (dict, list)):
+                yield from _message_texts(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _message_texts(child)
+
+
+def session_log_has_quota(config_dir, workdir, offsets):
+    """Scan only newly appended human-readable JSONL message fields."""
     p = newest_session_log(config_dir, workdir)
     if not p:
         return False
-    try:
-        size = os.path.getsize(p)
-        with open(p, "r", errors="replace") as f:
-            f.seek(max(0, size - 500000))
-            return bool(QUOTA_RE.search(f.read()))
-    except OSError:
+    chunk = _read_appended(p, offsets, complete_lines=True)
+    if not chunk:
         return False
+    for line in chunk.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if any(QUOTA_RE.search(text) for text in _message_texts(event)):
+            return True
+    return False
+
+
+def stdout_log_has_quota(path, offsets):
+    """Scan only bytes appended to Qoder's dedicated stdout file."""
+    chunk = _read_appended(path, offsets)
+    return bool(chunk and QUOTA_RE.search(chunk.decode("utf-8", errors="replace")))
 
 
 def session_tool_call_count(path):
@@ -205,9 +261,9 @@ def no_progress_elapsed(last_progress_ts, now, window_minutes):
     return now - last_progress_ts >= window_minutes * 60
 
 
-def run_qoder(cmd, log_path):
-    """Chay Qoder, output append vao log_path. Tra ve Popen."""
-    lf = open(log_path, "ab")
+def run_qoder(cmd, stdout_path):
+    """Chay Qoder, output append vao stdout_path. Tra ve Popen."""
+    lf = open(stdout_path, "ab")
     proc = subprocess.Popen(cmd, stdout=lf, stderr=subprocess.STDOUT,
                             start_new_session=True)
     return proc, lf
@@ -251,16 +307,14 @@ def main():
     logf = args.log_file
     os.makedirs(os.path.dirname(logf) or ".", exist_ok=True)
     log("autoswitch bat dau: %d model, workdir=%s" % (len(models), args.workdir), logf)
-    if args.done_file and args.done_text and done_marker_ok(args.done_file, args.done_text):
-        log("Cong viec da xong: marker '%s' co trong %s — khong launch model" %
-            (args.done_text, args.done_file), logf)
-        return 0
 
     switches = 0
     idx = 0
     session_uuid = None
     proc = None
     log_handle = None
+    stdout_path = logf + ".qoder-stdout"
+    scan_offsets = {}
     log_size = 0
     log_mtime = 0
     stall_since = None
@@ -305,7 +359,7 @@ def main():
                    "-w", args.workdir,
                    "--permission-mode", "bypass_permissions", prompt]
         log("launch model '%s'%s" % (model, " (resume %s)" % resume_uuid if resume_uuid else " (moi)"), logf)
-        p, lf = run_qoder(cmd, logf)
+        p, lf = run_qoder(cmd, stdout_path)
         # doi chut de session file xuat hien, roi ghi UUID (chi quet
         # transcript cua workdir nay — tranh vot nham session task khac)
         time.sleep(10)
@@ -327,55 +381,39 @@ def main():
     while True:
         time.sleep(args.check_interval)
         rc = proc.poll()
-        # quet ca stdout log lan file log session cua Qoder tim quota pattern
-        # (loi 429 nam trong session JSONL, khong hien ra stdout)
-        if rc is None and session_log_has_quota(args.config_dir, args.workdir):
-            log("phat hien loi quota/rate-limit trong session log Qoder", logf)
-            proc.kill()
-            proc.wait(timeout=30)
+        # Scan only newly appended Qoder output and session message fields.
+        stdout_signal = stdout_log_has_quota(stdout_path, scan_offsets)
+        session_signal = session_log_has_quota(
+            args.config_dir, args.workdir, offsets=scan_offsets)
+        if rc is None and (stdout_signal or session_signal):
+            log("phat hien loi quota/rate-limit trong Qoder output", logf)
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=30)
             rc = -99
-        # doc phan log moi de tim quota pattern + cap nhat stall
+        # Track Qoder output growth for the existing stall guard.
         try:
-            cur_size = os.path.getsize(logf)
+            cur_size = os.path.getsize(stdout_path)
         except OSError:
             cur_size = log_size
         if cur_size > log_size:
             log_size = cur_size
             log_mtime = time.time()
             stall_since = None
-            # quet doan log moi tim quota pattern
-            try:
-                with open(logf, "r", errors="replace") as f:
-                    f.seek(max(0, cur_size - 200000))
-                    tail = f.read()
-                if QUOTA_RE.search(tail):
-                    log("phat hien loi quota/rate-limit trong log", logf)
-                    if proc.poll() is None:
-                        proc.kill()
-                        proc.wait(timeout=30)
-                    rc = -99  # danh dau chet do quota
-            except OSError:
-                pass
         else:
-            # log khong tang — kiem tra stall
+            # Qoder output khong tang — kiem tra stall
             if stall_since is None:
                 stall_since = time.time()
             elif time.time() - stall_since > args.stall_minutes * 60:
-                try:
-                    with open(logf, "r", errors="replace") as f:
-                        f.seek(max(0, cur_size - 200000))
-                        tail = f.read()
-                    if QUOTA_RE.search(tail):
-                        log("stall %d phut + quota pattern -> ket" % args.stall_minutes, logf)
-                        if proc.poll() is None:
-                            proc.kill()
-                            proc.wait(timeout=30)
-                        rc = -99
-                    else:
-                        log("stall %d phut nhung khong co quota pattern — doi tiep" % args.stall_minutes, logf)
-                        stall_since = time.time()
-                except OSError:
-                    pass
+                if stdout_log_has_quota(stdout_path, scan_offsets):
+                    log("stall %d phut + quota pattern -> ket" % args.stall_minutes, logf)
+                    if proc.poll() is None:
+                        proc.kill()
+                        proc.wait(timeout=30)
+                    rc = -99
+                else:
+                    log("stall %d phut nhung khong co quota pattern — doi tiep" % args.stall_minutes, logf)
+                    stall_since = time.time()
 
         if rc is None:
             now = time.time()
@@ -426,10 +464,6 @@ def main():
             log("Qoder thoat 0 NHUNG khong co marker '%s' trong %s — coi nhu "
                 "chua xong, doi model" % (args.done_text, args.done_file), logf)
             rc = -98  # dung giua chung
-        if args.done_file and args.done_text and done_marker_ok(args.done_file, args.done_text):
-            log("Cong viec da xong: marker '%s' co trong %s sau khi process dung — khong doi model"
-                % (args.done_text, args.done_file), logf)
-            return 0
         # loi: doi model
         if switches >= max_switches:
             log("HET MODEL (da doi %d lan) — dung, bao loi" % switches, logf)
