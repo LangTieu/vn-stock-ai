@@ -35,6 +35,12 @@ model_list:
     api_base: https://tuokeapi.com/v1
     api_key: os.environ/TUOKE_API_KEY
     timeout: 300
+- model_name: vn-stock-itera-qwen
+  litellm_params:
+    model: openai/qwen/qwen3.8-27b
+    api_base: https://api.iteracompute.com/v1
+    api_key: os.environ/ITERACOMPUTE_API_KEY
+    timeout: 60
 router_settings:
   fallbacks:
   - vn-stock:
@@ -56,6 +62,10 @@ router_settings:
     - vn-stock-tuoke-6-sol
   - vn-stock-tuoke-6-sol:
     - vn-stock-tuoke-6.1-sol
+  - vn-stock-itera-qwen:
+    - vn-stock-tuoke-6.1-sol
+    - vn-stock-gonka-glm
+    - vn-stock-fosta-sol
   num_retries: 0
 litellm_settings:
   drop_params: true
