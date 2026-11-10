@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-09
 Chat: side chat ac20b59f (chat riêng xây model AI)
-Trạng thái: **CHƯA CODE** cho các bước build (Henrry 20:23 07/11) — chỉ chuẩn bị + test. P0.0 xong (trừ test sinh 14B trên Space). Dữ liệu train thô ĐÃ ĐỦ. Model chính: Qwen2.5-14B-Instruct (Chốt 19:20 08/11).
+Trạng thái: **ĐANG BUILD — Henrry ra lệnh 14:39 10/11 "Kêu touke làm đi, lỗi thì tự xử lý, a chỉ muốn kết quả" (lệnh bắt đầu P0–P4, CHƯA CODE 07/11 đã gỡ cho toàn bộ build).** P0.0 xong (trừ test sinh 14B trên Space). Dữ liệu train thô ĐÃ ĐỦ. Model chính: Qwen2.5-14B-Instruct (Chốt 19:20 08/11). Tuoke là model ưu tiên số 1 cho mọi việc (11:55 10/11).
 
 ## 1. Mục tiêu
 - Model phân tích chứng khoán Việt Nam (tiếng Việt, kết luận trước).
