@@ -20,12 +20,19 @@ SCRIPT = "vn-stock-ai-gateway"
 WORKERS_DIR = os.path.expanduser("~/workspace/vn-stock-ai-model/workers")
 
 LITELLM_URLS = (
+    # Thu tu theo latency do lai tu IB1 luc 12:2x 10/11 (401, giay):
+    # IB1 0.118, IB4 0.266, IB3 0.325, IB2 0.385.
+    # LightVela them lai 22:09 ICT 11/11 sau khi sua tunnel DNS: hostname
+    # lv1/lv2.aistockvn.com (CNAME -> <uuid>.cfargotunnel.com, ingress
+    # config v2) verify song ca 2: /health/liveliness 200 "I'm alive!",
+    # /v1/models 401 LiteLLM (da toi tunnel). Dat cuoi (qua tunnel, cham
+    # hon IB truc tiep: ~0.3-0.7s tu IB4).
     "https://4000-agq2ln7pkiptkjif5rapg6ajeu.instabox.tech,"
-    "https://4000-agqzelppmu4se45k5tscmuxije.instabox.tech,"
-    "https://4000-agq332yzdd6xkookjmi6sr2mba.instabox.tech,"
     "https://4000-agq34ej3bbchwgwxejqglzikme.instabox.tech,"
-    "https://f76009ad-5272-4aa0-9afa-0129a6d751ef.cfargotunnel.com,"
-    "https://bf501ad3-3325-4c46-ba1f-fbe4f7d92c69.cfargotunnel.com"
+    "https://4000-agq332yzdd6xkookjmi6sr2mba.instabox.tech,"
+    "https://4000-agqzelppmu4se45k5tscmuxije.instabox.tech,"
+    "https://lv1.aistockvn.com,"
+    "https://lv2.aistockvn.com"
 )
 
 
