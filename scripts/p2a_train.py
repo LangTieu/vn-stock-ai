@@ -10,6 +10,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
+
 TRAIN_MD5 = 'f6273e8a12e35fe1027f29ca2127b9c0'
 HOLDOUT_MD5 = '5f48d9b13d2f2cce0a730067b2f3094c'
 SMOKE_MD5 = 'eeb4faeb32a23d97f474813bac659797'
@@ -116,6 +118,52 @@ def collate(features, pad_id):
             for key, pad in [('input_ids', pad_id), ('attention_mask', 0), ('labels', -100)]}
 
 
+def prepare_qlora_model(model):
+    from peft import LoraConfig, get_peft_model
+
+    model.requires_grad_(False)
+    model.config.use_cache = False
+    model.enable_input_require_grads()
+    return get_peft_model(model, LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1,
+                                          target_modules=TARGET_MODULES, task_type='CAUSAL_LM'))
+
+
+def supervised_loss(model, inputs):
+    import torch
+    labels = inputs['labels'][:, 1:]
+    positions = torch.where((labels != -100).any(dim=0))[0]
+    outputs = model(**{key: value for key, value in inputs.items() if key != 'labels'},
+                    logits_to_keep=positions, use_cache=False)
+    loss = torch.nn.functional.cross_entropy(
+        outputs.logits.float().reshape(-1, outputs.logits.size(-1)),
+        labels[:, positions].reshape(-1), ignore_index=-100)
+    return loss, outputs
+
+
+def log_training_memory(model):
+    import torch
+    summary = {}
+    trainable = 0
+    for param in model.parameters():
+        key = f'{param.dtype}/{"trainable" if param.requires_grad else "frozen"}'
+        summary[key] = summary.get(key, 0) + param.numel()
+        if param.requires_grad:
+            trainable += param.numel()
+    free, total = torch.cuda.mem_get_info()
+    allocated = torch.cuda.memory_allocated()
+    reserved = torch.cuda.memory_reserved()
+    # Reserve gradients, optimizer state and a conservative activation/workspace allowance.
+    additional = trainable * 12 + 4 * 1024 ** 3
+    print(json.dumps({'cuda_memory_allocated': allocated, 'cuda_memory_reserved': reserved,
+                      'cuda_free': free, 'cuda_total': total, 'trainable_parameters': trainable,
+                      'parameter_dtype_numel': summary,
+                      'projected_additional_bytes': additional}), flush=True)
+    if additional > free + reserved - allocated:
+        raise RuntimeError('P2a memory preflight: insufficient headroom for QLoRA gradients, '
+                           'optimizer and activation/workspace estimate; use a fresh GPU runtime '
+                           'or a larger GPU. See CUDA byte counts above.')
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--train', required=True)
@@ -152,19 +200,15 @@ def main():
         return
     import torch
     from functools import partial
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from transformers import AutoModelForCausalLM, BitsAndBytesConfig, Trainer, TrainingArguments, TrainerCallback, set_seed
     if not torch.cuda.is_available():
         raise RuntimeError('CUDA GPU required for training')
     set_seed(42)
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, device_map={'': 0}, torch_dtype=torch.float16,
+        MODEL_ID, device_map={'': 0}, torch_dtype=torch.float16, attn_implementation='sdpa',
         quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4',
             bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.float16))
-    model.config.use_cache = False
-    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
-    model = get_peft_model(model, LoraConfig(r=8, lora_alpha=32, lora_dropout=0.1,
-                                           target_modules=TARGET_MODULES, task_type='CAUSAL_LM'))
+    model = prepare_qlora_model(model)
     model.print_trainable_parameters()
     output.mkdir(parents=True, exist_ok=True)
 
@@ -183,14 +227,21 @@ def main():
                 stream.write(json.dumps(item) + '\n')
             print(json.dumps(item), flush=True)
 
+    class LabelTrainer(Trainer):
+        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            loss, outputs = supervised_loss(model, inputs)
+            return (loss, outputs) if return_outputs else loss
+
     args = TrainingArguments(output_dir=str(output), num_train_epochs=a.epochs,
-        max_steps=a.max_steps, per_device_train_batch_size=4, gradient_accumulation_steps=8,
+        max_steps=a.max_steps, per_device_train_batch_size=1, gradient_accumulation_steps=32,
         learning_rate=1e-4, warmup_ratio=0.05, lr_scheduler_type='linear', fp16=True,
         gradient_checkpointing=True, logging_steps=1, save_steps=a.save_steps,
         save_total_limit=2, report_to='none', optim='paged_adamw_8bit', seed=42,
         remove_unused_columns=False)
-    trainer = Trainer(model=model, args=args, train_dataset=data,
-                      data_collator=partial(collate, pad_id=tok.pad_token_id), callbacks=[Progress()])
+    trainer = LabelTrainer(model=model, args=args, train_dataset=data,
+                           data_collator=partial(collate, pad_id=tok.pad_token_id), callbacks=[Progress()])
+    trainer.model_accepts_loss_kwargs = False
+    log_training_memory(model)
     trainer.train(resume_from_checkpoint=a.resume)
     final = output / 'adapter'
     trainer.save_model(str(final))
