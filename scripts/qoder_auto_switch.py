@@ -89,6 +89,26 @@ QUOTA_PATTERNS = [
 QUOTA_RE = re.compile("|".join(QUOTA_PATTERNS), re.IGNORECASE)
 MESSAGE_FIELDS = {"message", "error", "text"}
 
+# Chi event loi that cua provider moi duoc tinh — sua false positive 11/11.
+# Qoder ghi loi goi model vao event `model.request.attempt_failed` voi
+# data.status / data.error_status / data.error_code / data.error_message.
+# Moi text khac trong session (prompt, ket qua tool, noi dung file Qoder
+# doc, diagnostic, hook, compression) KHONG phai loi API: regex tu do
+# truoc day quet ca nhung text nay nen 1 dong "429" trong BRIEF hay
+# tool-result cung doi model oan. Them nua, detector cu con ban ca loi
+# 400 tool_choice va 404 promotion-paused nho chu "billing" trong footer
+# LiteLLM — 2 loai loi nay khong phai quota, doi model vo ich.
+# Bay gio: chi attempt_failed co status 401/402/429 (hoac error_code
+# rate_limit) moi doi model; loi 400/404/408 khong doi (Qoder tu retry
+# roi thoat, wrapper xu ly bang duong exit code nhu cu).
+QUOTA_ERROR_STATUSES = {401, 402, 429}
+QUOTA_ERROR_CODES = {"rate_limit"}
+QUOTA_ERROR_PATTERNS = [p for p in QUOTA_PATTERNS if p != "billing"]
+QUOTA_ERROR_RE = re.compile("|".join(QUOTA_ERROR_PATTERNS), re.IGNORECASE)
+# Dong stdout chi tinh khi trong nhu dong loi CLI: co marker loi
+# (error/failed/exception) + pattern quota. Bare mentions khong tinh.
+STDOUT_ERROR_RE = re.compile(r"error|failed|exception", re.IGNORECASE)
+
 # Pattern nhan biet DATA PROVIDER chet (khong phai model chet) — 11/11.
 # Khi Qoder thoat 0 nhung khong co ALL DONE va output/STATE.md co dau hieu
 # nay, doi model vo ich (moi model deu gap cung provider chet) -> dung lai,
@@ -233,8 +253,50 @@ def _message_texts(value):
             yield from _message_texts(child)
 
 
+def _error_status(value):
+    """Normalize an HTTP status (int hay str) ve int, hoac None."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _attempt_failed_is_quota(event):
+    """True neu event la loi quota/auth that cua provider.
+
+    Chi xet event `model.request.attempt_failed`: status/error_status
+    401/402/429, hoac error_code rate_limit, hoac (khi khong co status)
+    error_message khop pattern quota hep (khong co "billing" — chu nay
+    nam trong footer LiteLLM cua ca loi 400/404 nen khong duoc tinh).
+    Prompt/tool-result/file-content/diagnostic/hook/compression khong
+    bao gio duoc tinh, du co chua "429".
+    """
+    data = event.get("data") if isinstance(event, dict) else None
+    if not isinstance(data, dict):
+        data = {}
+    status = _error_status(data.get("status"))
+    if status is None:
+        status = _error_status(data.get("error_status"))
+    if status is not None:
+        return status in QUOTA_ERROR_STATUSES
+    code = data.get("error_code")
+    if isinstance(code, str) and code.lower() in QUOTA_ERROR_CODES:
+        return True
+    message = data.get("error_message")
+    if isinstance(message, str) and QUOTA_ERROR_RE.search(message):
+        return True
+    return False
+
+
 def session_log_has_quota(config_dir, workdir, offsets):
-    """Scan only newly appended human-readable JSONL message fields."""
+    """Scan only newly appended provider-error events in the session JSONL.
+
+    Chi event `model.request.attempt_failed` co status 401/402/429 (hoac
+    error_code rate_limit) moi tinh — bare mentions "429"/"quota" trong
+    prompt, ket qua tool, noi dung file, diagnostic, hook, compression
+    khong doi model nua. Event co error payload dang dict voi code/status
+    401/402/429 cung tinh (luoi an toan cho dang event loi khac).
+    """
     p = newest_session_log(config_dir, workdir)
     if not p:
         return False
@@ -246,15 +308,37 @@ def session_log_has_quota(config_dir, workdir, offsets):
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if any(QUOTA_RE.search(text) for text in _message_texts(event)):
-            return True
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "model.request.attempt_failed":
+            if _attempt_failed_is_quota(event):
+                return True
+            continue
+        err = event.get("error")
+        if isinstance(err, dict):
+            code = _error_status(err.get("code"))
+            if code is None:
+                code = _error_status(err.get("status"))
+            if code in QUOTA_ERROR_STATUSES:
+                return True
     return False
 
 
 def stdout_log_has_quota(path, offsets):
-    """Scan only bytes appended to Qoder's dedicated stdout file."""
+    """Scan only bytes appended to Qoder's dedicated stdout file.
+
+    Chi dong trong nhu dong loi CLI moi tinh: dong phai co marker loi
+    (error/failed/exception) VA pattern quota (429/quota/exceeded/...).
+    Dong chi nhac so "429" hay tu "quota" (vi du dong BRIEF, log tool,
+    dong code) khong doi model.
+    """
     chunk = _read_appended(path, offsets)
-    return bool(chunk and QUOTA_RE.search(chunk.decode("utf-8", errors="replace")))
+    if not chunk:
+        return False
+    for line in chunk.decode("utf-8", errors="replace").splitlines():
+        if STDOUT_ERROR_RE.search(line) and QUOTA_RE.search(line):
+            return True
+    return False
 
 
 def session_tool_call_count(path):
@@ -294,16 +378,19 @@ def done_marker_ok(done_file, done_text):
 
 
 def blocked_marker_present(done_file):
-    """True neu done-file chua chuoi BLOCKED (Qoder ket luan khong lam duoc).
+    """True neu done-file co dong BLOCKED dung mot minh (Qoder ket luan khong lam duoc).
 
     BLOCKED la terminal: wrapper dung ngay, khong doi model nua (tranh dot
     model vo ich nhu truoc 11/11 — sync se doc STATE.md + bao cao + go cron).
+    CHI khop dong dung mot minh (giong done_marker_ok), KHONG khop chuoi con:
+    11/11 STATE.md co cau "`BLOCKED` is also not justified" lam substring
+    match cu dung wrapper oan trong khi trang thai that la IN PROGRESS.
     """
     if not done_file:
         return False
     try:
         with open(done_file, "r", errors="replace") as f:
-            return BLOCKED_MARKER in f.read()
+            return any(line.strip() == BLOCKED_MARKER for line in f.read().splitlines())
     except OSError:
         return False
 
