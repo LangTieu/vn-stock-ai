@@ -22,6 +22,14 @@ on:
         description: "Cho toi da bao nhieu giay"
         required: false
         default: "1800"
+      download_remote:
+        description: "Runtime directory or file to download as a zip"
+        required: false
+        default: ""
+      download_local:
+        description: "Runner path for the downloaded zip"
+        required: false
+        default: ""
       runner:
         description: "Nhan runner: colab-driver (may 1, TK1) hoac colab-driver-tk2 (may 2, TK2)"
         required: false
@@ -33,6 +41,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run notebook on Colab T4 (vncolab)
+        env:
+          DOWNLOAD_REMOTE: ${{ inputs.download_remote }}
+          DOWNLOAD_LOCAL: ${{ inputs.download_local }}
         run: |
           # Dung venv cai san tren may (deps: google-auth, jupyter-kernel-client...).
           # Neu may moi/chua co venv thi tao moi + cai deps (fallback tu phuc hoi).
@@ -43,7 +54,11 @@ jobs:
             .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
             PY=".vncolab-venv/bin/python"
           fi
-          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --out colab_result.json
+          download_args=()
+          if [ -n "$DOWNLOAD_REMOTE" ] && [ -n "$DOWNLOAD_LOCAL" ]; then
+            download_args=(--download "$DOWNLOAD_REMOTE" "$DOWNLOAD_LOCAL")
+          fi
+          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --out colab_result.json "${download_args[@]}"
       - name: Show result
         if: always()
         run: |
@@ -55,3 +70,19 @@ jobs:
         with:
           name: colab-result
           path: colab_result.json
+      - name: Check downloaded adapter
+        id: adapter
+        if: always() && inputs.download_remote != '' && inputs.download_local != ''
+        env:
+          DOWNLOAD_LOCAL: ${{ inputs.download_local }}
+        run: |
+          if [ -f "$DOWNLOAD_LOCAL" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: colab-adapter
+        if: always() && inputs.download_remote != '' && inputs.download_local != '' && steps.adapter.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: colab-adapter
+          path: ${{ inputs.download_local }}
+          if-no-files-found: ignore
