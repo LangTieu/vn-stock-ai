@@ -362,6 +362,61 @@ def execute_code(kc, code, timeout=1800):
     return outputs, reply
 
 
+def download_code(remote_path):
+    return f'''def _vnco_download():
+    import base64
+    import tempfile
+    import zipfile
+    from pathlib import Path
+
+    remote = Path({remote_path!r})
+    if not remote.exists():
+        print("__VNCO_DL_MISSING__", flush=True)
+        return
+    with tempfile.TemporaryDirectory() as temp:
+        archive = Path(temp) / "adapter.zip"
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
+            if remote.is_dir():
+                for path in sorted(remote.rglob("*")):
+                    zipped.write(path, path.relative_to(remote))
+            else:
+                zipped.write(remote, remote.name)
+        with archive.open("rb") as stream:
+            index = 0
+            while chunk := stream.read(180 * 1024):
+                encoded = base64.b64encode(chunk).decode("ascii")
+                print(f"__VNCO_DL_CHUNK_{{index}}__:\\n{{encoded}}", flush=True)
+                index += 1
+        print("__VNCO_DL_END__", flush=True)
+
+_vnco_download()
+'''
+
+
+def save_download(text, local_path):
+    import base64
+    import re
+    from pathlib import Path
+
+    if "__VNCO_DL_MISSING__" in text:
+        print("warning: download remote path is missing; no archive saved", file=sys.stderr)
+        return
+    if "__VNCO_DL_END__" not in text:
+        print("warning: download end marker is missing; no archive saved", file=sys.stderr)
+        return
+    chunks = re.findall(r"^__VNCO_DL_CHUNK_(\d+)__:\r?\n([A-Za-z0-9+/=]+)\r?$",
+                        text, re.MULTILINE)
+    if not chunks or [int(index) for index, _ in chunks] != list(range(len(chunks))):
+        print("warning: download chunks are missing or out of order; no archive saved",
+              file=sys.stderr)
+        return
+    data = b"".join(base64.b64decode(chunk, validate=True) for _, chunk in chunks)
+    destination = Path(local_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(data)
+    print(f"download: {len(chunks)} chunks, {len(data)} bytes saved", file=sys.stderr)
+
+
 def close_client(kc):
     try:
         mgr = kc._manager.client
@@ -557,6 +612,15 @@ def cmd_run(args):
                 ok = False
             result["cells"].append({"i": 0, "output": text, "error": ""})
             print(text)
+        if args.download:
+            try:
+                remote_path, local_path = args.download
+                outputs, reply = execute_code(kc, download_code(remote_path),
+                                              timeout=args.timeout)
+                save_download(outputs_to_text(outputs), local_path)
+            except Exception as error:
+                print(f"warning: download failed ({type(error).__name__}); no archive collected",
+                      file=sys.stderr)
         result["ok"] = ok
     except Exception as e:  # noqa: BLE001 — ghi loi vao ket qua, roi don dep
         result["error"] = f"{type(e).__name__}: {e}"
@@ -615,6 +679,8 @@ def main(argv=None):
             sp.add_argument("--gpu", default="T4")
             sp.add_argument("--timeout", type=int, default=1800)
             sp.add_argument("--out", default="vncolab_result.json")
+            sp.add_argument("--download", nargs=2, metavar=("REMOTE_PATH", "LOCAL_PATH"),
+                            help="download a runtime directory or file as a local zip")
             sp.add_argument("--keep", action="store_true",
                             help="giu runtime sau khi chay xong")
             sp.set_defaults(func=cmd_run)
