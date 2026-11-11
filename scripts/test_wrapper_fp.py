@@ -229,8 +229,15 @@ def _gold_dir():
     here = os.path.dirname(os.path.abspath(__file__))
     candidates.append(os.path.join(here, "..", "parity_gold", "ffe9c840"))
     for c in candidates:
-        if c and os.path.isdir(c) and glob.glob(os.path.join(c, "*.jsonl")):
+        if not c or not os.path.isdir(c):
+            continue
+        # fixture phang (cac segment *.jsonl nam truc tiep trong dir) hoac
+        # layout goc cua Qoder (cac segment nam trong segments/ ben duoi)
+        if glob.glob(os.path.join(c, "*.jsonl")):
             return c
+        seg = os.path.join(c, "segments")
+        if os.path.isdir(seg) and glob.glob(os.path.join(seg, "*.jsonl")):
+            return seg
     return None
 
 
