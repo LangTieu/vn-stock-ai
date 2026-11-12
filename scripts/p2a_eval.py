@@ -18,6 +18,7 @@ def calibration(records):
             'direction_accuracy': sum(r['prediction'] == r['truth'] for r in records) / n,
             'generation_accuracy': sum(r['generated_direction'] == LABELS[r['truth']] for r in records) / n,
             'generation_invalid': sum(r['generated_direction'] not in LABELS.values() for r in records),
+            'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
             'brier': sum((r['p_up'] - (r['truth'] == 'UP')) ** 2 for r in records) / n,
             'ece_4_bins': sum(b['count'] / n * abs(b['mean_p_up'] - b['observed_up_rate'])
                               for b in bins if b['count']), 'bins': bins}
@@ -56,12 +57,14 @@ def main():
             p_up = 1 / (1 + math.exp(delta))
             ids = torch.tensor([prefix], device=model.device)
             generated = model.generate(ids, attention_mask=torch.ones_like(ids), max_new_tokens=16,
-                do_sample=True, temperature=0.1, top_p=0.75, top_k=40,
-                pad_token_id=tok.eos_token_id)
+                do_sample=False, pad_token_id=tok.eos_token_id)
+            raw_gen = tok.decode(generated[0, len(prefix):], skip_special_tokens=True).strip()
+            first_tok = raw_gen.split()[0].strip('.,:;!?"\'()[]') if raw_gen else ''
+            gen_dir = first_tok.upper() if first_tok.upper() in LABELS.values() else raw_gen
             record = {'index': len(records), 'truth': row['metadata']['label']['future_direction_120'],
                 'prediction': 'UP' if p_up >= 0.5 else 'DOWN', 'p_up': p_up,
                 'probability_level': min(4, int(p_up * 4) + 1),
-                'generated_direction': tok.decode(generated[0, len(prefix):], skip_special_tokens=True).strip()}
+                'generated_direction': gen_dir, 'raw_generation': raw_gen}
             records.append(record)
             stream.write(json.dumps(record, ensure_ascii=False) + '\n')
             stream.flush()
