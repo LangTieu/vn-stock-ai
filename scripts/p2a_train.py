@@ -204,10 +204,94 @@ def main():
     if not torch.cuda.is_available():
         raise RuntimeError('CUDA GPU required for training')
     set_seed(42)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, device_map={'': 0}, torch_dtype=torch.float16, attn_implementation='sdpa',
+
+    # Liger Kernel monkey-patch, before the model is instantiated on purpose:
+    # it swaps RMSNorm/RoPE/SwiGLU on the transformers module classes, so it
+    # must run before from_pretrained() and before the PEFT wrap. This script
+    # builds its own Trainer + TrainingArguments (LabelTrainer, no TRL
+    # SFTConfig), so the `use_liger_kernel=True` flag is not available here.
+    #
+    # The right name for a Qwen2.5 *text* model is apply_liger_kernel_to_qwen2:
+    # transformers serves Qwen2.5 text through transformers.models.qwen2
+    # (Qwen2ForCausalLM/...), and liger-kernel 0.8.5 (latest on PyPI, checked
+    # 12/11/2026) exposes no apply_liger_kernel_to_qwen2_5 at all -- only
+    # apply_liger_kernel_to_qwen2_5_vl, which patches Qwen2.5-VL classes.
+    # Earlier smoke (chunk 3) died on exactly that name:
+    #   LIGER_DISABLED ImportError cannot import name 'apply_liger_kernel_to_qwen2_5'
+    # The old name is kept as a second candidate in case another liger-kernel
+    # build does ship it.
+    #
+    # Loss patching is deliberately OFF (fused_linear_cross_entropy=False,
+    # cross_entropy=False): both would replace Qwen2ForCausalLM.forward and/or
+    # the CE implementation, while supervised_loss() above computes its own
+    # float32 CE over the kept positions. Leaving them off means only the
+    # kernels are swapped and the loss path is unchanged.
+    # Any failure (wheel missing/broken, unsupported kernel) is non-fatal:
+    # training continues on vanilla HF kernels, and the outcome is printed so
+    # the run log records which path was taken.
+    try:
+        import liger_kernel.transformers.monkey_patch as liger_monkey_patch
+        liger_name = next((name for name in ('apply_liger_kernel_to_qwen2',
+                                             'apply_liger_kernel_to_qwen2_5')
+                           if hasattr(liger_monkey_patch, name)), None)
+        if liger_name is None:
+            raise ImportError('no apply_liger_kernel_to_qwen2* in '
+                              + str(getattr(liger_monkey_patch, '__file__', 'liger_kernel')))
+        if liger_name == 'apply_liger_kernel_to_qwen2':
+            getattr(liger_monkey_patch, liger_name)(fused_linear_cross_entropy=False,
+                                                    cross_entropy=False)
+        else:
+            getattr(liger_monkey_patch, liger_name)()
+        print('LIGER_ENABLED', liger_name, flush=True)
+    except Exception as exc:  # noqa: BLE001 — kernel optional, never abort the run
+        print('LIGER_DISABLED', type(exc).__name__, exc, flush=True)
+
+    # Attention backend: flash_attention_2, falling back to sdpa in two gates,
+    # both before the first training step.
+    #   1. import gate: if the flash-attn wheel is missing or broken, never try a
+    #      FA2 load — a failed 14B 4-bit load costs minutes of a paid runtime.
+    #      FlashAttention-2 supports Ampere/Ada/Hopper only; its README says
+    #      Turing (T4) support is not available ("please use FlashAttention 1.x
+    #      for Turing"). The T4 smoke path therefore reports pre-Ampere here and
+    #      sdpa is the expected backend; no wheel is installed for it.
+    #   2. load gate: from_pretrained(attn_implementation='flash_attention_2')
+    #      raises ImportError/RuntimeError/ValueError when the kernel cannot be
+    #      built for this GPU/head_dim; catch it, free the partial 4-bit model,
+    #      and reload the same kwargs with 'sdpa' so a smoke/full run still
+    #      starts instead of dying at model load.
+    # FA2 errors that only surface in the first forward pass (inside
+    # trainer.train) are NOT auto-retried here: that would mean reloading the
+    # model mid-run. Those are caught by the smoke gate instead. The backend
+    # actually used is printed, so the run log always says which path ran.
+    model_kwargs = dict(device_map={'': 0}, torch_dtype=torch.float16,
         quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4',
             bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.float16))
+    attn_implementation = 'sdpa'
+    try:
+        # Skip the import on pre-Ampere GPUs: the kernel cannot run there even
+        # if a wheel were present, so the only thing to report is the reason.
+        capability_major = torch.cuda.get_device_capability()[0]
+        if capability_major < 8:
+            raise RuntimeError(f'pre-Ampere GPU (sm_{capability_major}0); '
+                               'FlashAttention-2 requires sm80+')
+        import flash_attn  # noqa: F401 — availability probe only
+        attn_implementation = 'flash_attention_2'
+    except Exception as exc:  # noqa: BLE001 — missing/broken wheel is expected
+        print('FLASH_ATTN_UNAVAILABLE', type(exc).__name__, exc, flush=True)
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_ID, attn_implementation=attn_implementation, **model_kwargs)
+        print('ATTN_IMPLEMENTATION', attn_implementation, flush=True)
+    except (ImportError, RuntimeError, ValueError) as exc:
+        if attn_implementation != 'flash_attention_2':
+            raise
+        print('FLASH_ATTN_FALLBACK_SDPA', type(exc).__name__, exc, flush=True)
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_ID, attn_implementation='sdpa', **model_kwargs)
+        print('ATTN_IMPLEMENTATION', 'sdpa', flush=True)
     model = prepare_qlora_model(model)
     model.print_trainable_parameters()
     output.mkdir(parents=True, exist_ok=True)
