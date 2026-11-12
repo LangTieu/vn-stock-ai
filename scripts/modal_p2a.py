@@ -36,6 +36,7 @@ image = (
         "jinja2==3.1.6",
     )
     .add_local_file(Path(__file__).parent / "p2a_train.py", "/workspace/p2a_train.py")
+    .add_local_file(Path(__file__).parent / "p2a_eval.py", "/workspace/p2a_eval.py")
 )
 
 volume = modal.Volume.from_name(VOLUME_NAME)
@@ -49,7 +50,11 @@ volume = modal.Volume.from_name(VOLUME_NAME)
     memory=32000,
     env={"HF_HOME": "/vol/hf-cache", "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"},
 )
-def smoke_train():
+def smoke_train(
+    output_dir: str = "/vol/p2a-checkpoints-smoke",
+    resume: str = "",
+    max_steps: int = 2,
+):
     import hashlib
     import subprocess
     import sys
@@ -107,15 +112,17 @@ def smoke_train():
         print(f"DATASET_FILE {f} size={f.stat().st_size} md5={actual} "
               f"{'PASS' if actual == want_md5 else 'FAIL'} expected={want_md5}", flush=True)
 
-    output_dir = vol / "p2a-checkpoints-smoke"
+    output_dir = Path(output_dir)
     cmd = [
         sys.executable, "/workspace/p2a_train.py",
         "--train", str(train_file),
         "--output-dir", str(output_dir),
         "--limit", "500",
-        "--max-steps", "2",
+        "--max-steps", str(max_steps),
         "--save-steps", "1",
     ]
+    if resume:
+        cmd.extend(["--resume", resume])
     print("RUN_CMD", " ".join(cmd), flush=True)
     start = time.monotonic()
     proc = subprocess.run(cmd, capture_output=False)
@@ -148,7 +155,46 @@ def smoke_train():
     return {"sha": sha, "wall_seconds": elapsed}
 
 
+@app.function(
+    image=image,
+    gpu="T4",
+    volumes={VOLUME_MOUNT: volume},
+    timeout=5400,
+    memory=32000,
+    env={"HF_HOME": "/vol/hf-cache", "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"},
+)
+def eval_adapter(output_dir: str = "/vol/p2a-checkpoints-smoke", limit: int = 20):
+    import hashlib
+    import subprocess
+    import sys
+
+    output_dir = Path(output_dir)
+    holdout = Path(VOLUME_MOUNT) / "dataset/p1-dataset/p1/holdout.jsonl"
+    eval_output = output_dir / "eval.jsonl"
+    cmd = [
+        sys.executable, "/workspace/p2a_eval.py",
+        "--holdout", str(holdout),
+        "--adapter", str(output_dir / "adapter"),
+        "--output", str(eval_output),
+        "--limit", str(limit),
+    ]
+    print("RUN_EVAL_CMD", " ".join(cmd), flush=True)
+    proc = subprocess.run(cmd, capture_output=False)
+    print("EVAL_EXIT", proc.returncode, flush=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"eval exit {proc.returncode}")
+
+    metrics = Path(str(eval_output) + ".metrics.json")
+    print("EVAL_METRICS", metrics.read_text(), flush=True)
+    digest = hashlib.sha256(eval_output.read_bytes()).hexdigest()
+    print("EVAL_JSONL", eval_output, "BYTES", eval_output.stat().st_size,
+          "SHA256", digest, flush=True)
+    volume.commit()
+    print("VOLUME_COMMITTED", flush=True)
+    return {"eval_jsonl": str(eval_output), "sha256": digest}
+
+
 @app.local_entrypoint()
-def main():
-    result = smoke_train.remote()
+def main(output_dir: str = "/vol/p2a-checkpoints-smoke", resume: str = "", max_steps: int = 2):
+    result = smoke_train.remote(output_dir=output_dir, resume=resume, max_steps=max_steps)
     print("RESULT", json.dumps(result), flush=True)

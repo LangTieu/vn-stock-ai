@@ -326,7 +326,14 @@ def main():
                            data_collator=partial(collate, pad_id=tok.pad_token_id), callbacks=[Progress()])
     trainer.model_accepts_loss_kwargs = False
     log_training_memory(model)
-    trainer.train(resume_from_checkpoint=a.resume)
+    if a.resume:
+        import numpy as np
+        numpy_rng_globals = [np.core.multiarray._reconstruct, np.ndarray, np.dtype,
+                             type(np.dtype(np.uint32))]
+        with torch.serialization.safe_globals(numpy_rng_globals):
+            trainer.train(resume_from_checkpoint=a.resume)
+    else:
+        trainer.train()
     final = output / 'adapter'
     trainer.save_model(str(final))
     tok.save_pretrained(final)
