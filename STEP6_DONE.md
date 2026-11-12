@@ -14,4 +14,4 @@
 - `ece_4_bins`: `0.47432722856630655`
 - Downloaded [`eval.jsonl`](artifacts/step6/eval.jsonl), 20 lines, 3,261 bytes;
   SHA-256 `6c637df087b85c4a97439755df7a0bbc13ca9f36bc25eb985f054b9ec7e38122`.
-- Final Modal billing summary: metered cost `$1.72725121`, billed cost `$0E-8`.
+- Final Modal billing summary: metered cost `$1.68725121`, billed cost `$0E-8`.

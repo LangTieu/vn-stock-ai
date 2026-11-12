@@ -13,4 +13,4 @@ direction accuracy 0.45, exact format rate 1.0, Brier 0.4908893182507755, and
 `6c637df087b85c4a97439755df7a0bbc13ca9f36bc25eb985f054b9ec7e38122`).
 
 The resume fix scopes NumPy RNG safe globals to the explicitly requested
-checkpoint load. Final Modal metered cost for the month was $1.72725121.
+checkpoint load. Final Modal metered cost for the month was $1.68725121.
