@@ -27,6 +27,7 @@ def upload_full_checkpoint(api, repo_id, checkpoint):
     if missing:
         raise RuntimeError(f'Incomplete resume checkpoint {checkpoint}: missing {", ".join(missing)}')
     relative = f'checkpoints/{checkpoint.name}'
+    print(f'CHECKPOINT_UPLOAD_START {relative} source={checkpoint}', flush=True)
     result = api.upload_folder(repo_id=repo_id, repo_type='model',
                                folder_path=str(checkpoint), path_in_repo=relative,
                                commit_message=f'Upload full {checkpoint.name}')
@@ -224,6 +225,7 @@ def main():
                 checkpoint_api = HfApi(token=token)
                 checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
                                            private=True, exist_ok=True)
+                print(f'HF_CHECKPOINT_UPLOAD_ENABLED repo={a.checkpoint_repo}', flush=True)
             except Exception as error:  # noqa: BLE001 — persistence must not block training
                 checkpoint_api = None
                 print(f'HF checkpoint upload disabled: {type(error).__name__}: {error}', flush=True)
@@ -361,8 +363,11 @@ def main():
         enabled = checkpoint_api is not None
 
         def on_save(self, args, state, control, **kwargs):
+            checkpoint = output / f'checkpoint-{state.global_step}'
+            print(f'CHECKPOINT_SAVE step={state.global_step} '
+                  f'world_process_zero={state.is_world_process_zero} '
+                  f'upload_enabled={self.enabled} path={checkpoint}', flush=True)
             if self.enabled and state.is_world_process_zero:
-                checkpoint = output / f'checkpoint-{state.global_step}'
                 try:
                     upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
                 except Exception as error:  # noqa: BLE001 — persistence must not block training
