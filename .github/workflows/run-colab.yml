@@ -2,9 +2,9 @@ name: Run Colab notebook
 
 # GitHub dieu khien Colab qua API (khong can trinh duyet, khong can dang
 # nhap Google tren may): bam "Run workflow" (hoac goi API dispatch) ->
-# self-hosted runner tren InstaBox chay scripts/vncolab.py, cap T4 free
+# GitHub-hosted runner chay scripts/vncolab.py, cap T4 free
 # qua API Colab, chay notebook, gom output ve artifact.
-# Token TK1 cat san tren may chay (~/.config/vncolab/token.json, 0600).
+# VNCOLAB_TOKEN secret is written to ~/.config/vncolab/token.json (0600).
 # Duong cu (colabctl/CDP) da park: can dang nhap Google tren desktop
 # InstaBox, anh khong lam duoc bang dien thoai.
 on:
@@ -55,9 +55,17 @@ on:
 
 jobs:
   run-colab:
-    runs-on: [self-hosted, "${{ inputs.runner }}"]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Configure Colab credentials
+        env:
+          VNCOLAB_TOKEN: ${{ secrets.VNCOLAB_TOKEN }}
+        run: |
+          umask 077
+          mkdir -p "$HOME/.config/vncolab"
+          printf '%s' "$VNCOLAB_TOKEN" > "$HOME/.config/vncolab/token.json"
+          chmod 600 "$HOME/.config/vncolab/token.json"
       - name: Run notebook on Colab T4 (vncolab)
         env:
           # MODE is explicitly bridged into the Colab kernel by vncolab.
