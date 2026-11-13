@@ -22,6 +22,14 @@ on:
         description: "Cho toi da bao nhieu giay"
         required: false
         default: "1800"
+      max_steps:
+        description: "Training steps for this session"
+        required: true
+        default: "100"
+      resume_checkpoint:
+        description: "Full checkpoint directory to resume from"
+        required: false
+        default: ""
       download_remote:
         description: "Runtime directory or file to download as a zip"
         required: false
@@ -45,6 +53,8 @@ jobs:
           # Che do chay: dispatch nay la FULL (~5.198 step). Notebook cell 1 doc
           # os.environ["MODE"], mac dinh van la "smoke" khi khong co env.
           MODE: full
+          MAX_STEPS: ${{ inputs.max_steps }}
+          RESUME_CHECKPOINT: ${{ inputs.resume_checkpoint }}
           DOWNLOAD_REMOTE: ${{ inputs.download_remote }}
           DOWNLOAD_LOCAL: ${{ inputs.download_local }}
         run: |
@@ -64,7 +74,7 @@ jobs:
           # --mode: env cua runner KHONG tu sang kernel Colab (vncolab chi gui
           # source code qua execute_code), nen phai truyen tuong minh; vncolab
           # se set os.environ["MODE"] tren kernel truoc cell dau tien.
-          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --mode "$MODE" --out colab_result.json "${download_args[@]}"
+          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --mode "$MODE" --max-steps "$MAX_STEPS" --resume-checkpoint "$RESUME_CHECKPOINT" --out colab_result.json "${download_args[@]}"
       - name: Show result
         if: always()
         run: |

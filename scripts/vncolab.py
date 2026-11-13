@@ -579,21 +579,29 @@ def cmd_run(args):
         _save_sessions(sessions)
         # 1 kernel duy nhat cho ca file (bien cell truoc ton tai o cell sau).
         kc = _kernel_client(url, token)
-        # Env cua runner KHONG tu sang kernel Colab: execute_code chi gui source
-        # code, va kernel chay tren may cua Google. Vi vay --mode phai duoc bom
-        # thanh doan code DAU TIEN chay tren kernel; notebook cell 1 doc
-        # os.environ["MODE"] (mac dinh "smoke") nen se thay dung che do.
+        # Runner env does not cross into the Colab kernel; set requested values
+        # in its first executed cell before notebook configuration is read.
+        bootstrap_values = {}
         if args.mode:
-            bootstrap = (f"import os\nos.environ['MODE'] = {args.mode!r}\n"
-                         "print('VNCOLAB_MODE', os.environ['MODE'], flush=True)")
+            bootstrap_values["MODE"] = args.mode
+        if args.max_steps is not None:
+            bootstrap_values["MAX_STEPS"] = str(args.max_steps)
+        if args.resume_checkpoint:
+            bootstrap_values["RESUME_CHECKPOINT"] = args.resume_checkpoint
+        if bootstrap_values:
+            bootstrap = "import os\n" + "\n".join(
+                f"os.environ[{key!r}] = {value!r}" for key, value in bootstrap_values.items())
+            bootstrap += "\n" + "\n".join(
+                f"print('VNCOLAB_{key}', os.environ[{key!r}], flush=True)"
+                for key in bootstrap_values)
             outputs, reply = execute_code(kc, bootstrap, timeout=60)
             text = outputs_to_text(outputs)
             print(text, flush=True)
-            result["mode"] = args.mode
+            result.update(bootstrap_values)
             if reply.get("content", {}).get("status") == "error":
                 ok = False
-                result["mode_error"] = (reply["content"].get("ename", "")
-                                        + ": " + reply["content"].get("evalue", ""))
+                result["bootstrap_error"] = (reply["content"].get("ename", "")
+                                             + ": " + reply["content"].get("evalue", ""))
         if args.file.endswith(".ipynb"):
             import nbformat
 
@@ -701,6 +709,10 @@ def main(argv=None):
             sp.add_argument("--mode", choices=["smoke", "full"], default=None,
                             help="set os.environ['MODE'] tren kernel truoc khi chay "
                                  "cell/file (env cua runner khong tu sang kernel)")
+            sp.add_argument("--max-steps", type=int, default=None,
+                            help="set MAX_STEPS in the remote kernel")
+            sp.add_argument("--resume-checkpoint", default="",
+                            help="set RESUME_CHECKPOINT in the remote kernel")
             sp.set_defaults(func=cmd_run)
         elif name == "stop":
             sp.add_argument("name", nargs="?", default=None)
