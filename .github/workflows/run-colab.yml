@@ -31,7 +31,7 @@ on:
       max_steps:
         description: "Training steps for this session"
         required: true
-        default: "100"
+        default: "50"
       resume_checkpoint:
         description: "Full checkpoint directory to resume from"
         required: false
