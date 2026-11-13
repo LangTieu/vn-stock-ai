@@ -334,7 +334,7 @@ def _kernel_client(url, token):
     raise last_err
 
 
-def execute_code(kc, code, timeout=1800):
+def execute_code(kc, code, timeout=1800, stream_output=False):
     """Chay 1 doan code tren kernel DA MO (dung chung 1 kernel cho ca
     notebook — bien cell truoc (vd DATA_TEXT) moi ton tai o cell sau).
     Tra list outputs (dicts kieu Jupyter) + shell reply."""
@@ -358,6 +358,10 @@ def execute_code(kc, code, timeout=1800):
         if mtype == "status" and msg["content"].get("execution_state") == "idle":
             break
         outputs.append(msg)
+        if stream_output:
+            text = outputs_to_text([msg])
+            if text:
+                print(text, end="" if text.endswith("\n") else "\n", flush=True)
     reply = mgr.get_shell_msg(timeout=30)
     return outputs, reply
 
@@ -627,7 +631,9 @@ def cmd_run(args):
                                            "output": "", "error": ""})
                     continue
                 print(f"[cell {i}] running...", file=sys.stderr)
-                outputs, reply = execute_code(kc, src, timeout=args.timeout)
+                stream_output = "p2a_train.py" in src and "subprocess.Popen" in src
+                outputs, reply = execute_code(kc, src, timeout=args.timeout,
+                                              stream_output=stream_output)
                 text = outputs_to_text(outputs)
                 err = ""
                 if reply.get("content", {}).get("status") == "error":
@@ -635,7 +641,8 @@ def cmd_run(args):
                            + ": " + reply["content"].get("evalue", ""))
                     ok = False
                 result["cells"].append({"i": i, "output": text, "error": err})
-                print(text)
+                if not stream_output:
+                    print(text)
         else:
             with open(args.file) as f:
                 code = f.read()
