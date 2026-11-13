@@ -52,13 +52,20 @@ on:
         description: "Nhan runner: colab-driver (may 1, TK1) hoac colab-driver-tk2 (may 2, TK2)"
         required: false
         default: "colab-driver"
+      executor:
+        description: "Executor for this dispatch"
+        type: choice
+        options: [github, machine1]
+        required: true
+        default: github
 
 jobs:
   run-colab:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure Colab credentials
+        if: ${{ inputs.executor == 'github' }}
         env:
           VNCOLAB_TOKEN: ${{ secrets.VNCOLAB_TOKEN }}
         run: |
