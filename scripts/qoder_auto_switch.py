@@ -33,6 +33,12 @@ Quy tac:
   trong ~15 phut vi Finhay RemoteDisconnected + nmquan 403).
 - BLOCKED LA TERMINAL (11/11): done-file chua "BLOCKED" thi dung ngay (thoat
   4), khong doi model, khong doi Qoder thoat — sync se doc STATE.md + bao cao.
+- AUTH LA TERMINAL (13/11): Qoder thoat loi va output cua CHINH lan chay
+  do co loi dang nhap (NonInteractiveAuthRequiredError / Not logged in)
+  thi dung ngay (thoat 4 nhu BLOCKED), khong doi model — moi model deu
+  chet giong nhau (gap 10/11 IB4: chua login, wrapper doi model vo ich,
+  coordinator phai kill tay). 401 tu router/provider van doi model nhu cu
+  (vd key Gonka chet: model khac van chay duoc).
 - PAT TU NAP (11/11): neu QODER_PERSONAL_ACCESS_TOKEN chua co trong env thi
   wrapper tu doc <config-dir>/.pat (IB3/IB4) va export — khong phu thuoc vao
   export ngoai nua. Khong co .pat (vd IB2) thi chay nhu cu.
@@ -129,6 +135,10 @@ PROVIDER_DOWN_ERRORS = [
     "403", "forbidden", "rate limit", "rate-limit", "too many requests",
 ]
 BLOCKED_MARKER = "BLOCKED"
+# Loi dang nhap cua chinh qodercli (khong phai 401 cua provider qua router).
+QODER_AUTH_FATAL_RE = re.compile(
+    r"NonInteractiveAuthRequiredError|not logged in\.? please run /login",
+    re.IGNORECASE)
 EXIT_PROVIDER_DOWN = 3
 EXIT_BLOCKED = 4
 
@@ -428,6 +438,21 @@ def provider_down_signal(stdout_path, done_file):
     return False
 
 
+def qoder_auth_failure(stdout_path, start_offset):
+    """True neu output cua lan chay hien tai (tu start_offset) co loi login.
+
+    Chi doc tu start_offset: stdout file duoc append qua cac lan chay, loi
+    login cu (truoc khi da login lai) khong duoc lam dung lan chay moi.
+    """
+    try:
+        with open(stdout_path, "rb") as f:
+            f.seek(start_offset)
+            text = f.read().decode("utf-8", errors="replace")
+    except OSError:
+        return False
+    return bool(QODER_AUTH_FATAL_RE.search(text))
+
+
 def no_progress_elapsed(last_progress_ts, now, window_minutes):
     """True when no tracked progress signal advanced for the whole window."""
     return now - last_progress_ts >= window_minutes * 60
@@ -510,6 +535,7 @@ def main():
     tool_log_path = None
     tool_call_count = 0
     no_progress_switch = False
+    stdout_start = 0
 
     def reset_no_progress():
         nonlocal last_progress_ts, done_mtime, tool_log_path, tool_call_count
@@ -526,8 +552,12 @@ def main():
             args.config_dir, args.workdir)
 
     def launch(model, resume_uuid=None):
-        nonlocal session_uuid
+        nonlocal session_uuid, stdout_start
         before = time.time()
+        try:
+            stdout_start = os.path.getsize(stdout_path)
+        except OSError:
+            stdout_start = 0
         if resume_uuid:
             # Resume PHAI kem prompt tiep tuc — resume khong co prompt thi
             # Qoder khong co gi de lam, ket thuc session ngay (exit 42).
@@ -658,6 +688,14 @@ def main():
         # BLOCKED la terminal — dung ngay du Qoder thoat kieu gi.
         if blocked_marker_present(args.done_file):
             log("done-file chua BLOCKED — dung ngay, khong doi model", logf)
+            return EXIT_BLOCKED
+        # rc != 0: Qoder that su loi; exit 0 kem text "Not logged in" co the
+        # chi la noi dung tra loi cua model, khong tinh.
+        if rc != 0 and qoder_auth_failure(stdout_path, stdout_start):
+            log("Qoder loi DANG NHAP (NonInteractiveAuthRequiredError / Not "
+                "logged in) voi model '%s' — DUNG HAN (thoat %d), khong doi "
+                "model; can login/PAT roi chay lai" % (models[idx], EXIT_BLOCKED),
+                logf)
             return EXIT_BLOCKED
         if rc == 0:
             if done_marker_ok(args.done_file, args.done_text):
