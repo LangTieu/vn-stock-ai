@@ -110,21 +110,36 @@ def messages(row):
             {'role': 'user', 'content': row['input']}]
 
 
-def encode(row, tokenizer, max_length):
+def encode(row, tokenizer, max_length, stats=None):
     prefix = tokenizer.apply_chat_template(messages(row), tokenize=True,
                                            add_generation_prompt=True)
     target = tokenizer.encode(LABELS[row['metadata']['label']['future_direction_120']],
                               add_special_tokens=False) + [tokenizer.eos_token_id]
-    if len(prefix) + len(target) > max_length:
-        raise ValueError(f'Context needs {len(prefix) + len(target)} tokens; raise --max-length')
-    return {'input_ids': prefix + target, 'attention_mask': [1] * (len(prefix) + len(target)),
+    length = len(prefix) + len(target)
+    if length > max_length:
+        if stats is not None:
+            stats['skipped'] += 1
+            stats['longest_over_limit_tokens'] = max(stats['longest_over_limit_tokens'], length)
+        return None
+    return {'input_ids': prefix + target, 'attention_mask': [1] * length,
             'labels': [-100] * len(prefix) + target}
 
 
 def load_dataset(path, tokenizer, max_length, limit=0):
     from datasets import Dataset
-    return Dataset.from_generator(lambda: (encode(r, tokenizer, max_length)
-                                           for r in rows(path, limit)))
+    stats = {'skipped': 0, 'longest_over_limit_tokens': 0}
+
+    def generate():
+        for row in rows(path, limit):
+            features = encode(row, tokenizer, max_length, stats)
+            if features is not None:
+                yield features
+
+    data = Dataset.from_generator(generate)
+    print(f"ENCODING_FILTER skipped={stats['skipped']} "
+          f"longest_over_limit_tokens={stats['longest_over_limit_tokens']} max_length={max_length}",
+          flush=True)
+    return data
 
 
 def collate(features, pad_id):
