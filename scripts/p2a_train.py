@@ -352,7 +352,8 @@ def main():
                     upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
                 except Exception as error:  # noqa: BLE001 — persistence must not block training
                     self.enabled = False
-                    print(f'HF checkpoint upload failed; continuing training: '
+                    print(f'HF checkpoint upload failed at step {state.global_step}; '
+                          f'continuing training: '
                           f'{type(error).__name__}: {error}', flush=True)
 
     class LabelTrainer(Trainer):
