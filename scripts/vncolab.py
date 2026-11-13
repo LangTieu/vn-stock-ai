@@ -586,18 +586,28 @@ def cmd_run(args):
             bootstrap_values["MODE"] = args.mode
         if args.max_steps is not None:
             bootstrap_values["MAX_STEPS"] = str(args.max_steps)
+        if args.save_steps is not None:
+            bootstrap_values["SAVE_STEPS"] = str(args.save_steps)
         if args.resume_checkpoint:
             bootstrap_values["RESUME_CHECKPOINT"] = args.resume_checkpoint
-        if bootstrap_values:
+        if os.environ.get("HF_CHECKPOINT_REPO"):
+            bootstrap_values["HF_CHECKPOINT_REPO"] = os.environ["HF_CHECKPOINT_REPO"]
+        hf_token = os.environ.get("HF_TOKEN")
+        if bootstrap_values or hf_token:
             bootstrap = "import os\n" + "\n".join(
                 f"os.environ[{key!r}] = {value!r}" for key, value in bootstrap_values.items())
-            bootstrap += "\n" + "\n".join(
-                f"print('VNCOLAB_{key}', os.environ[{key!r}], flush=True)"
-                for key in bootstrap_values)
+            if bootstrap_values:
+                bootstrap += "\n" + "\n".join(
+                    f"print('VNCOLAB_{key}', os.environ[{key!r}], flush=True)"
+                    for key in bootstrap_values)
+            if hf_token:
+                bootstrap += f"\nos.environ['HF_TOKEN'] = {hf_token!r}"
+                bootstrap += "\nprint('VNCOLAB_HF_TOKEN configured', flush=True)"
             outputs, reply = execute_code(kc, bootstrap, timeout=60)
             text = outputs_to_text(outputs)
             print(text, flush=True)
             result.update(bootstrap_values)
+            result["hf_token_configured"] = bool(os.environ.get("HF_TOKEN"))
             if reply.get("content", {}).get("status") == "error":
                 ok = False
                 result["bootstrap_error"] = (reply["content"].get("ename", "")
@@ -711,6 +721,8 @@ def main(argv=None):
                                  "cell/file (env cua runner khong tu sang kernel)")
             sp.add_argument("--max-steps", type=int, default=None,
                             help="set MAX_STEPS in the remote kernel")
+            sp.add_argument("--save-steps", type=int, default=None,
+                            help="set SAVE_STEPS in the remote kernel")
             sp.add_argument("--resume-checkpoint", default="",
                             help="set RESUME_CHECKPOINT in the remote kernel")
             sp.set_defaults(func=cmd_run)

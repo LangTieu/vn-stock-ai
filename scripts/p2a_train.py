@@ -15,6 +15,22 @@ os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
 TRAIN_MD5 = 'f6273e8a12e35fe1027f29ca2127b9c0'
 HOLDOUT_MD5 = '5f48d9b13d2f2cce0a730067b2f3094c'
 SMOKE_MD5 = 'eeb4faeb32a23d97f474813bac659797'
+CHECKPOINT_REQUIRED_FILES = ('optimizer.pt', 'scheduler.pt', 'trainer_state.json', 'rng_state.pth')
+
+
+def upload_full_checkpoint(api, repo_id, checkpoint):
+    checkpoint = Path(checkpoint)
+    missing = [name for name in CHECKPOINT_REQUIRED_FILES if not (checkpoint / name).is_file()]
+    if not (checkpoint / 'adapter_config.json').is_file() or not any(
+            (checkpoint / name).is_file() for name in ('adapter_model.safetensors', 'adapter_model.bin')):
+        missing.append('adapter weights/config')
+    if missing:
+        raise RuntimeError(f'Incomplete resume checkpoint {checkpoint}: missing {", ".join(missing)}')
+    relative = f'checkpoints/{checkpoint.name}'
+    result = api.upload_folder(repo_id=repo_id, repo_type='model',
+                               folder_path=str(checkpoint), path_in_repo=relative,
+                               commit_message=f'Upload full {checkpoint.name}')
+    print(f'CHECKPOINT_UPLOADED {relative} {getattr(result, "oid", "")}', flush=True)
 
 
 def dataset_path(source, destination, expected_md5):
@@ -177,10 +193,20 @@ def main():
     p.add_argument('--save-steps', type=int, default=100)
     p.add_argument('--resume', default=None)
     p.add_argument('--hub-repo')
+    p.add_argument('--checkpoint-repo', default=os.environ.get('HF_CHECKPOINT_REPO', ''))
     p.add_argument('--dry-run', action='store_true')
     a = p.parse_args()
     output = Path(a.output_dir)
     print('OUTPUT_DIR', output, flush=True)
+    checkpoint_api = None
+    if a.checkpoint_repo:
+        token = os.environ.get('HF_TOKEN')
+        if not token:
+            p.error('HF_TOKEN is required for durable checkpoint uploads')
+        from huggingface_hub import HfApi
+        checkpoint_api = HfApi(token=token)
+        checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
+                                   private=True, exist_ok=True)
     upload_hf = hf_upload_enabled(a.upload_hf)
     if upload_hf and not a.hub_repo:
         p.error('--hub-repo is required when HF upload is enabled')
@@ -311,6 +337,12 @@ def main():
                 stream.write(json.dumps(item) + '\n')
             print(json.dumps(item), flush=True)
 
+    class CheckpointUpload(TrainerCallback):
+        def on_save(self, args, state, control, **kwargs):
+            if state.is_world_process_zero:
+                checkpoint = output / f'checkpoint-{state.global_step}'
+                upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
+
     class LabelTrainer(Trainer):
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
             loss, outputs = supervised_loss(model, inputs)
@@ -323,7 +355,8 @@ def main():
         save_total_limit=2, report_to='none', optim='paged_adamw_8bit', seed=42,
         remove_unused_columns=False)
     trainer = LabelTrainer(model=model, args=args, train_dataset=data,
-                           data_collator=partial(collate, pad_id=tok.pad_token_id), callbacks=[Progress()])
+                           data_collator=partial(collate, pad_id=tok.pad_token_id),
+                           callbacks=[Progress()] + ([CheckpointUpload()] if checkpoint_api else []))
     trainer.model_accepts_loss_kwargs = False
     log_training_memory(model)
     trainer.train(resume_from_checkpoint=a.resume)

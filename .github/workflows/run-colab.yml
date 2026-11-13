@@ -14,6 +14,12 @@ on:
         description: "Notebook trong repo (duong dan, vd notebooks/p0_qwen15b_vcb_real.ipynb)"
         required: true
         default: "notebooks/p0_qwen15b_vcb_real.ipynb"
+      mode:
+        description: "Notebook execution mode"
+        type: choice
+        options: [smoke, full]
+        required: true
+        default: "full"
       gpu:
         description: "GPU Colab (T4 free; L4/A100 can units)"
         required: false
@@ -30,6 +36,10 @@ on:
         description: "Full checkpoint directory to resume from"
         required: false
         default: ""
+      save_steps:
+        description: "Checkpoint interval for this session"
+        required: true
+        default: "100"
       download_remote:
         description: "Runtime directory or file to download as a zip"
         required: false
@@ -50,11 +60,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run notebook on Colab T4 (vncolab)
         env:
-          # Che do chay: dispatch nay la FULL (~5.198 step). Notebook cell 1 doc
-          # os.environ["MODE"], mac dinh van la "smoke" khi khong co env.
-          MODE: full
+          # MODE is explicitly bridged into the Colab kernel by vncolab.
+          MODE: ${{ inputs.mode }}
           MAX_STEPS: ${{ inputs.max_steps }}
           RESUME_CHECKPOINT: ${{ inputs.resume_checkpoint }}
+          SAVE_STEPS: ${{ inputs.save_steps }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_CHECKPOINT_REPO: Jerlob/vn-stock-ai-p2a-checkpoints
           DOWNLOAD_REMOTE: ${{ inputs.download_remote }}
           DOWNLOAD_LOCAL: ${{ inputs.download_local }}
         run: |
@@ -74,7 +86,7 @@ jobs:
           # --mode: env cua runner KHONG tu sang kernel Colab (vncolab chi gui
           # source code qua execute_code), nen phai truyen tuong minh; vncolab
           # se set os.environ["MODE"] tren kernel truoc cell dau tien.
-          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --mode "$MODE" --max-steps "$MAX_STEPS" --resume-checkpoint "$RESUME_CHECKPOINT" --out colab_result.json "${download_args[@]}"
+          "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --mode "$MODE" --max-steps "$MAX_STEPS" --resume-checkpoint "$RESUME_CHECKPOINT" --save-steps "$SAVE_STEPS" --out colab_result.json "${download_args[@]}"
       - name: Show result
         if: always()
         run: |
