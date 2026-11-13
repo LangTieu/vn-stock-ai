@@ -39,7 +39,7 @@ on:
       save_steps:
         description: "Checkpoint interval for this session"
         required: true
-        default: "100"
+        default: "25"
       download_remote:
         description: "Runtime directory or file to download as a zip"
         required: false

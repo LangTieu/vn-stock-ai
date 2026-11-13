@@ -205,7 +205,7 @@ def main():
     p.add_argument('--max-length', type=int, default=4096)
     p.add_argument('--epochs', type=int, choices=[2, 3], default=2)
     p.add_argument('--max-steps', type=int, default=-1)
-    p.add_argument('--save-steps', type=int, default=100)
+    p.add_argument('--save-steps', type=int, default=25)
     p.add_argument('--resume', default=None)
     p.add_argument('--hub-repo')
     p.add_argument('--checkpoint-repo', default=os.environ.get('HF_CHECKPOINT_REPO', ''))
