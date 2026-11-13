@@ -202,11 +202,16 @@ def main():
     if a.checkpoint_repo:
         token = os.environ.get('HF_TOKEN')
         if not token:
-            p.error('HF_TOKEN is required for durable checkpoint uploads')
-        from huggingface_hub import HfApi
-        checkpoint_api = HfApi(token=token)
-        checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
-                                   private=True, exist_ok=True)
+            print('HF checkpoint upload skipped: HF_TOKEN is not set', flush=True)
+        else:
+            try:
+                from huggingface_hub import HfApi
+                checkpoint_api = HfApi(token=token)
+                checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
+                                           private=True, exist_ok=True)
+            except Exception as error:  # noqa: BLE001 — persistence must not block training
+                checkpoint_api = None
+                print(f'HF checkpoint upload disabled: {type(error).__name__}: {error}', flush=True)
     upload_hf = hf_upload_enabled(a.upload_hf)
     if upload_hf and not a.hub_repo:
         p.error('--hub-repo is required when HF upload is enabled')
@@ -338,10 +343,17 @@ def main():
             print(json.dumps(item), flush=True)
 
     class CheckpointUpload(TrainerCallback):
+        enabled = checkpoint_api is not None
+
         def on_save(self, args, state, control, **kwargs):
-            if state.is_world_process_zero:
+            if self.enabled and state.is_world_process_zero:
                 checkpoint = output / f'checkpoint-{state.global_step}'
-                upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
+                try:
+                    upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
+                except Exception as error:  # noqa: BLE001 — persistence must not block training
+                    self.enabled = False
+                    print(f'HF checkpoint upload failed; continuing training: '
+                          f'{type(error).__name__}: {error}', flush=True)
 
     class LabelTrainer(Trainer):
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
