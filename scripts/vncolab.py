@@ -215,16 +215,26 @@ class Client:
         import requests as _rq
 
         last_err = None
-        for attempt in range(4):
+        max_attempts = 7
+        for attempt in range(max_attempts):
+            delay = min(60, 5 * (2 ** attempt))
             try:
                 resp = self.session.request(method, url, **kwargs)
             except (_rq.exceptions.ProxyError, _rq.exceptions.ConnectionError,
                     _rq.exceptions.ReadTimeout) as e:
                 last_err = e
-                time.sleep(5 * (2 ** attempt))
+                if attempt + 1 == max_attempts:
+                    break
+                print(f"Colab {method} transport error ({type(e).__name__}); "
+                      f"retry {attempt + 1}/{max_attempts - 1} in {delay}s",
+                      file=sys.stderr, flush=True)
+                time.sleep(delay)
                 continue
-            if resp.status_code in (502, 503, 504) and attempt < 3:
-                time.sleep(5 * (2 ** attempt))
+            if resp.status_code in (502, 503, 504) and attempt + 1 < max_attempts:
+                print(f"Colab {method} returned HTTP {resp.status_code}; "
+                      f"retry {attempt + 1}/{max_attempts - 1} in {delay}s",
+                      file=sys.stderr, flush=True)
+                time.sleep(delay)
                 continue
             if not resp.ok:
                 raise ColabRequestError(
