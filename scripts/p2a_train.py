@@ -27,11 +27,33 @@ def upload_full_checkpoint(api, repo_id, checkpoint):
     if missing:
         raise RuntimeError(f'Incomplete resume checkpoint {checkpoint}: missing {", ".join(missing)}')
     relative = f'checkpoints/{checkpoint.name}'
-    print(f'CHECKPOINT_UPLOAD_START {relative} source={checkpoint}', flush=True)
-    result = api.upload_folder(repo_id=repo_id, repo_type='model',
-                               folder_path=str(checkpoint), path_in_repo=relative,
-                               commit_message=f'Upload full {checkpoint.name}')
-    print(f'CHECKPOINT_UPLOADED {relative} {getattr(result, "oid", "")}', flush=True)
+    expected = {f'{relative}/{name}' for name in CHECKPOINT_REQUIRED_FILES}
+    expected.add(f'{relative}/adapter_config.json')
+    for attempt in range(1, 4):
+        try:
+            print(f'CHECKPOINT_UPLOAD_START {relative} attempt={attempt}/3 source={checkpoint}',
+                  flush=True)
+            result = api.upload_folder(repo_id=repo_id, repo_type='model',
+                                       folder_path=str(checkpoint), path_in_repo=relative,
+                                       commit_message=f'Upload full {checkpoint.name}')
+            remote_files = set(api.list_repo_files(repo_id=repo_id, repo_type='model'))
+            missing_remote = sorted(expected - remote_files)
+            if not any(f'{relative}/{name}' in remote_files
+                       for name in ('adapter_model.safetensors', 'adapter_model.bin')):
+                missing_remote.append(f'{relative}/adapter_model.(safetensors|bin)')
+            if missing_remote:
+                raise RuntimeError(f'HF verification missing files: {", ".join(missing_remote)}')
+            print(f'CHECKPOINT_UPLOADED {relative} {getattr(result, "oid", "")} '
+                  f'verified_files={len(expected) + 1}', flush=True)
+            return
+        except Exception as error:  # noqa: BLE001 — retry persistence, never training
+            if attempt == 3:
+                raise RuntimeError(f'upload/verification failed after {attempt} attempts: '
+                                   f'{type(error).__name__}: {error}') from error
+            delay = 5 * (2 ** (attempt - 1))
+            print(f'CHECKPOINT_UPLOAD_RETRY {relative} attempt={attempt}/3 '
+                  f'error={type(error).__name__}: {error} wait={delay}s', flush=True)
+            time.sleep(delay)
 
 
 def dataset_path(source, destination, expected_md5):
@@ -218,7 +240,8 @@ def main():
     if a.checkpoint_repo:
         token = os.environ.get('HF_TOKEN')
         if not token:
-            print('HF checkpoint upload skipped: HF_TOKEN is not set', flush=True)
+            print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
+                  'reason=HF_TOKEN is not set; uploads disabled', flush=True)
         else:
             try:
                 from huggingface_hub import HfApi
@@ -228,7 +251,9 @@ def main():
                 print(f'HF_CHECKPOINT_UPLOAD_ENABLED repo={a.checkpoint_repo}', flush=True)
             except Exception as error:  # noqa: BLE001 — persistence must not block training
                 checkpoint_api = None
-                print(f'HF checkpoint upload disabled: {type(error).__name__}: {error}', flush=True)
+                print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
+                      f'reason=client setup {type(error).__name__}: {error}; uploads disabled',
+                      flush=True)
     upload_hf = hf_upload_enabled(a.upload_hf)
     if upload_hf and not a.hub_repo:
         p.error('--hub-repo is required when HF upload is enabled')
@@ -371,10 +396,9 @@ def main():
                 try:
                     upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
                 except Exception as error:  # noqa: BLE001 — persistence must not block training
-                    self.enabled = False
-                    print(f'HF checkpoint upload failed at step {state.global_step}; '
-                          f'continuing training: '
-                          f'{type(error).__name__}: {error}', flush=True)
+                    print(f'CHECKPOINT_UPLOAD_FAILED step={state.global_step} '
+                          f'repo={a.checkpoint_repo} reason={type(error).__name__}: {error}; '
+                          'continuing training', flush=True)
 
     class LabelTrainer(Trainer):
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
