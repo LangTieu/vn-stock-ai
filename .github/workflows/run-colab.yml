@@ -55,13 +55,13 @@ on:
       executor:
         description: "Executor for this dispatch"
         type: choice
-        options: [github, machine1]
+        options: [github, machine1, lv1]
         required: true
         default: github
 
 jobs:
   run-colab:
-    runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure Colab credentials
