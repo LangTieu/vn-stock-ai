@@ -321,8 +321,97 @@ def test_gold_replay():
               % sum(1 for r in batch_results if r))
 
 
+IB4_AUTH_LINE = ("An unexpected critical error occurred: "
+                 "NonInteractiveAuthRequiredError: Not logged in. Please run /login\n")
+FAKE_QODERCLI = """#!/bin/sh
+# Fake qodercli: ghi model duoc goi, in output theo FAKE_QODER_MODE.
+model=""
+while [ $# -gt 0 ]; do
+  if [ "$1" = "-m" ]; then model="$2"; shift; fi
+  shift
+done
+echo "$model" >> "$FAKE_QODER_CALLS"
+case "$FAKE_QODER_MODE" in
+  auth) printf '%s' "$FAKE_AUTH_LINE"; exit 1 ;;
+  auth_exit0) printf 'Model answer quoting: %s' "$FAKE_AUTH_LINE"; exit 0 ;;
+  ratelimit) echo "Error: 429 Too Many Requests: rate limit exceeded"; exit 1 ;;
+esac
+exit 1
+"""
+
+
+def _run_wrapper(mode, stale_stdout=""):
+    """Chay wrapper.main() that (vong lap that, subprocess that) voi
+    qodercli gia; tra ve (exit code, cac model da goi, wrapper log)."""
+    real_sleep = wrapper.time.sleep
+    old_argv, old_path = sys.argv, os.environ.get("PATH", "")
+    with tempfile.TemporaryDirectory() as root:
+        bindir = os.path.join(root, "bin")
+        os.makedirs(bindir)
+        fake = os.path.join(bindir, "qodercli")
+        with open(fake, "w") as f:
+            f.write(FAKE_QODERCLI)
+        os.chmod(fake, 0o755)
+        calls = os.path.join(root, "calls.txt")
+        logf = os.path.join(root, "autoswitch.log")
+        if stale_stdout:
+            with open(logf + ".qoder-stdout", "w") as f:
+                f.write(stale_stdout)
+        prompt = os.path.join(root, "BRIEF.md")
+        with open(prompt, "w") as f:
+            f.write("do the task\n")
+        done = os.path.join(root, "STATE.md")
+        os.environ.update(PATH=bindir + os.pathsep + old_path,
+                          FAKE_QODER_MODE=mode, FAKE_QODER_CALLS=calls,
+                          FAKE_AUTH_LINE=IB4_AUTH_LINE)
+        sys.argv = ["qoder_auto_switch.py", "--config-dir", os.path.join(root, "cfg"),
+                    "--workdir", os.path.join(root, "work"), "--prompt-file", prompt,
+                    "--models", "Model A (Router),Model B (Router)",
+                    "--log-file", logf, "--check-interval", "1",
+                    "--done-file", done, "--done-text", "ALL DONE"]
+        wrapper.time.sleep = lambda s: real_sleep(min(s, 0.3))
+        try:
+            rc = wrapper.main()
+        finally:
+            wrapper.time.sleep = real_sleep
+            sys.argv = old_argv
+            os.environ["PATH"] = old_path
+        with open(calls) as f:
+            called = [l.strip() for l in f if l.strip()]
+        with open(logf) as f:
+            log_text = f.read()
+    return rc, called, log_text
+
+
+def test_auth_hard_stop():
+    # Loi login (dong loi that IB4 10/11) -> thoat 4 ngay, khong thu model 2.
+    rc, called, log_text = _run_wrapper("auth")
+    assert rc == wrapper.EXIT_BLOCKED, "auth: rc %s, expected 4" % rc
+    assert called == ["Model A (Router)"], "auth: called %s" % called
+    assert "doi model 1/" not in log_text and "DUNG HAN" in log_text
+    print("auth hard stop PASS (rc 4, 1 model goi: %s)" % called)
+
+    # Loi khac (429) -> van doi model nhu cu, het model -> thoat 2.
+    rc, called, log_text = _run_wrapper("ratelimit")
+    assert rc == 2, "ratelimit: rc %s, expected 2" % rc
+    assert called == ["Model A (Router)", "Model B (Router)"], "ratelimit: %s" % called
+    assert "doi model 1/1" in log_text
+    print("non-auth error still switches PASS (rc 2, goi: %s)" % called)
+
+    # Loi login CU trong stdout (lan chay truoc) khong lam dung lan chay moi.
+    rc, called, _ = _run_wrapper("ratelimit", stale_stdout=IB4_AUTH_LINE)
+    assert rc == 2 and len(called) == 2, "stale: rc %s called %s" % (rc, called)
+    print("stale auth line ignored PASS (rc 2, goi: %s)" % called)
+
+    # Exit 0 ma output chi trich dan loi login -> khong tinh la loi auth.
+    rc, called, _ = _run_wrapper("auth_exit0")
+    assert rc == 2 and len(called) == 2, "exit0: rc %s called %s" % (rc, called)
+    print("exit-0 quoted auth text not terminal PASS (rc 2, goi: %s)" % called)
+
+
 if __name__ == "__main__":
     main()
+    test_auth_hard_stop()
     test_done_marker()
     test_session_detector()
     test_stdout_detector()
