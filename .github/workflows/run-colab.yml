@@ -82,8 +82,8 @@ jobs:
           SAVE_STEPS: ${{ inputs.save_steps }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_CHECKPOINT_REPO: Jerlob/vn-stock-ai-p2a-checkpoints
-          DOWNLOAD_REMOTE: ${{ inputs.download_remote }}
-          DOWNLOAD_LOCAL: ${{ inputs.download_local }}
+          DOWNLOAD_REMOTE: ${{ inputs.download_remote || format('/content/p2a-checkpoints/{0}', inputs.mode) }}
+          DOWNLOAD_LOCAL: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
         run: |
           # Dung venv cai san tren may (deps: google-auth, jupyter-kernel-client...).
           # Neu may moi/chua co venv thi tao moi + cai deps (fallback tu phuc hoi).
@@ -115,17 +115,18 @@ jobs:
           path: colab_result.json
       - name: Check downloaded adapter
         id: adapter
-        if: always() && inputs.download_remote != '' && inputs.download_local != ''
+        if: always() && env.DOWNLOAD_REMOTE != '' && env.DOWNLOAD_LOCAL != ''
         env:
-          DOWNLOAD_LOCAL: ${{ inputs.download_local }}
+          DOWNLOAD_REMOTE: ${{ inputs.download_remote || format('/content/p2a-checkpoints/{0}', inputs.mode) }}
+          DOWNLOAD_LOCAL: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
         run: |
           if [ -f "$DOWNLOAD_LOCAL" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
       - name: colab-adapter
-        if: always() && inputs.download_remote != '' && inputs.download_local != '' && steps.adapter.outputs.exists == 'true'
+        if: always() && env.DOWNLOAD_REMOTE != '' && env.DOWNLOAD_LOCAL != '' && steps.adapter.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: colab-adapter
-          path: ${{ inputs.download_local }}
+          name: p2a-output
+          path: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
           if-no-files-found: ignore
