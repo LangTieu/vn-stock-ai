@@ -61,7 +61,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 ## 3. Tính năng chính
 
-1. Web chat tiếng Việt qua `aistockvn.com` hostname đã duyệt; stream câu trả lời, gửi/dừng, retry có giới hạn, xóa hội thoại.
+1. Web chat tiếng Việt tại `chat.aistockvn.com` (hostname con đề xuất; chờ chốt), host trên Cloudflare Pages; stream câu trả lời, gửi/dừng, retry có giới hạn, xóa hội thoại. Apex `aistockvn.com` vẫn dành cho trang bài viết hằng ngày về chứng khoán, vĩ mô Việt Nam và vĩ mô thế giới; P4 không chiếm apex.
 2. Bot Telegram qua cùng backend; trả lời cùng skill/model policy, cùng format với web.
 3. Adapter Zalo OA và WhatsApp Business API theo giai đoạn, chỉ hoạt động khi đủ quyền/tài khoản/API chính thức và vượt kiểm chứng webhook.
 4. Các tác vụ: tóm tắt phiên; phân tích một mã (OHLCV, RSI/MACD, hỗ trợ/kháng cự); khối ngoại/tự doanh theo mã.
