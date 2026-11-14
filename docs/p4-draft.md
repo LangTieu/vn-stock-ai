@@ -1,82 +1,104 @@
-# Bản thảo P4 — Ứng dụng web chat AI VN Stock
+# Bản thảo P4 — Trợ lý phân tích chứng khoán đa kênh, đa model
 
-**Trạng thái:** Bản thảo theo các quyết định hiện tại để Henrry duyệt. Chưa triển khai mã P4, chưa tạo Pages project và chưa cấu hình DNS.
+**Trạng thái:** Bản đề xuất cập nhật để Henrry duyệt. Chưa triển khai mã, chưa tạo tích hợp kênh hoặc deploy.
 
-## 1. P4 là gì và phạm vi sản phẩm
+## 1. Sản phẩm và phạm vi
 
-P4 là ứng dụng chat AI trên web, phục vụ hỏi đáp và phân tích thị trường/chứng khoán Việt Nam. Người dùng truy cập qua tên miền thuộc **`aistockvn.com`**; đề xuất hostname là **`chat.aistockvn.com`**, chờ Henrry chốt. P4 **không phải bot Telegram**. P4 cũng độc lập với Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng; không tích hợp hoặc dùng lại dịch vụ/secret/database của Pocket Personal.
+P4 là trợ lý AI phân tích thị trường/chứng khoán Việt Nam, dùng cùng một backend nghiệp vụ qua nhiều kênh: web trên tên miền thuộc **`aistockvn.com`** (đề xuất `chat.aistockvn.com`, chờ chốt), Telegram, Zalo và WhatsApp. P4 không phải một bot Telegram đơn lẻ. Đây là sản phẩm độc lập Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng.
 
-P4 được host như một **web tĩnh trên Cloudflare Pages**. “Tĩnh” chỉ nói về cách phân phối file giao diện; khi chat, trình duyệt vẫn gọi trực tiếp qua HTTPS tới API gateway P3 để nhận câu trả lời AI dạng stream. P4 không chứa trọng số model, không chạy model trong trình duyệt và không gọi nhà cung cấp model trực tiếp.
+Các kênh chỉ là những adapter giao tiếp khác nhau; tất cả phải chuẩn hóa tin nhắn vào **cùng backend P4 và gateway P3**, dùng chung skill, chính sách, định tuyến model và định dạng câu trả lời. Không triển khai một chatbot/model/logic phân tích riêng cho từng bot/kênh.
 
-### Phạm vi chức năng MVP
+**Năng lực nghiệp vụ cốt lõi** kế thừa bot LightVela 1 (`@br_stock_bot`) và skill `vn-stock-market-research`:
 
-P4 cần có đủ nhóm khả năng phân tích của bot LightVela 1 (`@br_stock_bot`), dựa trên skill **`vn-stock-market-research`**, nhưng thể hiện bằng giao diện web:
+1. Tóm tắt phiên giao dịch từ dữ liệu có sẵn, kèm ngày/nguồn.
+2. Phân tích một mã: OHLCV, RSI/MACD và vùng hỗ trợ/kháng cự khi dữ liệu cho phép.
+3. Khối ngoại và tự doanh theo mã, ghi rõ cửa sổ thời gian, đơn vị, nguồn; nói rõ khi thiếu dữ liệu.
+4. Trả lời bằng tiếng Việt, kết luận trước rồi tới số liệu/luận cứ, luôn kèm disclaimer: thông tin tham khảo, không phải khuyến nghị đầu tư. Không bịa số liệu hoặc tuyên bố dữ liệu realtime nếu chưa xác nhận.
 
-1. **Tóm tắt phiên:** tóm tắt diễn biến phiên giao dịch từ dữ liệu sẵn có; nêu rõ ngày/nguồn dữ liệu và điểm đáng chú ý.
-2. **Phân tích một mã:** người dùng nhập mã; trình bày dữ liệu OHLCV, RSI/MACD và các vùng hỗ trợ/kháng cự khi dữ liệu cho phép. Phân biệt dữ liệu quan sát được với diễn giải; không bịa trường bị thiếu.
-3. **Dòng tiền theo mã:** trình bày khối ngoại và tự doanh theo mã, ghi rõ cửa sổ thời gian/đơn vị/nguồn; báo “không có số liệu” nếu nguồn không cung cấp.
-4. **Cách trả lời:** tiếng Việt; kết luận ngắn đặt trước, sau đó là số liệu và luận cứ; luôn kèm disclaimer rằng đây là thông tin tham khảo, không phải khuyến nghị đầu tư. Nếu dữ liệu thiếu, cũ hoặc không đủ căn cứ thì nói rõ.
-5. **Chat tương tác:** gửi/dừng câu hỏi, nhận stream, hiển thị lỗi có thể thử lại, xóa hội thoại; lịch sử MVP chỉ lưu cục bộ trong trình duyệt và người dùng tự xóa được.
+**Phạm vi MVP đề xuất:** web chat và một adapter Telegram dùng chung backend; bộ kỹ năng phân tích trên; streaming ở web; hội thoại ngắn theo từng người dùng/kênh; xóa/reset hội thoại; giới hạn tần suất và trạng thái lỗi rõ ràng. Zalo/WhatsApp là adapter theo giai đoạn, chỉ bật sau khi có tài khoản doanh nghiệp/API chính thức, quyền duyệt ứng dụng và webhook production.
 
-**Ngoài phạm vi MVP:** Telegram bot, đặt lệnh/giao dịch, tự nhận là môi giới hay tư vấn tài chính, tài khoản và đồng bộ lịch sử lên server, fine-tune riêng, hoặc xây nền tảng dữ liệu/retrieval mới. Các phần này cần phê duyệt và thiết kế riêng.
+**Ngoài phạm vi:** đặt lệnh/giao dịch; tự nhận là môi giới hay tư vấn tài chính; lưu đồng bộ lịch sử lâu dài; fine-tune riêng cho từng kênh; logic hoặc model độc lập theo từng bot; tích hợp Pocket Personal. Cần duyệt riêng trước khi mở rộng.
 
-## 2. Kiến trúc và chuyển model
+## 2. Kiến trúc đa kênh, đa model
 
 ```text
-Người dùng
-   └─ https://chat.aistockvn.com (đề xuất; tên miền con chờ chốt)
-       └─ Web tĩnh P4 trên Cloudflare Pages
-           └─ HTTPS /v1/chat/completions (SSE stream)
-               └─ P3 Cloudflare Worker gateway
-                   └─ LiteLLM Proxy / upstream
-                       └─ Qwen2.5-14B-Instruct base + adapter LoRA P2 khi được duyệt
+Web: chat.aistockvn.com (hostname đề xuất; chờ chốt) ─┐
+Telegram Bot API ──────────────────────────────────────┤
+Zalo Official Account API / webhook ──────────────────┼─> Adapter kênh P4
+WhatsApp Business Platform / Cloud API ───────────────┘      │
+                                                              v
+                         Chuẩn hóa định danh + conversation + policy + skill
+                                                              │
+                                                              v
+                 P3 Cloudflare Worker gateway /v1/chat/completions
+                    auth, rate limit, logging, failover, routing
+                                                              │
+                                                              v
+                              LiteLLM Proxy: alias/model registry
+                                  ├─ Model chính: Qwen2.5-14B-Instruct + LoRA P2
+                                  ├─ Dự phòng/lựa chọn: Ember, Gemini, DeepSeek/GLM…
+                                  └─ Các upstream được duyệt khác
 ```
 
-- **Giao diện → gateway:** ứng dụng gửi request OpenAI-compatible tới P3 `/v1/chat/completions`, nhận phản hồi SSE. Không gọi LiteLLM hoặc nhà cung cấp trực tiếp từ browser.
-- **Bảo mật:** không nhúng master key LiteLLM, HF token hay provider key vào JavaScript/build tĩnh. Xác nhận URL P3 và phương án khóa client an toàn/ít quyền trước khi public; static client không thể giữ bí mật dùng chung. Gateway tiếp tục chịu trách nhiệm xác thực, rate limit, logging phù hợp và failover.
-- **Trong khi P2 đang train:** dùng alias model tạm (ví dụ `vn-stock-assistant`) trỏ tới Qwen2.5-14B-Instruct base đã được duyệt. Client chỉ biết alias, không phụ thuộc model/backend cụ thể.
-- **Sau khi P2 hoàn tất:** đánh giá và phê duyệt adapter cuối; pin revision/artifact, sau đó đổi cấu hình phía LiteLLM để alias dùng base Qwen2.5-14B cùng LoRA adapter. Nếu health/chất lượng giảm, rollback alias về base. Không cần build lại client khi đổi model.
-- Checkpoint giữa chừng chỉ dùng để khôi phục train, không tự động được promote production. Chỉ adapter cuối đã đánh giá mới được xem xét đưa vào serving.
-- Frontend xử lý stream từng phần, `[DONE]`, lỗi upstream, timeout, cancel, retry có giới hạn và thông báo rõ khi P3 không có dữ liệu nền. Không khẳng định dữ liệu thị trường là realtime nếu chưa xác nhận.
+### Các kênh và điều kiện kết nối
 
-## 3. Giao diện và trải nghiệm chính
+- **Web:** file giao diện tĩnh host trên Cloudflare Pages; trình duyệt gửi HTTPS/SSE qua gateway P3. Tên miền thuộc `aistockvn.com`, đề xuất `chat.aistockvn.com`; Henrry chốt hostname con và tài khoản Cloudflare/zone trước khi tạo DNS/TLS.
+- **Telegram:** dùng Telegram Bot API làm adapter. Mỗi `chat_id` được ánh xạ thành danh tính theo namespace `telegram:<bot-id>:<chat_id>`; không coi username hiển thị là định danh ổn định. Token bot chỉ lưu phía server/secret store, không đưa vào client.
+- **Zalo:** chỉ tích hợp qua Zalo Official Account và API/webhook chính thức. Cần OA, quyền/duyệt ứng dụng và credential do chủ tài khoản quản lý; điều kiện sử dụng, hạn mức và loại tin nhắn phải được xác minh trước triển khai. Định danh theo ID người dùng do Zalo cấp, namespace riêng `zalo:<oa-id>:<user-id>`.
+- **WhatsApp:** chỉ tích hợp WhatsApp Business Platform/Cloud API chính thức. Cần tài khoản doanh nghiệp Meta, business/app/phone number phù hợp, quyền truy cập và webhook được Meta phê duyệt/cấu hình; có thể có yêu cầu template/cửa sổ hội thoại và chi phí theo chính sách hiện hành. Định danh theo WhatsApp ID/phone ID do nền tảng cấp, namespace `whatsapp:<phone-number-id>:<wa-id>`. Không dùng giả lập WhatsApp Web hoặc tự động hóa trái API chính thức.
+- **Cô lập định danh:** mặc định mỗi nền tảng và bot/OA/phone number là namespace riêng. Không tự ghép web, Telegram, Zalo, WhatsApp thành cùng một người. Nếu cần liên kết tài khoản đa kênh, phải có luồng xác nhận/chấp thuận rõ ràng và thiết kế quyền riêng tư riêng.
+- **Chuẩn hóa hội thoại:** adapter chuyển tin nhắn thành cấu trúc nội bộ chung gồm channel, channel_user_id, conversation_id, nội dung, locale, thời điểm và metadata được cho phép; cùng pipeline áp dụng giới hạn, system policy, skill `vn-stock-market-research`, lịch sử ngắn hạn và disclaimer. Chỉ trả kết quả về đúng kênh nguồn.
 
-- Trang chat tiếng Việt, responsive cho điện thoại và desktop; bố cục rõ giữa input, câu trả lời, số liệu và nguồn/ngày dữ liệu.
-- Chọn tác vụ: hỏi đáp chung, tóm tắt phiên hoặc phân tích một mã; khi chọn phân tích mã, nhập ticker và ngữ cảnh tùy chọn.
-- Phân tích một mã hiển thị OHLCV, RSI/MACD, hỗ trợ/kháng cự, khối ngoại và tự doanh theo cửa sổ thời gian có dữ liệu. Kết luận đặt đầu; số liệu và giải thích theo sau.
-- Trạng thái đang trả lời/dừng/lỗi, có thể thử lại; nút xóa hội thoại và lịch sử cục bộ.
-- Luôn có disclaimer và thông tin thiếu/cũ. Không tự tạo số liệu BCTC, dòng tiền hay giá; không đưa khuyến nghị mua/bán cá nhân hóa.
-- Accessibility: thao tác bàn phím, focus hợp lý, thông báo trạng thái stream có thể nhận biết.
+### Định tuyến và chuyển model (“nhiều não”)
 
-## 4. Công nghệ và phương án host
+- **Model chính:** alias production mặc định trỏ Qwen2.5-14B-Instruct + adapter LoRA P2 cuối đã đánh giá/phê duyệt. Trước khi P2 xong, dùng base Qwen2.5-14B-Instruct qua cùng alias.
+- **Model bổ sung:** đăng ký model được duyệt qua gateway/LiteLLM, ví dụ Ember, Gemini, DeepSeek/GLM. Khả năng sử dụng, tên model, dữ liệu gửi đi, chi phí và quyền riêng tư cần kiểm chứng trước khi bật; ví dụ không đồng nghĩa đã cấu hình hoặc được duyệt.
+- **Cách chọn:** mặc định theo tác vụ bằng policy server-side (ví dụ skill phân tích chứng khoán dùng model chính; dự phòng chỉ dùng model đã qua cùng bộ kiểm tra). Web có thể cho người dùng chọn trong danh sách model đã được duyệt. Telegram/Zalo/WhatsApp dùng mặc định theo policy; chỉ thêm lệnh chọn model nếu nền tảng UX, quyền truy cập và kiểm soát chi phí phù hợp. Kênh không được tự đặt endpoint hay bỏ qua gateway.
+- **Fallback:** P3/LiteLLM thử model chính; chỉ khi lỗi hạ tầng có thể phục hồi (timeout, unavailable, 5xx) mới chuyển sang model dự phòng theo thứ tự cấu hình. Không âm thầm fallback khi model trả 4xx do prompt/quyền hoặc khi câu trả lời chất lượng thấp; ghi nhận model thực tế dùng và báo người dùng khi đổi model ảnh hưởng kết quả. Chặn vòng lặp, giới hạn retry/thời gian và không dispatch model ngoài allowlist.
+- **Nhất quán chất lượng:** dùng cùng system policy, skill, cấu trúc kết luận-trước, quy tắc OHLCV/RSI/MACD/hỗ trợ-kháng cự, cửa sổ khối ngoại/tự doanh và disclaimer cho mọi model/kênh. Thêm bộ acceptance test cố định, đánh giá từng model trên cùng tập ca; hiển thị nguồn/ngày và đánh dấu dữ liệu thiếu. Không giả định các model tương đương chỉ vì cùng API.
+- **Bảo mật:** trình duyệt và adapter kênh chỉ gọi P3; không để lộ LiteLLM master key/provider key. Secret Telegram/Zalo/Meta lưu phía server theo từng adapter. P3/LiteLLM là nơi duy nhất áp dụng auth, rate limit, allowlist model, routing và audit metadata tối thiểu.
 
-- **TypeScript + React + Vite:** phù hợp ứng dụng SPA/PWA nhỏ, kiểu dữ liệu hữu ích khi xử lý API và SSE, build ra file tĩnh, không cần server client chạy thường trực.
-- **Cloudflare Pages:** host file tĩnh P4 trong project/repo riêng; triển khai preview trước, production sau khi có duyệt. Không dùng lại secret/database Pocket Personal.
-- **Cloudflare DNS/Custom Domain:** đề xuất `chat.aistockvn.com`, chờ Henrry xác nhận. Thêm hostname qua Cloudflare Pages → project → Custom domains; kiểm tra zone `aistockvn.com` thuộc đúng tài khoản, chỉ tạo/chỉnh record Pages hướng dẫn cho hostname con, không sửa apex hay record dịch vụ khác. Chờ TLS active, kiểm HTTPS và gọi P3 end-to-end.
-- **P3 Worker + LiteLLM:** giữ làm cổng duy nhất tới model; alias server-side cho phép thay base bằng adapter mà không đổi client.
-- **SSE tương thích OpenAI:** tránh khóa chặt frontend vào SDK của một hãng/model.
-- **Không có database P4 trong MVP:** lịch sử cục bộ giảm dữ liệu nhạy cảm và đơn giản hóa việc xóa. Chỉ thêm đồng bộ server sau khi có duyệt, chính sách lưu giữ và threat review.
+## 3. Tính năng chính
 
-## 5. Lộ trình và mốc kiểm chứng
+1. Web chat tiếng Việt qua `aistockvn.com` hostname đã duyệt; stream câu trả lời, gửi/dừng, retry có giới hạn, xóa hội thoại.
+2. Bot Telegram qua cùng backend; trả lời cùng skill/model policy, cùng format với web.
+3. Adapter Zalo OA và WhatsApp Business API theo giai đoạn, chỉ hoạt động khi đủ quyền/tài khoản/API chính thức và vượt kiểm chứng webhook.
+4. Các tác vụ: tóm tắt phiên; phân tích một mã (OHLCV, RSI/MACD, hỗ trợ/kháng cự); khối ngoại/tự doanh theo mã.
+5. Định danh theo channel namespace; hội thoại/short context tách biệt mặc định, có chính sách reset/retention rõ ràng.
+6. Chọn model theo policy/tác vụ; web cho chọn model nếu được duyệt; fallback minh bạch trong nhóm model allowlist khi lỗi hạ tầng.
+7. Kết luận tiếng Việt trước, số liệu và luận cứ sau, nguồn/ngày dữ liệu cùng disclaimer; báo rõ khi thiếu/cũ hoặc đổi model.
+8. Không đặt lệnh, không thu thập thông tin đăng nhập, không lưu prompt vào analytics/server lâu dài nếu chưa được duyệt.
+
+## 4. Công nghệ và lý do
+
+- **TypeScript + React + Vite:** web client tĩnh, kiểu dữ liệu hỗ trợ API/SSE, build nhanh, host Pages.
+- **Cloudflare Pages:** phân phối giao diện web tĩnh; không dùng Pages để chứa secret hoặc xử lý model riêng. Custom domain thuộc `aistockvn.com` sẽ gắn sau khi chốt hostname/zone.
+- **Adapters server-side:** webhook handlers riêng cho Telegram Bot API, Zalo OA API và WhatsApp Business Cloud API; cùng chuẩn hóa event rồi gọi chung backend P4/P3. Tách module theo nền tảng để giới hạn lỗi nhưng không nhân bản logic nghiệp vụ.
+- **P3 Worker + LiteLLM:** điểm vào thống nhất `/v1/chat/completions`, xác thực, rate limit, model aliases, routing/fallback và upstreams; key nhà cung cấp chỉ phía server.
+- **OpenAI-compatible API/SSE:** chuẩn giao tiếp chung để đổi nhiều model mà không thay UI; chuẩn hóa lỗi/stream ở một lớp adapter chung.
+- **Lưu trữ MVP tối thiểu:** web giữ lịch sử trong browser; bot chỉ giữ short context tối thiểu theo namespace trong thời gian đã duyệt. Không thêm đồng bộ đa kênh hoặc database dài hạn khi chưa có quyết định quyền riêng tư.
+
+## 5. Lộ trình M0–M7 và kiểm chứng
 
 | Mốc | Công việc | Điều kiện hoàn tất |
 |---|---|---|
-| M0 — duyệt phạm vi | Chốt web P4 độc lập Pocket Personal, bộ năng lực theo `vn-stock-market-research`, repo/project riêng, hostname con dưới `aistockvn.com`, URL/auth P3, dữ liệu và chính sách lịch sử. | Henrry duyệt bản thảo/ghi rõ thay đổi; không đụng DNS trước khi chốt hostname và quyền zone. |
-| M1 — hợp đồng API | Đặc tả request/response/SSE, alias, rate limit, timeout/lỗi, xác thực client an toàn. | Test không dùng secret production gọi qua P3 thành công; hiểu rõ 401/429/5xx. |
-| M2 — prototype | Dựng chat web với phản hồi stream giả lập, selector tác vụ, nhập ticker và bố cục số liệu. | Henrry duyệt UI desktop/mobile; keyboard, stop, retry, clear hoạt động. |
-| M3 — tích hợp P3 | Gọi `/v1/chat/completions` từ client qua P3; đọc SSE tăng dần; xử lý lỗi/cancel. | E2E với test key; chứng minh không có master/provider key trong bundle hay browser logs. |
-| M4 — hoàn thiện phân tích/an toàn | Ánh xạ đầu ra skill sang phần tóm tắt phiên, OHLCV/RSI/MACD/hỗ trợ-kháng cự, khối ngoại/tự doanh; kết luận trước, nguồn/ngày và dữ liệu thiếu; disclaimer. | Bộ test nghiệp vụ được duyệt; không bịa số khi thiếu; không đặt lệnh; kiểm tra quyền riêng tư/lịch sử local. |
-| M5 — pilot base | Cho alias LiteLLM dùng Qwen2.5-14B base trong lúc P2 chưa xong. | Pilot nhỏ đạt ngưỡng chức năng/độ trễ/chất lượng do Henrry chốt; fallback hoạt động. |
-| M6 — promote adapter | Đánh giá offline adapter P2 cuối, pin revision, cập nhật alias server-side, canary và rollback. | Đánh giá adapter được duyệt; health/chất lượng/độ trễ và rollback đạt. |
-| M7 — Pages/domain và phát hành giới hạn | Deploy Pages preview; gắn hostname con đã chốt; xác minh DNS/TLS/HTTPS; phát hành sau duyệt. | P4 mở được qua `aistockvn.com` hostname đã chọn; chat P3 end-to-end; checklist và rollback được owner duyệt. |
+| M0 — chốt sản phẩm/kênh/model | Duyệt web + Telegram MVP, Zalo/WhatsApp theo điều kiện; hostname `aistockvn.com`; model chính Qwen2.5-14B + LoRA sau P2; danh sách model dự phòng; chính sách định danh, retention và fallback. | Henrry chốt phạm vi, hostname con, repo/tài khoản, auth P3 và quyết định Zalo/WhatsApp có làm ngay hay phase sau. |
+| M1 — hợp đồng chung | Định nghĩa schema event nội bộ, namespace user/conversation, format kết luận-trước, dữ liệu/nguồn/ngày, lỗi, SSE và policy model. | Contract test chứng minh mọi adapter tạo cùng payload chuẩn, không tự ghép danh tính giữa kênh. |
+| M2 — Web + P3 | Xây UI React/Vite, stream qua `/v1/chat/completions`, deploy preview Pages, test tên miền khi được cấp. | Test chat, stop/retry, bảo mật bundle, không có master/provider key. |
+| M3 — Telegram adapter | Webhook/Bot API server-side, xác minh webhook/update, chuẩn hóa ID và gọi backend chung. | Ca hỏi đáp/tóm tắt/phân tích chạy qua cùng skill/model policy; user namespace đúng. |
+| M4 — năng lực nghiên cứu | Tích hợp luồng `vn-stock-market-research`: tóm tắt phiên, phân tích mã, chỉ báo/vùng giá, khối ngoại/tự doanh, kết luận trước/disclaimer. | Bộ test nghiệp vụ cố định; thiếu dữ liệu được báo rõ, không bịa; nội dung nhất quán web/Telegram. |
+| M5 — đa model và fallback | Cấu hình alias Qwen base/P2; thêm model bổ sung sau duyệt; policy chọn theo tác vụ, model picker web (nếu duyệt), fallback có giới hạn. | Test cùng prompt trên allowlist, log model thực tế, fallback chỉ cho lỗi hạ tầng và chất lượng đạt ngưỡng đã chốt. |
+| M6 — Zalo/WhatsApp | Đăng ký/cấu hình OA/API chính thức, webhook, xác thực, template/quyền và chi phí; xây adapters theo namespace riêng. | Chỉ mở kênh nào đã có quyền chính thức; webhook/signature, định danh, hạn mức và ca nghiệp vụ được kiểm thử. |
+| M7 — adapter P2 và phát hành | Đánh giá/pin LoRA cuối; canary alias chính; deploy Pages production, gắn domain; bật từng kênh theo phê duyệt. | Health/chất lượng/độ trễ/fallback/rollback đạt; HTTPS/domain và từng kênh được owner nghiệm thu. |
 
-**Tiêu chí pilot gợi ý:** trả lời và kết thúc SSE đúng; lỗi gateway hiển thị/phục hồi; đổi alias không cần sửa client; không lộ khóa đặc quyền; xóa được lịch sử; các nhóm phân tích có ngày/nguồn; không bịa dữ liệu; disclaimer hiện rõ. Chốt ngưỡng độ trễ/chất lượng định lượng trước M5.
+**Tiêu chí chất lượng chung:** cùng tập ca kiểm thử qua các kênh và model; kết luận tiếng Việt ở đầu, số liệu có nguồn/ngày/đơn vị, disclaimer luôn có; thiếu dữ liệu không bịa; identity không rò/ghép giữa kênh; fallback có thông báo; không lộ khóa đặc quyền. Chốt ngưỡng chất lượng, độ trễ và chi phí trước M5.
 
-## Các câu hỏi cần duyệt trước khi code
+## Các câu hỏi cần Henrry duyệt
 
-1. Xác nhận hostname con dưới `aistockvn.com` (đề xuất `chat.aistockvn.com`) và tài khoản Cloudflare có quyền Pages/DNS.
-2. Repo/project Cloudflare Pages riêng nào sẽ sở hữu P4, tách biệt Pocket Personal?
-3. P3 URL production và cơ chế xác thực client ít quyền nào được phép? Không phát hành master key trong client tĩnh.
-4. Xác nhận các chức năng phân tích cần giống bot LightVela 1: tóm tắt phiên; OHLCV, RSI/MACD, hỗ trợ/kháng cự; khối ngoại/tự doanh; kết luận tiếng Việt trước và disclaimer. Nguồn/ngày dữ liệu và mức tươi tối thiểu nào cần hiển thị?
-5. Chấp nhận lịch sử chỉ lưu trong browser không? Có cho phép gửi prompt vào analytics/log không?
-6. Ai duyệt bộ test nghiệp vụ, đánh giá adapter P2 cuối và chuyển alias production?
+1. Xác nhận web + Telegram là MVP; Zalo/WhatsApp đưa vào MVP hay phase sau khi hoàn tất điều kiện Official Account/Business API?
+2. Chốt hostname con của `aistockvn.com` (đề xuất `chat.aistockvn.com`) và tài khoản Cloudflare/Pages/DNS.
+3. Model chính là alias Qwen2.5-14B base tạm, sau đó LoRA P2 cuối; model bổ sung nào (Ember, Gemini, DeepSeek/GLM…) được phép, theo tác vụ nào và có cho web user chọn không?
+4. Thứ tự/điều kiện fallback, giới hạn chi phí/timeout và cách thông báo người dùng khi đổi model?
+5. Zalo OA/WhatsApp Business account, app review, số điện thoại/template, người sở hữu credential và chi phí được duyệt ra sao?
+6. Định danh giữa kênh có giữ tách biệt hoàn toàn (mặc định đề xuất) hay cần liên kết tài khoản có consent? Retention short context của bot là bao lâu?
+7. Nguồn/ngày dữ liệu và tiêu chí nghiệm thu cho tóm tắt phiên, OHLCV/RSI/MACD/hỗ trợ-kháng cự, khối ngoại/tự doanh là gì? Ai duyệt bộ test và chuyển LoRA production?
