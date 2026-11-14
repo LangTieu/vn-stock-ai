@@ -1,0 +1,174 @@
+{
+  "reports": [
+    {
+      "file": "p1_train.jsonl",
+      "bytes": 1067870491,
+      "sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "rows": {
+        "rows": 83942,
+        "kind_bulk": 83942
+      },
+      "labels": {
+        "DOWN": 40251,
+        "UP": 42896,
+        "FLAT": 795
+      },
+      "tickers": 1280,
+      "max_rows_per_ticker": 122,
+      "ticker_rows_p50_p90": [
+        64,
+        121
+      ],
+      "duplicate_ticker_asof_rows": 0,
+      "duplicate_prompt_rows": 0,
+      "endpoint_gap_days": {
+        "count": 83942,
+        "min": 169,
+        "p10": 171,
+        "p50": 181,
+        "p90": 310,
+        "max": 2821
+      },
+      "exchange_counts": {
+        "HNX": {
+          "bulk": 20718,
+          "label_DOWN": 9850,
+          "gap_gt_200": 7887,
+          "gap_gt_250": 4819,
+          "gap_gt_365": 2091,
+          "label_UP": 10639,
+          "label_FLAT": 229,
+          "gap_gt_730": 287,
+          "gap_gt_1000": 107
+        },
+        "HOSE": {
+          "bulk": 37719,
+          "label_DOWN": 17759,
+          "label_UP": 19740,
+          "gap_gt_200": 4122,
+          "label_FLAT": 220,
+          "gap_gt_250": 1549,
+          "gap_gt_365": 253
+        },
+        "UPCOM": {
+          "bulk": 25505,
+          "label_DOWN": 12642,
+          "gap_gt_200": 10607,
+          "gap_gt_250": 6918,
+          "label_UP": 12517,
+          "gap_gt_365": 3547,
+          "label_FLAT": 346,
+          "gap_gt_730": 916,
+          "gap_gt_1000": 287
+        }
+      },
+      "tickers_with_gap_gt_200": 927,
+      "tickers_with_gap_gt_365": 571,
+      "date_range": [
+        "2014-10-27",
+        "2024-07-12"
+      ],
+      "industry_sector_fields": [],
+      "future_prompt_date_examples": [],
+      "token_lengths": {
+        "eligible_rows": 83147,
+        "max_length": 4096,
+        "over_limit": 515,
+        "over_limit_pct": 0.619,
+        "over_limit_by_direction": {
+          "UP": 301,
+          "DOWN": 214
+        },
+        "max_tokens": 7217,
+        "method": "Qwen2.5-14B-Instruct tokenizer + p2a SYSTEM chat template + target tokens"
+      }
+    },
+    {
+      "file": "p1_holdout.jsonl",
+      "bytes": 181247973,
+      "sha256": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d",
+      "rows": {
+        "rows": 14024,
+        "kind_handwritten": 200,
+        "kind_bulk": 13824
+      },
+      "labels": {
+        "missing": 200,
+        "DOWN": 7683,
+        "UP": 5958,
+        "FLAT": 183
+      },
+      "tickers": 1105,
+      "max_rows_per_ticker": 17,
+      "ticker_rows_p50_p90": [
+        16,
+        17
+      ],
+      "duplicate_ticker_asof_rows": 0,
+      "duplicate_prompt_rows": 0,
+      "endpoint_gap_days": {
+        "count": 13824,
+        "min": 170,
+        "p10": 172,
+        "p50": 179,
+        "p90": 251,
+        "max": 653
+      },
+      "exchange_counts": {
+        "HNX": {
+          "bulk": 3110,
+          "label_UP": 1354,
+          "gap_gt_200": 780,
+          "gap_gt_250": 390,
+          "gap_gt_365": 106,
+          "label_DOWN": 1698,
+          "label_FLAT": 58
+        },
+        "HOSE": {
+          "bulk": 6325,
+          "label_DOWN": 3559,
+          "label_UP": 2737,
+          "gap_gt_200": 497,
+          "gap_gt_250": 153,
+          "gap_gt_365": 25,
+          "label_FLAT": 29
+        },
+        "UPCOM": {
+          "bulk": 4389,
+          "label_DOWN": 2426,
+          "gap_gt_200": 1601,
+          "gap_gt_250": 850,
+          "gap_gt_365": 239,
+          "label_UP": 1867,
+          "label_FLAT": 96
+        }
+      },
+      "tickers_with_gap_gt_200": 548,
+      "tickers_with_gap_gt_365": 203,
+      "date_range": [
+        "2025-01-02",
+        "2026-05-19"
+      ],
+      "industry_sector_fields": [],
+      "future_prompt_date_examples": [],
+      "token_lengths": {
+        "eligible_rows": 13641,
+        "max_length": 4096,
+        "over_limit": 261,
+        "over_limit_pct": 1.913,
+        "over_limit_by_direction": {
+          "UP": 151,
+          "DOWN": 110
+        },
+        "max_tokens": 6906,
+        "method": "Qwen2.5-14B-Instruct tokenizer + p2a SYSTEM chat template + target tokens"
+      }
+    }
+  ],
+  "cross_split_overlaps": {
+    "0:1": {
+      "ticker_asof": 0,
+      "prompt_hash": 0
+    }
+  }
+}
