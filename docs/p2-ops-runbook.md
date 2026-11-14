@@ -46,6 +46,20 @@ The account must be explicitly selected in the approved order (TK2 → TK3 → T
 
 **Action:** Prompt the owner to refresh the write token with access to `Jerlob/vn-stock-ai-p2a-checkpoints`; do not place the token in code/logs. Preserve the current run if possible. If it completes, retrieve and validate the `p2a-output` artifact to LV1. After a fresh token is installed in the workflow secret and LV1 environment, upload the validated checkpoint or resume it locally. Do not train from scratch when a valid local/HF checkpoint exists.
 
+## 7. Asynchronous P2 checkpoint evaluation
+
+After a verified `CHECKPOINT_UPLOADED`, `vncolab` schedules evaluation at every 50-step checkpoint. It runs in a separate Colab runtime, TK5 first; TK6 is used once only when TK5's `/tun/m/assign` fails with HTTP 503. It never attaches to/reuses the training runtime. A local file lock and queue allow only one eval at a time and deduplicate checkpoints. Evaluation uses a fixed holdout slice (32 UP + 32 DOWN), round-robin stratified by ticker and calendar quarter, seed 42. Full 14k holdout runs at 500-step milestones or explicitly at the final checkpoint.
+
+Metrics are direction accuracy, macro-F1/class F1/confusion matrix, Brier, ECE, generation accuracy/format. The manifest records holdout/slice MD5 and SHA-256, seed, class counts, tickers and time strata. Each evaluation writes predictions JSONL, manifest, metrics JSON, plus aggregate `trend.csv` and `trend.json` under LV1 `~/p2-evaluations/` and in the private HF repo `evaluations/`; the enclosing Actions job uploads the local trend as a `p2-evaluations` artifact. If both eval accounts fail assignment or token/upload errors occur, the eval logs the failure and leaves training unaffected. Training continues; retry evaluation after resolving the issue.
+
+## 7. Asynchronous checkpoint evaluation
+
+**Signal:** after a `CHECKPOINT_UPLOADED checkpoints/checkpoint-N ... verified_files=...` line, `vncolab` schedules evaluation only at steps divisible by 50. Step 50/100/... uses the fixed holdout slice (32 UP + 32 DOWN, round-robin stratified by ticker and calendar quarter, seed 42); steps divisible by 500 use the full holdout. Evaluation uses a separate Colab runtime, TK5 first and TK6 only after a confirmed `/tun/m/assign` 503. It never reuses the training Colab runtime. A local LV1 lock and queue serialize eval jobs and deduplicate a finished step.
+
+**Metrics/output:** `scripts/p2a_eval.py` reports direction accuracy (primary), macro-F1, per-class F1/confusion matrix, Brier, ECE, generation accuracy/format. The fixed-slice manifest records the source MD5/SHA-256, slice SHA-256, seed, class counts, tickers, and quarter strata. Results are written under `~/p2-evaluations/` on LV1, consolidated to `trend.csv`/`trend.json`, and uploaded under `evaluations/` in the private HF checkpoint repo. The enclosing Actions run also uploads a `p2-evaluations` artifact at completion.
+
+**Limitations:** the trainer step that predates these hooks is not retroactively evaluated. Current code triggers on future checkpoint upload events. GitHub runner remains occupied by the parent train job while its notebook runs; eval is a detached LV1 process using a different Colab profile/runtime. The train notebook waits for any triggered eval worker before the Actions job exits so runner cleanup does not kill it. If TK5 and TK6 both return persistent assign 503, that eval fails once and records the error; training is not stopped. Full final-campaign evaluation can be explicitly requested with `python3 scripts/p2a_eval_async.py --step <final-step> --full-holdout` after the final complete checkpoint is uploaded.
+
 ## Smoke-check helper commands
 
 ```sh

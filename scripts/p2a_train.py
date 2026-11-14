@@ -387,6 +387,10 @@ def main():
     class CheckpointUpload(TrainerCallback):
         enabled = checkpoint_api is not None
 
+        def on_train_end(self, args, state, control, **kwargs):
+            if state.global_step >= 5198:
+                print(f'P2_EVAL_FINAL_TRIGGER step={state.global_step}', flush=True)
+
         def on_save(self, args, state, control, **kwargs):
             checkpoint = output / f'checkpoint-{state.global_step}'
             print(f'CHECKPOINT_SAVE step={state.global_step} '
