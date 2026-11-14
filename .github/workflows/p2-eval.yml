@@ -1,0 +1,57 @@
+name: Evaluate P2 checkpoint asynchronously
+
+on:
+  workflow_dispatch:
+    inputs:
+      checkpoint_step:
+        description: "Checkpoint step to evaluate, or latest complete checkpoint"
+        required: true
+        default: "latest"
+      full_holdout:
+        description: "Use the full holdout (milestone/final only); otherwise fixed balanced slice"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: [self-hosted, colab-driver-lv1]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Evaluate checkpoint on separate Colab account
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          P2_EVAL_OUTPUT_DIR: ${{ github.workspace }}/p2-evaluations
+        run: |
+          if [ -x "$HOME/vncolab-venv/bin/python" ]; then
+            PY="$HOME/vncolab-venv/bin/python"
+          else
+            python3 -m venv .vncolab-venv
+            .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
+            PY=".vncolab-venv/bin/python"
+          fi
+          args=(--source-run "manual-${GITHUB_RUN_ID}")
+          if [ "$CHECKPOINT_STEP" = "latest" ]; then
+            args+=(--latest)
+          else
+            args+=(--step "$CHECKPOINT_STEP")
+          fi
+          if [ "$FULL_HOLDOUT" = "true" ]; then
+            args+=(--full-holdout)
+          fi
+          "$PY" scripts/p2a_eval_async.py "${args[@]}"
+        shell: bash
+        env:
+          CHECKPOINT_STEP: ${{ inputs.checkpoint_step }}
+          FULL_HOLDOUT: ${{ inputs.full_holdout }}
+      - name: Upload evaluation trend artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-evaluation-trend
+          path: p2-evaluations/
+          if-no-files-found: ignore
