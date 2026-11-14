@@ -82,6 +82,7 @@ jobs:
           SAVE_STEPS: ${{ inputs.save_steps }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_CHECKPOINT_REPO: Jerlob/vn-stock-ai-p2a-checkpoints
+          P2_EVAL_ENABLED: "1"
           DOWNLOAD_REMOTE: ${{ inputs.download_remote || format('/content/p2a-checkpoints/{0}', inputs.mode) }}
           DOWNLOAD_LOCAL: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
         run: |
@@ -113,6 +114,20 @@ jobs:
         with:
           name: colab-result
           path: colab_result.json
+      - name: Stage P2 evaluation results
+        if: always()
+        run: |
+          if [ -d "$HOME/p2-evaluations" ]; then
+            mkdir -p p2-evaluations-run
+            cp -a "$HOME/p2-evaluations/." p2-evaluations-run/
+          fi
+      - name: Upload P2 evaluation trend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-evaluations
+          path: p2-evaluations-run/
+          if-no-files-found: ignore
       - name: Check downloaded adapter
         id: adapter
         if: always()

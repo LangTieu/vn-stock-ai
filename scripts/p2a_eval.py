@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 from p2a_train import MODEL_ID, LABELS, HOLDOUT_MD5, dataset_path, messages, rows
+from p2a_validation import row_strata
 
 
 def calibration(records):
@@ -14,8 +15,22 @@ def calibration(records):
                      'mean_p_up': sum(r['p_up'] for r in group) / len(group) if group else None,
                      'observed_up_rate': sum(r['truth'] == 'UP' for r in group) / len(group) if group else None})
     n = len(records)
+    confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
+                 for truth in ('UP', 'DOWN')}
+    for record in records:
+        confusion[record['truth']][record['prediction']] += 1
+    class_f1 = {}
+    for label in ('UP', 'DOWN'):
+        tp = confusion[label][label]
+        fp = sum(confusion[other][label] for other in ('UP', 'DOWN') if other != label)
+        fn = sum(confusion[label][other] for other in ('UP', 'DOWN') if other != label)
+        denom = 2 * tp + fp + fn
+        class_f1[label] = 2 * tp / denom if denom else 0.0
     return {'count': n,
             'direction_accuracy': sum(r['prediction'] == r['truth'] for r in records) / n,
+            'macro_f1': sum(class_f1.values()) / len(class_f1),
+            'class_f1': class_f1,
+            'confusion_matrix': confusion,
             'generation_accuracy': sum(r['generated_direction'] == LABELS[r['truth']] for r in records) / n,
             'generation_invalid': sum(r['generated_direction'] not in LABELS.values() for r in records),
             'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
@@ -31,6 +46,9 @@ def main():
     p.add_argument('--output', required=True)
     p.add_argument('--limit', type=int, default=0)
     p.add_argument('--holdout-md5', default=HOLDOUT_MD5)
+    p.add_argument('--checkpoint-step', type=int)
+    p.add_argument('--slice-manifest')
+    p.add_argument('--full-holdout', action='store_true')
     a = p.parse_args()
     holdout = dataset_path(a.holdout, Path(a.output).parent / 'holdout.jsonl', a.holdout_md5)
     import torch
@@ -61,7 +79,9 @@ def main():
             raw_gen = tok.decode(generated[0, len(prefix):], skip_special_tokens=True).strip()
             first_tok = raw_gen.split()[0].strip('.,:;!?"\'()[]') if raw_gen else ''
             gen_dir = first_tok.upper() if first_tok.upper() in LABELS.values() else raw_gen
-            record = {'index': len(records), 'truth': row['metadata']['label']['future_direction_120'],
+            ticker, time_bucket = row_strata(row)
+            record = {'index': len(records), 'ticker': ticker, 'time_bucket': time_bucket,
+                'truth': row['metadata']['label']['future_direction_120'],
                 'prediction': 'UP' if p_up >= 0.5 else 'DOWN', 'p_up': p_up,
                 'probability_level': min(4, int(p_up * 4) + 1),
                 'generated_direction': gen_dir, 'raw_generation': raw_gen}
@@ -71,6 +91,9 @@ def main():
     if not records:
         raise ValueError('No labeled bulk holdout rows')
     result = calibration(records)
+    result.update({'checkpoint_step': a.checkpoint_step,
+                   'slice_manifest': a.slice_manifest,
+                   'full_holdout': a.full_holdout})
     Path(a.output + '.metrics.json').write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
 
