@@ -4,7 +4,7 @@
 
 ## 1. Sản phẩm và phạm vi
 
-P4 là trợ lý AI phân tích thị trường/chứng khoán Việt Nam, dùng cùng một backend nghiệp vụ qua nhiều kênh: web trên tên miền thuộc **`aistockvn.com`** (đề xuất `chat.aistockvn.com`, chờ chốt), Telegram, Zalo và WhatsApp. P4 không phải một bot Telegram đơn lẻ. Đây là sản phẩm độc lập Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng.
+P4 là trợ lý AI phân tích thị trường/chứng khoán Việt Nam, dùng cùng một backend nghiệp vụ qua nhiều kênh: web trên tên miền thuộc **`aistockvn.com`** (đề xuất `chat.aistockvn.com`, chờ chốt), Telegram, Zalo và WhatsApp. P4 không phải bot Telegram đơn lẻ; đây là trợ lý đa kênh với web là một trong các kênh truy cập. Đây là sản phẩm độc lập Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng.
 
 Các kênh chỉ là những adapter giao tiếp khác nhau; tất cả phải chuẩn hóa tin nhắn vào **cùng backend P4 và gateway P3**, dùng chung skill, chính sách, định tuyến model và định dạng câu trả lời. Không triển khai một chatbot/model/logic phân tích riêng cho từng bot/kênh.
 
