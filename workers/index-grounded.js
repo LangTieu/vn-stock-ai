@@ -174,7 +174,7 @@ export default {
         return resp;
       }
 
-      body.model = 'vn-stock';
+      body.model = 'vn-stock-assistant';
 
       if (env.YOUCOM_API_KEY) {
         const block = await fetchGrounding(lastUserText(body), env.YOUCOM_API_KEY);

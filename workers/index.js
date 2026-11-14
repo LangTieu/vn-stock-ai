@@ -78,7 +78,7 @@ export default {
         return resp;
       }
 
-      body.model = 'vn-stock';
+      body.model = 'vn-stock-assistant';
 
       const hosts = upstreamUrls(env);
       if (hosts.length === 0) {

@@ -36,7 +36,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
                                                               │
                                                               v
                               LiteLLM Proxy: alias/model registry
-                                  ├─ Model chính: Qwen2.5-14B-Instruct + LoRA P2
+                                  ├─ Alias P4 tạm: vn-stock-assistant → model P3 hiện tại
                                   ├─ Dự phòng/lựa chọn: Ember, Gemini, DeepSeek/GLM…
                                   └─ Các upstream được duyệt khác
 ```
@@ -52,7 +52,8 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 ### Định tuyến và chuyển model (“nhiều não”)
 
-- **Model chính:** alias production mặc định trỏ Qwen2.5-14B-Instruct + adapter LoRA P2 cuối đã đánh giá/phê duyệt. Trước khi P2 xong, dùng base Qwen2.5-14B-Instruct qua cùng alias.
+- **Model tạm đã chọn:** alias server-side `vn-stock-assistant` trỏ tới Cerebras `gpt-oss-120b` theo cấu hình P3 hiện tại và giữ nguyên fallback chain của alias `vn-stock`. Chọn phương án này vì model/upstream đã có trong gateway và đường P3 đã được kiểm thử end-to-end; không phụ thuộc việc dựng một server Qwen mới khi P2 còn train. Đây là lựa chọn theo mức sẵn có/tương thích, không phải tuyên bố đã benchmark nó vượt các model khác về tiếng Việt.
+- **Sau khi P2 hoàn tất:** đánh giá và duyệt adapter cuối; đổi cấu hình phía LiteLLM cho alias `vn-stock-assistant` sang Qwen2.5-14B-Instruct + adapter LoRA P2 đã pin revision. Giữ nguyên alias và client; canary, kiểm tra health/chất lượng rồi mới promote, có rollback về cấu hình tạm nếu cần.
 - **Model bổ sung:** đăng ký model được duyệt qua gateway/LiteLLM, ví dụ Ember, Gemini, DeepSeek/GLM. Khả năng sử dụng, tên model, dữ liệu gửi đi, chi phí và quyền riêng tư cần kiểm chứng trước khi bật; ví dụ không đồng nghĩa đã cấu hình hoặc được duyệt.
 - **Cách chọn:** mặc định theo tác vụ bằng policy server-side (ví dụ skill phân tích chứng khoán dùng model chính; dự phòng chỉ dùng model đã qua cùng bộ kiểm tra). Web có thể cho người dùng chọn trong danh sách model đã được duyệt. Telegram/Zalo/WhatsApp dùng mặc định theo policy; chỉ thêm lệnh chọn model nếu nền tảng UX, quyền truy cập và kiểm soát chi phí phù hợp. Kênh không được tự đặt endpoint hay bỏ qua gateway.
 - **Fallback:** P3/LiteLLM thử model chính; chỉ khi lỗi hạ tầng có thể phục hồi (timeout, unavailable, 5xx) mới chuyển sang model dự phòng theo thứ tự cấu hình. Không âm thầm fallback khi model trả 4xx do prompt/quyền hoặc khi câu trả lời chất lượng thấp; ghi nhận model thực tế dùng và báo người dùng khi đổi model ảnh hưởng kết quả. Chặn vòng lặp, giới hạn retry/thời gian và không dispatch model ngoài allowlist.
@@ -83,14 +84,14 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 | Mốc | Công việc | Điều kiện hoàn tất |
 |---|---|---|
-| M0 — chốt sản phẩm/kênh/model | Duyệt web + Telegram MVP, Zalo/WhatsApp theo điều kiện; apex `aistockvn.com` giữ trang bài viết hằng ngày và P4 dùng hostname con `chat.aistockvn.com`; model chính Qwen2.5-14B + LoRA sau P2; danh sách model dự phòng; chính sách định danh, retention và fallback. | Henrry chốt phạm vi, hostname con, repo/tài khoản, auth P3 và quyết định Zalo/WhatsApp có làm ngay hay phase sau. |
+| M0 — chốt sản phẩm/kênh/model | Duyệt web + Telegram MVP, Zalo/WhatsApp theo điều kiện; apex `aistockvn.com` giữ trang bài viết hằng ngày và P4 dùng hostname con `chat.aistockvn.com`; model tạm `vn-stock-assistant` → Cerebras gpt-oss-120b theo P3 hiện tại, model production sau P2 là Qwen2.5-14B + LoRA; danh sách dự phòng, định danh và fallback. | Henrry chốt phạm vi, hostname con, repo/tài khoản, auth P3 và quyết định Zalo/WhatsApp có làm ngay hay phase sau. |
 | M1 — hợp đồng chung | Định nghĩa schema event nội bộ, namespace user/conversation, format kết luận-trước, dữ liệu/nguồn/ngày, lỗi, SSE và policy model. | Contract test chứng minh mọi adapter tạo cùng payload chuẩn, không tự ghép danh tính giữa kênh. |
 | M2 — Web + P3 | Xây UI React/Vite, stream qua `/v1/chat/completions`, deploy preview Pages, test tên miền khi được cấp. | Test chat, stop/retry, bảo mật bundle, không có master/provider key. |
 | M3 — Telegram adapter | Webhook/Bot API server-side, xác minh webhook/update, chuẩn hóa ID và gọi backend chung. | Ca hỏi đáp/tóm tắt/phân tích chạy qua cùng skill/model policy; user namespace đúng. |
 | M4 — năng lực nghiên cứu | Tích hợp luồng `vn-stock-market-research`: tóm tắt phiên, phân tích mã, chỉ báo/vùng giá, khối ngoại/tự doanh, kết luận trước/disclaimer. | Bộ test nghiệp vụ cố định; thiếu dữ liệu được báo rõ, không bịa; nội dung nhất quán web/Telegram. |
-| M5 — đa model và fallback | Cấu hình alias Qwen base/P2; thêm model bổ sung sau duyệt; policy chọn theo tác vụ, model picker web (nếu duyệt), fallback có giới hạn. | Test cùng prompt trên allowlist, log model thực tế, fallback chỉ cho lỗi hạ tầng và chất lượng đạt ngưỡng đã chốt. |
+| M5 — model tạm và đa model | Rollout alias `vn-stock-assistant` với model/fallback tương đương `vn-stock`; kiểm tra mọi LiteLLM upstream trước khi P3 Worker chuyển alias. Thêm model dự phòng sau duyệt; policy chọn theo tác vụ. | Alias có trên mọi upstream, gateway chat test đạt; fallback, model thực tế và rollback được kiểm chứng. |
 | M6 — Zalo/WhatsApp | Đăng ký/cấu hình OA/API chính thức, webhook, xác thực, template/quyền và chi phí; xây adapters theo namespace riêng. | Chỉ mở kênh nào đã có quyền chính thức; webhook/signature, định danh, hạn mức và ca nghiệp vụ được kiểm thử. |
-| M7 — adapter P2 và phát hành | Đánh giá/pin LoRA cuối; canary alias chính; deploy Pages production, gắn domain; bật từng kênh theo phê duyệt. | Health/chất lượng/độ trễ/fallback/rollback đạt; HTTPS/domain và từng kênh được owner nghiệm thu. |
+| M7 — adapter P2 và phát hành | Đánh giá/pin LoRA cuối; đổi alias `vn-stock-assistant` sang Qwen2.5-14B + LoRA phía server; canary/rollback; deploy Pages production, gắn domain; bật từng kênh theo phê duyệt. | Health/chất lượng/độ trễ/fallback/rollback đạt; HTTPS/domain và từng kênh được owner nghiệm thu. |
 
 **Tiêu chí chất lượng chung:** cùng tập ca kiểm thử qua các kênh và model; kết luận tiếng Việt ở đầu, số liệu có nguồn/ngày/đơn vị, disclaimer luôn có; thiếu dữ liệu không bịa; identity không rò/ghép giữa kênh; fallback có thông báo; không lộ khóa đặc quyền. Chốt ngưỡng chất lượng, độ trễ và chi phí trước M5.
 
@@ -98,7 +99,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 1. Xác nhận web + Telegram là MVP; Zalo/WhatsApp đưa vào MVP hay phase sau khi hoàn tất điều kiện Official Account/Business API?
 2. Xác nhận `aistockvn.com` apex tiếp tục là trang bài viết hằng ngày về chứng khoán, vĩ mô Việt Nam/thế giới; chốt `chat.aistockvn.com` cho P4 và tài khoản Cloudflare/Pages/DNS.
-3. Model chính là alias Qwen2.5-14B base tạm, sau đó LoRA P2 cuối; model bổ sung nào (Ember, Gemini, DeepSeek/GLM…) được phép, theo tác vụ nào và có cho web user chọn không?
+3. Xác nhận model tạm Cerebras `gpt-oss-120b` qua alias `vn-stock-assistant`; model bổ sung nào (Ember, Gemini, DeepSeek/GLM…) được phép, theo tác vụ nào và có cho web user chọn không?
 4. Thứ tự/điều kiện fallback, giới hạn chi phí/timeout và cách thông báo người dùng khi đổi model?
 5. Zalo OA/WhatsApp Business account, app review, số điện thoại/template, người sở hữu credential và chi phí được duyệt ra sao?
 6. Định danh giữa kênh có giữ tách biệt hoàn toàn (mặc định đề xuất) hay cần liên kết tài khoản có consent? Retention short context của bot là bao lâu?

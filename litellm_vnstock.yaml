@@ -23,6 +23,13 @@ model_list:
     api_base: https://api.cerebras.ai/v1
     api_key: os.environ/CEREBRAS_API_KEY
     timeout: 60
+# P4 temporary alias mirrors the current vn-stock provider and fallback chain.
+- model_name: vn-stock-assistant
+  litellm_params:
+    model: openai/gpt-oss-120b
+    api_base: https://api.cerebras.ai/v1
+    api_key: os.environ/CEREBRAS_API_KEY
+    timeout: 60
 - model_name: vn-stock-tuoke-6.1-sol
   litellm_params:
     model: openai/gpt-6.1-sol
@@ -80,6 +87,12 @@ model_list:
 router_settings:
   fallbacks:
   - vn-stock:
+    - vn-stock-tuoke-6.1-sol
+    - vn-stock-tuoke-6-sol
+    - vn-stock-cerebras
+    - vn-stock-deepseek
+    - vn-stock-glm
+  - vn-stock-assistant:
     - vn-stock-tuoke-6.1-sol
     - vn-stock-tuoke-6-sol
     - vn-stock-cerebras
