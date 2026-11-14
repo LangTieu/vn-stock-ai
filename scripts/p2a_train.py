@@ -387,6 +387,11 @@ def main():
     class CheckpointUpload(TrainerCallback):
         enabled = checkpoint_api is not None
 
+        def on_train_end(self, args, state, control, **kwargs):
+            last_uploaded = getattr(self, 'last_uploaded_step', 0)
+            if state.global_step >= 5198 and last_uploaded:
+                print(f'P2_EVAL_FINAL_TRIGGER step={last_uploaded}', flush=True)
+
         def on_save(self, args, state, control, **kwargs):
             checkpoint = output / f'checkpoint-{state.global_step}'
             print(f'CHECKPOINT_SAVE step={state.global_step} '
@@ -395,6 +400,7 @@ def main():
             if self.enabled and state.is_world_process_zero:
                 try:
                     upload_full_checkpoint(checkpoint_api, a.checkpoint_repo, checkpoint)
+                    self.last_uploaded_step = state.global_step
                 except Exception as error:  # noqa: BLE001 — persistence must not block training
                     print(f'CHECKPOINT_UPLOAD_FAILED step={state.global_step} '
                           f'repo={a.checkpoint_repo} reason={type(error).__name__}: {error}; '
