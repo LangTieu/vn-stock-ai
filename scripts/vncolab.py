@@ -30,9 +30,12 @@ Bien moi truong: VNCOLAB_HOME (mac dinh ~/.config/vncolab).
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 import uuid
+from pathlib import Path
 from urllib.parse import urljoin
 
 # OAuth client cong khai kem theo CLI chinh thuc (googlecolab/google-colab-cli,
@@ -344,7 +347,7 @@ def _kernel_client(url, token):
     raise last_err
 
 
-def execute_code(kc, code, timeout=1800, stream_output=False):
+def execute_code(kc, code, timeout=1800, stream_output=False, stream_callback=None):
     """Chay 1 doan code tren kernel DA MO (dung chung 1 kernel cho ca
     notebook — bien cell truoc (vd DATA_TEXT) moi ton tai o cell sau).
     Tra list outputs (dicts kieu Jupyter) + shell reply."""
@@ -372,6 +375,8 @@ def execute_code(kc, code, timeout=1800, stream_output=False):
             text = outputs_to_text([msg])
             if text:
                 print(text, end="" if text.endswith("\n") else "\n", flush=True)
+                if stream_callback:
+                    stream_callback(text)
     reply = mgr.get_shell_msg(timeout=30)
     return outputs, reply
 
@@ -580,6 +585,10 @@ def cmd_run(args):
     kc = None
     ok = True
     result = {"ok": False, "accelerator": res.get("accelerator"), "cells": []}
+    eval_workers = []
+    eval_log_files = []
+    eval_log_paths = []
+    scheduled_eval_steps = set()
     try:
         url = res["runtimeProxyInfo"]["url"]
         token = res["runtimeProxyInfo"]["token"]
@@ -642,8 +651,43 @@ def cmd_run(args):
                     continue
                 print(f"[cell {i}] running...", file=sys.stderr)
                 stream_output = "p2a_train.py" in src and "subprocess.Popen" in src
+                stream_buffer = ""
+                def schedule_checkpoint_eval(chunk):
+                    nonlocal stream_buffer
+                    stream_buffer += chunk
+                    pieces = stream_buffer.split("\n")
+                    stream_buffer = pieces.pop() if pieces else ""
+                    for line in pieces:
+                        match = re.search(r"CHECKPOINT_UPLOADED checkpoints/checkpoint-(\d+)", line)
+                        if not match or os.environ.get("P2_EVAL_ENABLED", "1") != "1":
+                            continue
+                        step = int(match.group(1))
+                        if step % 50 or step in scheduled_eval_steps:
+                            continue
+                        scheduled_eval_steps.add(step)
+                        full = step % 500 == 0
+                        log_dir = os.path.expanduser("~/.cache/vnstock-ai/p2-eval-trigger-logs")
+                        os.makedirs(log_dir, mode=0o700, exist_ok=True)
+                        log_file = open(os.path.join(log_dir, f"step-{step}.log"), "a")
+                        try:
+                            eval_log_paths.append(log_file.name)
+                            worker = subprocess.Popen(
+                                [sys.executable, "scripts/p2a_eval_async.py", "--step", str(step),
+                                 "--source-run", os.environ.get("GITHUB_RUN_ID", "unknown")]
+                                + (["--full-holdout"] if full else []),
+                                stdin=subprocess.DEVNULL, stdout=log_file, stderr=subprocess.STDOUT,
+                                start_new_session=True)
+                            eval_workers.append(worker)
+                            eval_log_files.append(log_file)
+                            print(f"P2_EVAL_ASYNC_TRIGGER step={step} mode={'full' if full else 'slice'} "
+                                  f"pid={worker.pid}", flush=True)
+                        except Exception as error:  # noqa: BLE001 — training must continue
+                            log_file.close()
+                            print(f"P2_EVAL_ASYNC_TRIGGER_FAILED step={step} "
+                                  f"{type(error).__name__}: {error}", flush=True)
                 outputs, reply = execute_code(kc, src, timeout=args.timeout,
-                                              stream_output=stream_output)
+                                              stream_output=stream_output,
+                                              stream_callback=schedule_checkpoint_eval if stream_output else None)
                 text = outputs_to_text(outputs)
                 err = ""
                 if reply.get("content", {}).get("status") == "error":
@@ -692,6 +736,26 @@ def cmd_run(args):
             if name:
                 sessions.pop(name, None)
             _save_sessions(sessions)
+        for worker in eval_workers:
+            try:
+                code = worker.wait(timeout=21630)
+                print(f"P2_EVAL_WORKER_EXIT pid={worker.pid} code={code}", flush=True)
+            except subprocess.TimeoutExpired:
+                print(f"P2_EVAL_WORKER_STILL_RUNNING pid={worker.pid}; see LV1 eval log", flush=True)
+        for log_file in eval_log_files:
+            try:
+                log_file.flush()
+                log_file.close()
+            except OSError:
+                pass
+        for path in eval_log_paths:
+            try:
+                tail = Path(path).read_text(encoding="utf-8", errors="replace").splitlines()[-25:]
+                if tail:
+                    print(f"P2_EVAL_LOG_TAIL {path}", flush=True)
+                    print("\n".join(tail), flush=True)
+            except OSError:
+                pass
     return 0 if ok else 1
 
 
