@@ -1,0 +1,9 @@
+name = "telnyx-sms-relay"
+main = "worker.js"
+compatibility_date = "2026-11-09"
+
+# No secrets in this file. Set them with `wrangler secret put <NAME>` (see README.md):
+#   TELNYX_PUBLIC_KEY                                        (optional; enables signature check)
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID                     (optional pair)
+#   DISCORD_WEBHOOK_URL                                      (optional)
+#   WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TOKEN, WHATSAPP_RECIPIENT  (optional; all three required)
