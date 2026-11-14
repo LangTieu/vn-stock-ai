@@ -1,83 +1,82 @@
-# Bản thảo P4 — Client độc lập cho trợ lý VN Stock AI
+# Bản thảo P4 — Ứng dụng web chat AI VN Stock
 
-**Trạng thái:** Bản đề xuất để Henrry xem và góp ý. Thay đổi này chưa triển khai mã P4 và chưa deploy.
+**Trạng thái:** Bản thảo theo các quyết định hiện tại để Henrry duyệt. Chưa triển khai mã P4, chưa tạo Pages project và chưa cấu hình DNS.
 
-## 1. P4 là gì, phạm vi đến đâu?
+## 1. P4 là gì và phạm vi sản phẩm
 
-P4 là ứng dụng web chatbot/AI Agent để người dùng truy cập qua tên miền **`aistockvn.com`**; tên miền con cụ thể sẽ được Henrry chốt sau. P4 không phải bot Telegram. Đây là sản phẩm **độc lập với Pocket Personal**: giao diện, cấu hình, triển khai, thông tin xác thực và phạm vi sản phẩm riêng. P4 gọi P3 qua API; không chứa trọng số model và không gọi trực tiếp nhà cung cấp model từ trình duyệt.
+P4 là ứng dụng chat AI trên web, phục vụ hỏi đáp và phân tích thị trường/chứng khoán Việt Nam. Người dùng truy cập qua tên miền thuộc **`aistockvn.com`**; đề xuất hostname là **`chat.aistockvn.com`**, chờ Henrry chốt. P4 **không phải bot Telegram**. P4 cũng độc lập với Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng; không tích hợp hoặc dùng lại dịch vụ/secret/database của Pocket Personal.
 
-**Phạm vi MVP đề xuất:** giao diện web/chat tiếng Việt, phản hồi dạng stream, trạng thái model/phản hồi rõ ràng, xóa hội thoại và lịch sử chỉ lưu trong trình duyệt. Năng lực phân tích lấy theo bot LightVela 1 (`@br_stock_bot`) và skill `vn-stock-market-research`, không phụ thuộc Telegram: (a) tóm tắt phiên; (b) phân tích một mã từ OHLCV, RSI/MACD và vùng hỗ trợ/kháng cự; (c) khối ngoại và tự doanh theo mã. Câu trả lời bằng tiếng Việt, đưa kết luận lên trước rồi mới đến số liệu/luận cứ và luôn có disclaimer. Giao diện phải nói rõ nội dung chỉ để tham khảo, dữ liệu có thể thiếu/cũ và không phải khuyến nghị đầu tư. MVP không đặt lệnh, không tự nhận là môi giới/tư vấn tài chính, không thu thập thông tin đăng nhập hay dữ liệu cá nhân nhạy cảm.
+P4 được host như một **web tĩnh trên Cloudflare Pages**. “Tĩnh” chỉ nói về cách phân phối file giao diện; khi chat, trình duyệt vẫn gọi trực tiếp qua HTTPS tới API gateway P3 để nhận câu trả lời AI dạng stream. P4 không chứa trọng số model, không chạy model trong trình duyệt và không gọi nhà cung cấp model trực tiếp.
 
-**Ngoài phạm vi MVP:** giao dịch/đặt lệnh; tài khoản người dùng và đồng bộ hội thoại lên cloud; fine-tune riêng; nền tảng truy xuất dữ liệu mới; tích hợp Pocket Personal. Chỉ xem xét sau khi có phê duyệt riêng và thiết kế bảo mật/quyền riêng tư.
+### Phạm vi chức năng MVP
+
+P4 cần có đủ nhóm khả năng phân tích của bot LightVela 1 (`@br_stock_bot`), dựa trên skill **`vn-stock-market-research`**, nhưng thể hiện bằng giao diện web:
+
+1. **Tóm tắt phiên:** tóm tắt diễn biến phiên giao dịch từ dữ liệu sẵn có; nêu rõ ngày/nguồn dữ liệu và điểm đáng chú ý.
+2. **Phân tích một mã:** người dùng nhập mã; trình bày dữ liệu OHLCV, RSI/MACD và các vùng hỗ trợ/kháng cự khi dữ liệu cho phép. Phân biệt dữ liệu quan sát được với diễn giải; không bịa trường bị thiếu.
+3. **Dòng tiền theo mã:** trình bày khối ngoại và tự doanh theo mã, ghi rõ cửa sổ thời gian/đơn vị/nguồn; báo “không có số liệu” nếu nguồn không cung cấp.
+4. **Cách trả lời:** tiếng Việt; kết luận ngắn đặt trước, sau đó là số liệu và luận cứ; luôn kèm disclaimer rằng đây là thông tin tham khảo, không phải khuyến nghị đầu tư. Nếu dữ liệu thiếu, cũ hoặc không đủ căn cứ thì nói rõ.
+5. **Chat tương tác:** gửi/dừng câu hỏi, nhận stream, hiển thị lỗi có thể thử lại, xóa hội thoại; lịch sử MVP chỉ lưu cục bộ trong trình duyệt và người dùng tự xóa được.
+
+**Ngoài phạm vi MVP:** Telegram bot, đặt lệnh/giao dịch, tự nhận là môi giới hay tư vấn tài chính, tài khoản và đồng bộ lịch sử lên server, fine-tune riêng, hoặc xây nền tảng dữ liệu/retrieval mới. Các phần này cần phê duyệt và thiết kế riêng.
 
 ## 2. Kiến trúc và chuyển model
 
 ```text
-Người dùng → https://aistockvn.com (hostname/tên miền con sẽ chốt sau)
-   └─ Ứng dụng web P4 (không phải Telegram bot)
-       └─ HTTPS POST /v1/chat/completions (khóa client; stream SSE)
-           └─ P3 Cloudflare Worker gateway (xác thực, giới hạn tần suất, log, failover)
-               └─ LiteLLM Proxy / upstream
-                   └─ Qwen2.5-14B-Instruct base → adapter LoRA P2 cuối cùng
+Người dùng
+   └─ https://chat.aistockvn.com (đề xuất; tên miền con chờ chốt)
+       └─ Web tĩnh P4 trên Cloudflare Pages
+           └─ HTTPS /v1/chat/completions (SSE stream)
+               └─ P3 Cloudflare Worker gateway
+                   └─ LiteLLM Proxy / upstream
+                       └─ Qwen2.5-14B-Instruct base + adapter LoRA P2 khi được duyệt
 ```
 
-- P4 dùng URL gateway P3 hiện có và API chat-completions tương thích OpenAI. Xác nhận URL production và cơ chế cấp khóa client được phép trước khi triển khai. Tuyệt đối không nhúng master key LiteLLM hay khóa nhà cung cấp vào mã trình duyệt.
-- Trong lúc P2 còn train, cấu hình một alias model tạm trong LiteLLM (ví dụ `vn-stock-assistant`) trỏ đến Qwen2.5-14B-Instruct base đã được duyệt. Client chỉ gửi alias, không phụ thuộc endpoint riêng của nhà cung cấp.
-- Khi P2 hoàn tất và adapter cuối đã được đánh giá/phê duyệt, cập nhật cấu hình model phía LiteLLM để alias đó dùng Qwen2.5-14B base cùng LoRA adapter. Giữ nguyên alias để không cần build lại client. Nếu kiểm tra health/chất lượng bị giảm, chuyển alias về cấu hình base.
-- Checkpoint P2 chỉ phục vụ khôi phục train, không tự động trở thành model production. Chỉ promote adapter cuối đã đánh giá; pin revision/artifact và ghi nhận revision của base model.
-- Giữ streaming SSE xuyên suốt LiteLLM → Worker → trình duyệt. UI cần xử lý event từng phần, `[DONE]`, lỗi upstream, timeout và thao tác người dùng dừng phản hồi.
+- **Giao diện → gateway:** ứng dụng gửi request OpenAI-compatible tới P3 `/v1/chat/completions`, nhận phản hồi SSE. Không gọi LiteLLM hoặc nhà cung cấp trực tiếp từ browser.
+- **Bảo mật:** không nhúng master key LiteLLM, HF token hay provider key vào JavaScript/build tĩnh. Xác nhận URL P3 và phương án khóa client an toàn/ít quyền trước khi public; static client không thể giữ bí mật dùng chung. Gateway tiếp tục chịu trách nhiệm xác thực, rate limit, logging phù hợp và failover.
+- **Trong khi P2 đang train:** dùng alias model tạm (ví dụ `vn-stock-assistant`) trỏ tới Qwen2.5-14B-Instruct base đã được duyệt. Client chỉ biết alias, không phụ thuộc model/backend cụ thể.
+- **Sau khi P2 hoàn tất:** đánh giá và phê duyệt adapter cuối; pin revision/artifact, sau đó đổi cấu hình phía LiteLLM để alias dùng base Qwen2.5-14B cùng LoRA adapter. Nếu health/chất lượng giảm, rollback alias về base. Không cần build lại client khi đổi model.
+- Checkpoint giữa chừng chỉ dùng để khôi phục train, không tự động được promote production. Chỉ adapter cuối đã đánh giá mới được xem xét đưa vào serving.
+- Frontend xử lý stream từng phần, `[DONE]`, lỗi upstream, timeout, cancel, retry có giới hạn và thông báo rõ khi P3 không có dữ liệu nền. Không khẳng định dữ liệu thị trường là realtime nếu chưa xác nhận.
 
-## 3. Tính năng chính
+## 3. Giao diện và trải nghiệm chính
 
-1. **Chat:** nhập prompt tiếng Việt, gửi/dừng, xem câu trả lời streaming, thử lại sau lỗi mạng có thể phục hồi và xóa hội thoại.
-2. **Năng lực phân tích theo bot LightVela 1 (`@br_stock_bot`) / skill `vn-stock-market-research`:** (a) tóm tắt phiên; (b) phân tích một mã với OHLCV, RSI/MACD và vùng hỗ trợ/kháng cự; (c) khối ngoại và tự doanh theo mã. Đây là năng lực của web P4, không phải tích hợp Telegram.
-3. **Cách trình bày phân tích:** trả lời tiếng Việt; kết luận đặt trước, tiếp theo là số liệu và luận cứ; ghi rõ ngày/nguồn và trường dữ liệu thiếu/cũ; luôn có disclaimer rằng nội dung tham khảo, không phải khuyến nghị đầu tư. Không bịa dữ liệu hoặc khuyến nghị khi đầu vào thiếu.
-4. **Ngữ cảnh phân tích:** trường tùy chọn cho mã chứng khoán/thông tin đầu vào và phần tóm tắt ngữ cảnh gọn gửi cùng prompt. Hiển thị mã và ngày/nguồn dữ liệu để người dùng nhận ra dữ liệu cũ hoặc nhầm mã. Không tự bịa dữ liệu cơ bản còn thiếu.
-5. **Chế độ tác vụ:** một số mẫu prompt rõ ràng (hỏi đáp chung, tóm tắt phiên, phân tích một mã); luôn cho biết chế độ đang dùng. Hướng dẫn hệ thống và quy tắc an toàn do server/gateway kiểm soát.
-6. **Minh bạch và quyền riêng tư:** hiển thị alias model, trạng thái đang trả lời/lỗi và mức độ không chắc chắn. MVP chỉ lưu lịch sử trong bộ nhớ trình duyệt và cho phép xóa; không thêm lưu trữ server/analytics chứa prompt nếu chưa review riêng. Không log API key ở client, không lộ master key gateway.
-7. **Responsive và accessibility:** dùng được bằng bàn phím, quản lý focus, trạng thái streaming dễ đọc, hiển thị phù hợp mobile và desktop.
+- Trang chat tiếng Việt, responsive cho điện thoại và desktop; bố cục rõ giữa input, câu trả lời, số liệu và nguồn/ngày dữ liệu.
+- Chọn tác vụ: hỏi đáp chung, tóm tắt phiên hoặc phân tích một mã; khi chọn phân tích mã, nhập ticker và ngữ cảnh tùy chọn.
+- Phân tích một mã hiển thị OHLCV, RSI/MACD, hỗ trợ/kháng cự, khối ngoại và tự doanh theo cửa sổ thời gian có dữ liệu. Kết luận đặt đầu; số liệu và giải thích theo sau.
+- Trạng thái đang trả lời/dừng/lỗi, có thể thử lại; nút xóa hội thoại và lịch sử cục bộ.
+- Luôn có disclaimer và thông tin thiếu/cũ. Không tự tạo số liệu BCTC, dòng tiền hay giá; không đưa khuyến nghị mua/bán cá nhân hóa.
+- Accessibility: thao tác bàn phím, focus hợp lý, thông báo trạng thái stream có thể nhận biết.
 
-## 4. Công nghệ đề xuất và lý do
+## 4. Công nghệ và phương án host
 
-- **TypeScript + React + Vite:** phù hợp SPA/PWA nhỏ; kiểu dữ liệu hỗ trợ xử lý API/SSE; phát triển nhanh, không cần server riêng chạy thường trực cho client.
-- **Cloudflare Pages** cho client P4 tĩnh, cô lập trong repo/project/tài khoản P4 riêng với Pocket Personal; không dùng lại secret hay database của Pocket Personal.
-- **P3 Worker gateway** là đường duy nhất từ client tới model. Ưu tiên khóa client riêng với quyền tối thiểu nếu P3 hỗ trợ; nếu không, phải thiết kế xác thực/giới hạn truy cập an toàn trước khi public. Website tĩnh không thể giữ bí mật dùng chung trong JavaScript.
-- **SSE tương thích OpenAI** thay vì SDK riêng của nhà cung cấp để frontend độc lập với backend phục vụ model và việc rollout LoRA.
-- **Không có database client trong MVP:** lưu lịch sử cục bộ giúp tránh thêm dịch vụ dữ liệu P4 và đơn giản hóa việc xóa. Đồng bộ server chỉ xem xét sau khi có phê duyệt riêng.
+- **TypeScript + React + Vite:** phù hợp ứng dụng SPA/PWA nhỏ, kiểu dữ liệu hữu ích khi xử lý API và SSE, build ra file tĩnh, không cần server client chạy thường trực.
+- **Cloudflare Pages:** host file tĩnh P4 trong project/repo riêng; triển khai preview trước, production sau khi có duyệt. Không dùng lại secret/database Pocket Personal.
+- **Cloudflare DNS/Custom Domain:** đề xuất `chat.aistockvn.com`, chờ Henrry xác nhận. Thêm hostname qua Cloudflare Pages → project → Custom domains; kiểm tra zone `aistockvn.com` thuộc đúng tài khoản, chỉ tạo/chỉnh record Pages hướng dẫn cho hostname con, không sửa apex hay record dịch vụ khác. Chờ TLS active, kiểm HTTPS và gọi P3 end-to-end.
+- **P3 Worker + LiteLLM:** giữ làm cổng duy nhất tới model; alias server-side cho phép thay base bằng adapter mà không đổi client.
+- **SSE tương thích OpenAI:** tránh khóa chặt frontend vào SDK của một hãng/model.
+- **Không có database P4 trong MVP:** lịch sử cục bộ giảm dữ liệu nhạy cảm và đơn giản hóa việc xóa. Chỉ thêm đồng bộ server sau khi có duyệt, chính sách lưu giữ và threat review.
 
-### Địa chỉ truy cập và gắn tên miền
+## 5. Lộ trình và mốc kiểm chứng
 
-**Henrry đã chốt domain gốc truy cập là `aistockvn.com`; hostname con của web P4 vẫn để mở và sẽ chốt sau** (ví dụ `chat.aistockvn.com` hoặc `app.aistockvn.com`). P4 là web app, không phải bot Telegram. Gateway P3 tiếp tục dùng hostname API riêng; không đặt client và API cùng một hostname/path trong MVP.
-
-Các bước dự kiến khi được duyệt:
-1. Tạo project Cloudflare Pages cho repo P4 riêng; cấu hình build command/output directory sau khi chốt framework.
-2. Trong Cloudflare Pages → project → **Custom domains**, thêm hostname con đã được Henrry chốt, ví dụ `chat.aistockvn.com`.
-3. Vì Henrry đã có `aistockvn.com`, xác nhận zone đang được quản lý trong Cloudflare tương ứng; Pages sẽ yêu cầu/tạo DNS record liên kết hostname với Pages. Kiểm tra record do Pages hướng dẫn, không tự đổi record apex hay các dịch vụ khác.
-4. Đợi trạng thái domain active và TLS certificate sẵn sàng; kiểm tra HTTPS, redirect HTTP→HTTPS, tải trang và gọi P3 từ domain mới.
-5. Chỉ cấu hình URL công khai và thông tin không bí mật ở Pages. Không đưa token HF, khóa LiteLLM master hay khóa upstream vào biến client/build công khai. Nếu cần bí mật phía server, phải qua Worker/backend có xác thực.
-
-Đây là đề xuất, chưa kiểm tra quyền sở hữu/zone hoặc tạo DNS record. Cần Henrry chốt hostname con và xác nhận tài khoản Cloudflare quản lý zone trước khi cấu hình thật; hiện chưa tạo DNS record hay cấu hình Pages domain.
-
-## 5. Các bước triển khai và mốc kiểm chứng
-
-| Mốc | Công việc | Bằng chứng hoàn tất |
+| Mốc | Công việc | Điều kiện hoàn tất |
 |---|---|---|
-| M0 — chốt quyết định | Duyệt ranh giới sản phẩm, người dùng mục tiêu, URL/auth gateway, repo/tài khoản hosting, yêu cầu độ mới dữ liệu, chính sách lưu lịch sử và hostname con dưới `aistockvn.com`. | Henrry duyệt bản thảo hoặc ghi rõ các điểm cần đổi. |
-| M1 — hợp đồng API | Ghi request/response/SSE, alias model được phép, giới hạn tần suất, timeout/lỗi và xác thực an toàn. | Request thử không chứa secret production gọi qua P3 thành công; hiểu rõ 401/429/5xx. |
-| M2 — prototype UI | Dựng khung chat và chế độ/ngữ cảnh với stream giả lập. | Duyệt mobile/desktop; thao tác bàn phím, dừng và xóa hoạt động. |
-| M3 — tích hợp gateway | Kết nối P3 Worker route public; đọc SSE tăng dần; xử lý loading, cancel, retry, lỗi. | E2E smoke với test key không phải production; kiểm tra bundle và browser log không có master/provider key. |
-| M4 — an toàn/quyền riêng tư | Thêm disclaimer, xử lý dữ liệu cũ/thiếu, xóa lịch sử cục bộ, review nội dung/logging. | Xác nhận không đặt lệnh, không lưu ngầm, thể hiện độ không chắc chắn. |
-| M5 — pilot model base | Dùng Qwen2.5-14B base đã duyệt phía sau alias LiteLLM trong khi chờ P2. | Đánh giá chức năng/độ trễ/lỗi trên bộ test nhỏ được duyệt; kiểm tra fallback. |
-| M6 — promote adapter | Đánh giá adapter P2 cuối offline; pin artifact/revision; đổi alias server-side, canary và rollback nếu cần. | Đánh giá được duyệt; health, chất lượng, độ trễ và rollback đạt. |
-| M7 — phát hành giới hạn | Deploy client tĩnh riêng lên Pages và hostname đã duyệt; theo dõi health/rate limit mà không lưu prompt. | Checklist phát hành và owner duyệt; có phương án rollback/hỗ trợ. |
+| M0 — duyệt phạm vi | Chốt web P4 độc lập Pocket Personal, bộ năng lực theo `vn-stock-market-research`, repo/project riêng, hostname con dưới `aistockvn.com`, URL/auth P3, dữ liệu và chính sách lịch sử. | Henrry duyệt bản thảo/ghi rõ thay đổi; không đụng DNS trước khi chốt hostname và quyền zone. |
+| M1 — hợp đồng API | Đặc tả request/response/SSE, alias, rate limit, timeout/lỗi, xác thực client an toàn. | Test không dùng secret production gọi qua P3 thành công; hiểu rõ 401/429/5xx. |
+| M2 — prototype | Dựng chat web với phản hồi stream giả lập, selector tác vụ, nhập ticker và bố cục số liệu. | Henrry duyệt UI desktop/mobile; keyboard, stop, retry, clear hoạt động. |
+| M3 — tích hợp P3 | Gọi `/v1/chat/completions` từ client qua P3; đọc SSE tăng dần; xử lý lỗi/cancel. | E2E với test key; chứng minh không có master/provider key trong bundle hay browser logs. |
+| M4 — hoàn thiện phân tích/an toàn | Ánh xạ đầu ra skill sang phần tóm tắt phiên, OHLCV/RSI/MACD/hỗ trợ-kháng cự, khối ngoại/tự doanh; kết luận trước, nguồn/ngày và dữ liệu thiếu; disclaimer. | Bộ test nghiệp vụ được duyệt; không bịa số khi thiếu; không đặt lệnh; kiểm tra quyền riêng tư/lịch sử local. |
+| M5 — pilot base | Cho alias LiteLLM dùng Qwen2.5-14B base trong lúc P2 chưa xong. | Pilot nhỏ đạt ngưỡng chức năng/độ trễ/chất lượng do Henrry chốt; fallback hoạt động. |
+| M6 — promote adapter | Đánh giá offline adapter P2 cuối, pin revision, cập nhật alias server-side, canary và rollback. | Đánh giá adapter được duyệt; health/chất lượng/độ trễ và rollback đạt. |
+| M7 — Pages/domain và phát hành giới hạn | Deploy Pages preview; gắn hostname con đã chốt; xác minh DNS/TLS/HTTPS; phát hành sau duyệt. | P4 mở được qua `aistockvn.com` hostname đã chọn; chat P3 end-to-end; checklist và rollback được owner duyệt. |
 
-**Kiểm tra pilot gợi ý:** chat và kết thúc stream đúng; lỗi gateway hiển thị và phục hồi được; đổi alias model không cần sửa client; bundle không có khóa đặc quyền; xóa được hội thoại; không bịa dữ liệu trực tiếp. Chốt ngưỡng độ trễ/chất lượng định lượng với Henrry trước M5.
+**Tiêu chí pilot gợi ý:** trả lời và kết thúc SSE đúng; lỗi gateway hiển thị/phục hồi; đổi alias không cần sửa client; không lộ khóa đặc quyền; xóa được lịch sử; các nhóm phân tích có ngày/nguồn; không bịa dữ liệu; disclaimer hiện rõ. Chốt ngưỡng độ trễ/chất lượng định lượng trước M5.
 
-## Các điểm cần Henrry duyệt
+## Các câu hỏi cần duyệt trước khi code
 
-1. MVP có đúng là web/PWA độc lập không, và repo/tài khoản riêng nào sẽ sở hữu P4?
-2. Domain truy cập là `aistockvn.com`; Henrry sẽ chọn hostname con nào cho P4 (ví dụ `chat` hay `app`)? Zone `aistockvn.com` thuộc tài khoản Cloudflare nào và ai sẽ cấp quyền thêm Custom Domain/DNS?
-3. P4 dùng URL P3 và cơ chế xác thực client an toàn nào? Không phát hành master key dùng chung trong JavaScript tĩnh.
-4. Chấp nhận lịch sử chỉ ở browser không, và có cho phép gửi prompt vào analytics/log không?
-5. Chế độ phân tích cần hiển thị nguồn/ngữ cảnh dữ liệu nào, yêu cầu độ mới/chất lượng ra sao?
-6. Ai duyệt đánh giá adapter cuối và lần chuyển alias production?
+1. Xác nhận hostname con dưới `aistockvn.com` (đề xuất `chat.aistockvn.com`) và tài khoản Cloudflare có quyền Pages/DNS.
+2. Repo/project Cloudflare Pages riêng nào sẽ sở hữu P4, tách biệt Pocket Personal?
+3. P3 URL production và cơ chế xác thực client ít quyền nào được phép? Không phát hành master key trong client tĩnh.
+4. Xác nhận các chức năng phân tích cần giống bot LightVela 1: tóm tắt phiên; OHLCV, RSI/MACD, hỗ trợ/kháng cự; khối ngoại/tự doanh; kết luận tiếng Việt trước và disclaimer. Nguồn/ngày dữ liệu và mức tươi tối thiểu nào cần hiển thị?
+5. Chấp nhận lịch sử chỉ lưu trong browser không? Có cho phép gửi prompt vào analytics/log không?
+6. Ai duyệt bộ test nghiệp vụ, đánh giá adapter P2 cuối và chuyển alias production?
