@@ -4,7 +4,7 @@
 
 ## 1. Sản phẩm và phạm vi
 
-P4 là trợ lý AI phân tích thị trường/chứng khoán Việt Nam, dùng cùng một backend nghiệp vụ qua nhiều kênh: web trên tên miền thuộc **`aistockvn.com`** (đề xuất `chat.aistockvn.com`, chờ chốt), Telegram, Zalo và WhatsApp. P4 không phải bot Telegram đơn lẻ; đây là trợ lý đa kênh với web là một trong các kênh truy cập. Đây là sản phẩm độc lập Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng.
+P4 là trợ lý AI phân tích thị trường/chứng khoán Việt Nam, dùng cùng một backend nghiệp vụ qua nhiều kênh: web tại **`chat.aistockvn.com`** (đề xuất; chờ Henrry chốt), Telegram, Zalo và WhatsApp. P4 không phải bot Telegram đơn lẻ; đây là trợ lý đa kênh với web là một trong các kênh truy cập. Phân chia domain đã chốt: **apex `aistockvn.com` dành cho trang đăng bài hằng ngày** về chứng khoán, vĩ mô Việt Nam và vĩ mô thế giới; **P4 chat đặt ở hostname con `chat.aistockvn.com`**, không chiếm hay thay thế trang apex. Đây là sản phẩm độc lập Pocket Personal: repo, giao diện, cấu hình, triển khai, thông tin xác thực và dữ liệu riêng.
 
 Các kênh chỉ là những adapter giao tiếp khác nhau; tất cả phải chuẩn hóa tin nhắn vào **cùng backend P4 và gateway P3**, dùng chung skill, chính sách, định tuyến model và định dạng câu trả lời. Không triển khai một chatbot/model/logic phân tích riêng cho từng bot/kênh.
 
@@ -22,7 +22,8 @@ Các kênh chỉ là những adapter giao tiếp khác nhau; tất cả phải c
 ## 2. Kiến trúc đa kênh, đa model
 
 ```text
-Web: chat.aistockvn.com (hostname đề xuất; chờ chốt) ─┐
+Trang bài viết hằng ngày: https://aistockvn.com (chứng khoán, vĩ mô Việt Nam/thế giới)
+Web chat P4: https://chat.aistockvn.com (hostname đề xuất; chờ chốt) ─┐
 Telegram Bot API ──────────────────────────────────────┤
 Zalo Official Account API / webhook ──────────────────┼─> Adapter kênh P4
 WhatsApp Business Platform / Cloud API ───────────────┘      │
@@ -42,7 +43,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 ### Các kênh và điều kiện kết nối
 
-- **Web:** file giao diện tĩnh host trên Cloudflare Pages; trình duyệt gửi HTTPS/SSE qua gateway P3. Tên miền thuộc `aistockvn.com`, đề xuất `chat.aistockvn.com`; Henrry chốt hostname con và tài khoản Cloudflare/zone trước khi tạo DNS/TLS.
+- **Web P4:** file giao diện tĩnh host trên Cloudflare Pages; trình duyệt tại `chat.aistockvn.com` gửi HTTPS/SSE qua gateway P3. P4 chỉ gắn hostname con này, không chiếm apex. **Apex `aistockvn.com` là trang nội dung riêng**, đăng bài hằng ngày về chứng khoán, vĩ mô Việt Nam và vĩ mô thế giới; không chuyển apex sang Pages của P4 hay làm thay đổi website bài viết. Henrry chốt hostname `chat` và xác nhận cách quản lý DNS/Cloudflare trước khi tạo record/TLS.
 - **Telegram:** dùng Telegram Bot API làm adapter. Mỗi `chat_id` được ánh xạ thành danh tính theo namespace `telegram:<bot-id>:<chat_id>`; không coi username hiển thị là định danh ổn định. Token bot chỉ lưu phía server/secret store, không đưa vào client.
 - **Zalo:** chỉ tích hợp qua Zalo Official Account và API/webhook chính thức. Cần OA, quyền/duyệt ứng dụng và credential do chủ tài khoản quản lý; điều kiện sử dụng, hạn mức và loại tin nhắn phải được xác minh trước triển khai. Định danh theo ID người dùng do Zalo cấp, namespace riêng `zalo:<oa-id>:<user-id>`.
 - **WhatsApp:** chỉ tích hợp WhatsApp Business Platform/Cloud API chính thức. Cần tài khoản doanh nghiệp Meta, business/app/phone number phù hợp, quyền truy cập và webhook được Meta phê duyệt/cấu hình; có thể có yêu cầu template/cửa sổ hội thoại và chi phí theo chính sách hiện hành. Định danh theo WhatsApp ID/phone ID do nền tảng cấp, namespace `whatsapp:<phone-number-id>:<wa-id>`. Không dùng giả lập WhatsApp Web hoặc tự động hóa trái API chính thức.
@@ -72,7 +73,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 ## 4. Công nghệ và lý do
 
 - **TypeScript + React + Vite:** web client tĩnh, kiểu dữ liệu hỗ trợ API/SSE, build nhanh, host Pages.
-- **Cloudflare Pages:** phân phối giao diện web tĩnh; không dùng Pages để chứa secret hoặc xử lý model riêng. Custom domain thuộc `aistockvn.com` sẽ gắn sau khi chốt hostname/zone.
+- **Cloudflare Pages:** phân phối file tĩnh riêng cho P4 tại hostname con `chat.aistockvn.com`; không chứa secret hoặc xử lý model. Apex `aistockvn.com` tiếp tục phục vụ trang đăng bài hằng ngày về chứng khoán và vĩ mô Việt Nam/thế giới, không trỏ sang P4. Gắn Custom Domain cho `chat` sau khi xác nhận zone/DNS/TLS; không sửa record apex.
 - **Adapters server-side:** webhook handlers riêng cho Telegram Bot API, Zalo OA API và WhatsApp Business Cloud API; cùng chuẩn hóa event rồi gọi chung backend P4/P3. Tách module theo nền tảng để giới hạn lỗi nhưng không nhân bản logic nghiệp vụ.
 - **P3 Worker + LiteLLM:** điểm vào thống nhất `/v1/chat/completions`, xác thực, rate limit, model aliases, routing/fallback và upstreams; key nhà cung cấp chỉ phía server.
 - **OpenAI-compatible API/SSE:** chuẩn giao tiếp chung để đổi nhiều model mà không thay UI; chuẩn hóa lỗi/stream ở một lớp adapter chung.
@@ -82,7 +83,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 
 | Mốc | Công việc | Điều kiện hoàn tất |
 |---|---|---|
-| M0 — chốt sản phẩm/kênh/model | Duyệt web + Telegram MVP, Zalo/WhatsApp theo điều kiện; hostname `aistockvn.com`; model chính Qwen2.5-14B + LoRA sau P2; danh sách model dự phòng; chính sách định danh, retention và fallback. | Henrry chốt phạm vi, hostname con, repo/tài khoản, auth P3 và quyết định Zalo/WhatsApp có làm ngay hay phase sau. |
+| M0 — chốt sản phẩm/kênh/model | Duyệt web + Telegram MVP, Zalo/WhatsApp theo điều kiện; apex `aistockvn.com` giữ trang bài viết hằng ngày và P4 dùng hostname con `chat.aistockvn.com`; model chính Qwen2.5-14B + LoRA sau P2; danh sách model dự phòng; chính sách định danh, retention và fallback. | Henrry chốt phạm vi, hostname con, repo/tài khoản, auth P3 và quyết định Zalo/WhatsApp có làm ngay hay phase sau. |
 | M1 — hợp đồng chung | Định nghĩa schema event nội bộ, namespace user/conversation, format kết luận-trước, dữ liệu/nguồn/ngày, lỗi, SSE và policy model. | Contract test chứng minh mọi adapter tạo cùng payload chuẩn, không tự ghép danh tính giữa kênh. |
 | M2 — Web + P3 | Xây UI React/Vite, stream qua `/v1/chat/completions`, deploy preview Pages, test tên miền khi được cấp. | Test chat, stop/retry, bảo mật bundle, không có master/provider key. |
 | M3 — Telegram adapter | Webhook/Bot API server-side, xác minh webhook/update, chuẩn hóa ID và gọi backend chung. | Ca hỏi đáp/tóm tắt/phân tích chạy qua cùng skill/model policy; user namespace đúng. |
@@ -96,7 +97,7 @@ WhatsApp Business Platform / Cloud API ─────────────�
 ## Các câu hỏi cần Henrry duyệt
 
 1. Xác nhận web + Telegram là MVP; Zalo/WhatsApp đưa vào MVP hay phase sau khi hoàn tất điều kiện Official Account/Business API?
-2. Chốt hostname con của `aistockvn.com` (đề xuất `chat.aistockvn.com`) và tài khoản Cloudflare/Pages/DNS.
+2. Xác nhận `aistockvn.com` apex tiếp tục là trang bài viết hằng ngày về chứng khoán, vĩ mô Việt Nam/thế giới; chốt `chat.aistockvn.com` cho P4 và tài khoản Cloudflare/Pages/DNS.
 3. Model chính là alias Qwen2.5-14B base tạm, sau đó LoRA P2 cuối; model bổ sung nào (Ember, Gemini, DeepSeek/GLM…) được phép, theo tác vụ nào và có cho web user chọn không?
 4. Thứ tự/điều kiện fallback, giới hạn chi phí/timeout và cách thông báo người dùng khi đổi model?
 5. Zalo OA/WhatsApp Business account, app review, số điện thoại/template, người sở hữu credential và chi phí được duyệt ra sao?
