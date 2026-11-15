@@ -92,6 +92,10 @@ def probe_one(client, name, path, params=None, collection_paths=()):
                             dates.append(day)
                     result[label]['event_types'] = kinds
                     result[label]['ex_date_range'] = [min(dates), max(dates)] if dates else None
+                    result[label]['action_examples'] = [
+                        {'event_type': item.get('event_type'),
+                         'dates': item.get('dates'), 'details': item.get('details')}
+                        for item in values[:12] if isinstance(item, dict)]
     else:
         result['payload_keys'] = []
     return result
@@ -100,8 +104,8 @@ def probe_one(client, name, path, params=None, collection_paths=()):
 def run_probe(api_key):
     client = Probe(api_key)
     unix_params = {'from': START, 'to': END, 'resolution': '1D'}
-    date_params = {'from': '2014-01-01', 'to': datetime.now(timezone.utc).date().isoformat(),
-                   'page': 1, 'page_size': 5}
+    date_params = {'from': '2017-01-01', 'to': datetime.now(timezone.utc).date().isoformat(),
+                   'page': 1, 'page_size': 50}
     checks = {
         'stock_catalog': ('/market/quotes/stocks', {'page': 1, 'page_size': 5},
                           [('items', ('items',))]),
@@ -115,6 +119,15 @@ def run_probe(api_key):
         'stock_listing': ('/market/stocks/VNM/listing', None, []),
         'stock_events': ('/market/stocks/VNM/events', date_params,
                          [('events', ('events',))]),
+        'cash_dividend_events': ('/market/stocks/VNM/events',
+                                 {**date_params, 'page_size': 10, 'event_type': 'CASH_DIVIDEND'},
+                                 [('events', ('events',))]),
+        'stock_dividend_events': ('/market/stocks/VNM/events',
+                                  {**date_params, 'page_size': 10, 'event_type': 'STOCK_DIVIDEND'},
+                                  [('events', ('events',))]),
+        'stock_split_events': ('/market/stocks/VNM/events',
+                               {**date_params, 'page_size': 10, 'event_type': 'STOCK_SPLIT'},
+                               [('events', ('events',))]),
         'sector_list': ('/market/sectors', {'level': 1, 'page': 1, 'page_size': 50},
                         [('items', ('items',))]),
         'financials_constituents': ('/market/sectors/financials/constituents',
