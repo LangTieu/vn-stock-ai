@@ -150,6 +150,21 @@ def run_probe(api_key):
         print(f"FINHAY_PROBE {name} http={report['checks'][name]['http_status']} "
               f"json={report['checks'][name].get('response_json', True)}", flush=True)
     report['request_count'] = client.calls
+    exdate_start = int(datetime(2025, 5, 10, tzinfo=timezone.utc).timestamp())
+    exdate_end = int(datetime(2025, 5, 20, tzinfo=timezone.utc).timestamp())
+    status, body = client.get('/market/quotes/stocks/VNM/history', {
+        'from': exdate_start, 'to': exdate_end, 'resolution': '1D'})
+    data = api_data(status, body)
+    series = data.get('series', []) if isinstance(data, dict) else []
+    report['cash_dividend_adjustment_sample'] = {
+        'symbol': 'VNM', 'event_ex_date': '2025-05-14',
+        'http_status': status,
+        'series': [{'date': datetime.fromtimestamp(item['t'], timezone.utc).date().isoformat(),
+                    'close': item.get('c')} for item in series
+                   if isinstance(item, dict) and isinstance(item.get('t'), (int, float))],
+        'api_documentation_confirms_adjustment_semantics': False,
+    }
+    report['request_count'] = client.calls
     report['findings'] = {
         'market_read_auth': 'X-FH-APIKEY',
         'trading_session_endpoint_is_current_only': True,
