@@ -41,15 +41,12 @@ requires:
    valid quote and censors that row.
 3. The original P1 JSONL dataset.
 
-For the period before Finhay's exchange-index series starts, the checked-in
-`data/p2a-label-v2/market_closures_2014_2016.csv` records sourced exchange
-closures (including the 2014 HOSE/HNX reopening-date difference and the full
-2015 Apr 28–May 1 closure). `scripts/p2a_build_session_calendar.py` derives
-weekday sessions for 2014–2016 from those notices, then appends Finhay's observed
-daily index bars from 2017 onward. The builder records the sources and hashes in
-its manifest. The historical segment is a notice-derived calendar, not a daily
-exchange-published trading-calendar feed; unknown unscheduled closures remain
-an audit item.
+`scripts/p2a_build_session_calendar.py` includes a date only when an observed
+exchange-index row or a positive-close stock-price row exists for it. Sourced
+closure notices are used only to reject conflicting observed dates; they never
+create sessions. The builder records source hashes and provenance. With the
+current Finhay snapshot this means there are no sessions before 2017; missing
+historical dates remain missing and must be obtained from another real source.
 
 The generated manifest hashes the input, calendar, price table and output, and
 reports class/censor counts. The resulting train and holdout checksums must be
@@ -60,15 +57,15 @@ checkpoints without a manifest must start from the base model, not be resumed.
 
 ## Current gate
 
-The old P1 JSONLs are available. A sourced 2014–2016 holiday table and calendar
-builder now exist; the Finhay collector supplies observed exchange-index sessions
-from 2017 onward. However, raw P1 source OHLCV for 2014–2016, documented
-corporate-action-adjusted prices, complete historical ticker universe, and
-point-in-time sectors are not yet available. The old source fields identify
-`data/train_2014_2026_*.json`, which is not in this checkout. Thus the relabeler
-has only synthetic tests so far, and a production v2 dataset or
-survivorship-bias pass has not been completed. Do not train from old labels as if
-they were v2.
+The real Finhay snapshot has now been checked against P1. It contains 0
+documented adjusted total-return closes, starts stock-price history in 2017
+(while P1 starts in 2014), omits one P1 ticker, and has no point-in-time listing
+or sector history. The previous calendar builder version generated 2014–2016
+weekday dates from closure notices; that inferred segment is not a valid data
+source and has been removed. Raw-price-only endpoint coverage is diagnostic and
+not a valid substitute for total-return labels. The production v2 dataset and
+survivorship-bias pass remain blocked; do not train from old labels or
+unadjusted closes as if they were v2. See `docs/p2a-label-v2-data-gate.md`.
 
 The reproducible v1 audit is saved at `docs/p2a-data-audit-v1.json`. It
 checks label counts, date gaps by exchange, ticker/date and prompt overlap,
