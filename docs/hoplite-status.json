@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T11:08:35.713009Z",
+  "updated_at": "2026-11-15T11:08:55.701158Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Liaison approved dispatching run-colab.yml from ref review/p2-async-evaluation without merging to main. Dispatch the 12-step controlled ablation using private v2 labels from run 43691791091; the workflow creates internal 2024 validation only, checks TK2 first, and retries TK5 only on confirmed TK2 assignment HTTP 503. Full training stays paused.",
+  "next_step": "Approved feature-ref dispatch succeeded: run 43707481952 on review/p2-async-evaluation, source v2-label run 43691791091, 12 steps/trial. Monitor leakage-safe internal 2024 split, TK2 preflight/trials, and sanitized metrics; TK5 is allowed only after confirmed TK2 assignment HTTP 503. Do not merge or start full training.",
   "commits": [
     "855cad8",
     "baf7261",
