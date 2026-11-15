@@ -3,8 +3,19 @@ import argparse
 import json
 import math
 from pathlib import Path
-from p2a_train import MODEL_ID, LABELS, HOLDOUT_MD5, dataset_path, messages, rows
+from p2a_train import (MODEL_ID, LABELS, HOLDOUT_MD5, dataset_label_spec, dataset_path,
+                       messages, rows)
 from p2a_validation import row_strata
+
+
+def validate_eval_label_versions(train_manifest, holdout_spec):
+    if train_manifest is None:
+        return
+    train_version = train_manifest.get('label_version')
+    holdout_version = holdout_spec.get('label_version')
+    if train_version != holdout_version:
+        raise ValueError(f'Train/holdout label version mismatch: {train_version!r} != '
+                         f'{holdout_version!r}')
 
 
 def calibration(records):
@@ -26,6 +37,21 @@ def calibration(records):
         fn = sum(confusion[label][other] for other in ('UP', 'DOWN') if other != label)
         denom = 2 * tp + fp + fn
         class_f1[label] = 2 * tp / denom if denom else 0.0
+    class_counts = {label: sum(record['truth'] == label for record in records)
+                    for label in ('UP', 'DOWN')}
+    majority = 'UP' if class_counts['UP'] >= class_counts['DOWN'] else 'DOWN'
+    prior_up = class_counts['UP'] / n
+    baseline_confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
+                          for truth in ('UP', 'DOWN')}
+    for truth in ('UP', 'DOWN'):
+        baseline_confusion[truth][majority] = class_counts[truth]
+    baseline_f1 = {}
+    for label in ('UP', 'DOWN'):
+        tp = baseline_confusion[label][label]
+        fp = baseline_confusion['DOWN' if label == 'UP' else 'UP'][label]
+        fn = baseline_confusion[label]['DOWN' if label == 'UP' else 'UP']
+        denom = 2 * tp + fp + fn
+        baseline_f1[label] = 2 * tp / denom if denom else 0.0
     return {'count': n,
             'direction_accuracy': sum(r['prediction'] == r['truth'] for r in records) / n,
             'macro_f1': sum(class_f1.values()) / len(class_f1),
@@ -36,7 +62,16 @@ def calibration(records):
             'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
             'brier': sum((r['p_up'] - (r['truth'] == 'UP')) ** 2 for r in records) / n,
             'ece_4_bins': sum(b['count'] / n * abs(b['mean_p_up'] - b['observed_up_rate'])
-                              for b in bins if b['count']), 'bins': bins}
+                              for b in bins if b['count']), 'bins': bins,
+            'baselines': {
+                'class_counts': class_counts,
+                'majority_class': majority,
+                'majority_accuracy': max(class_counts.values()) / n,
+                'majority_macro_f1': sum(baseline_f1.values()) / len(baseline_f1),
+                'constant_prevalence_p_up': prior_up,
+                'constant_prevalence_brier': prior_up * (1 - prior_up),
+                'coin_flip_expected_accuracy': 0.5,
+            }}
 
 
 def main():
@@ -51,6 +86,11 @@ def main():
     p.add_argument('--full-holdout', action='store_true')
     a = p.parse_args()
     holdout = dataset_path(a.holdout, Path(a.output).parent / 'holdout.jsonl', a.holdout_md5)
+    holdout_spec = dataset_label_spec(holdout)
+    manifest_path = Path(a.adapter) / 'p2a_training_manifest.json'
+    train_manifest = (json.loads(manifest_path.read_text(encoding='utf-8'))
+                      if manifest_path.is_file() else None)
+    validate_eval_label_versions(train_manifest, holdout_spec)
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, set_seed
     from peft import PeftModel
@@ -93,7 +133,9 @@ def main():
     result = calibration(records)
     result.update({'checkpoint_step': a.checkpoint_step,
                    'slice_manifest': a.slice_manifest,
-                   'full_holdout': a.full_holdout})
+                   'full_holdout': a.full_holdout,
+                   'train_label_version': (train_manifest or {}).get('label_version'),
+                   'holdout_label_version': holdout_spec['label_version']})
     Path(a.output + '.metrics.json').write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
 

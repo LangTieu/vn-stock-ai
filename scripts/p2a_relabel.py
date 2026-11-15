@@ -115,21 +115,23 @@ def relabel_row(row, sessions, prices, flat_band_pct=DEFAULT_FLAT_BAND_PCT):
         raise ValueError(f'no exchange calendar for {exchange}')
     calendar, positions = sessions[exchange]
     if as_of not in positions:
-        raise ValueError(f'{ticker} {exchange} as_of {as_of} is not a trading session')
-    start = bisect.bisect_right(calendar, as_of)
-    if start + HORIZON_SESSIONS > len(calendar):
         endpoint = None
-        reason = 'calendar_ends_before_horizon'
+        reason = 'missing_as_of_exchange_session'
     else:
-        endpoint = calendar[start + HORIZON_SESSIONS - 1]
-        end_close = prices.get((ticker, exchange, endpoint))
-        start_close = prices.get((ticker, exchange, as_of))
-        if start_close is None:
-            reason = 'missing_start_adjusted_close'
-        elif end_close is None:
-            reason = 'missing_endpoint_adjusted_close'
+        start = bisect.bisect_right(calendar, as_of)
+        if start + HORIZON_SESSIONS > len(calendar):
+            endpoint = None
+            reason = 'calendar_ends_before_horizon'
         else:
-            reason = None
+            endpoint = calendar[start + HORIZON_SESSIONS - 1]
+            end_close = prices.get((ticker, exchange, endpoint))
+            start_close = prices.get((ticker, exchange, as_of))
+            if start_close is None:
+                reason = 'missing_start_adjusted_close'
+            elif end_close is None:
+                reason = 'missing_endpoint_adjusted_close'
+            else:
+                reason = None
 
     metadata = row.setdefault('metadata', {})
     label = metadata.setdefault('label', {})

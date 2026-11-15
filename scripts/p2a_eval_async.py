@@ -111,6 +111,7 @@ def latest_complete_step(token):
 
 def build_remote_job(step, full_holdout, out_dir):
     train_src = Path(__file__).with_name('p2a_train.py').read_text(encoding='utf-8')
+    numerics_src = Path(__file__).with_name('p2a_numerics.py').read_text(encoding='utf-8')
     eval_src = Path(__file__).with_name('p2a_eval.py').read_text(encoding='utf-8')
     validation_src = Path(__file__).with_name('p2a_validation.py').read_text(encoding='utf-8')
     lines = [
@@ -123,6 +124,7 @@ def build_remote_job(step, full_holdout, out_dir):
         "subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', '--force-reinstall', "
         "'--no-deps', '--only-binary=:all:', 'bitsandbytes==0.48.2'], check=True)",
         f"Path('/content/p2a_train.py').write_text({train_src!r}, encoding='utf-8')",
+        f"Path('/content/p2a_numerics.py').write_text({numerics_src!r}, encoding='utf-8')",
         f"Path('/content/p2a_eval.py').write_text({eval_src!r}, encoding='utf-8')",
         f"Path('/content/p2a_validation.py').write_text({validation_src!r}, encoding='utf-8')",
         "sys.path.insert(0, '/content')",

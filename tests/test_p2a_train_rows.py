@@ -6,7 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from p2a_train import (compact_input, dataset_label_spec, dataset_label_version,
-                       make_training_manifest, messages, rows, validate_resume_manifest)
+                       make_training_manifest, messages, require_v2_training, rows,
+                       validate_resume_manifest)
 
 
 class TrainingRowFilterTests(unittest.TestCase):
@@ -55,6 +56,30 @@ class TrainingRowFilterTests(unittest.TestCase):
             (checkpoint / 'p2a_training_manifest.json').write_text(json.dumps(saved))
             with self.assertRaisesRegex(ValueError, 'train_sha256 mismatch'):
                 validate_resume_manifest(checkpoint, manifest)
+
+    def test_ablation_config_is_fingerprinted_and_resume_rejects_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); data = root / 'train.jsonl'; checkpoint = root / 'checkpoint-25'
+            checkpoint.mkdir(); data.write_text('fixture')
+            first = make_training_manifest(
+                data, 2, 4096, 2,
+                lora_config={'r': 8, 'lora_alpha': 32, 'lora_dropout': 0.1},
+                training_config={'learning_rate': 1e-4, 'gradient_accumulation_steps': 32},
+                target_modules=['q_proj', 'v_proj'])
+            second = make_training_manifest(
+                data, 2, 4096, 2,
+                lora_config={'r': 16, 'lora_alpha': 32, 'lora_dropout': 0.1},
+                training_config={'learning_rate': 1e-4, 'gradient_accumulation_steps': 32},
+                target_modules=['q_proj', 'v_proj'])
+            self.assertNotEqual(first['lora'], second['lora'])
+            (checkpoint / 'p2a_training_manifest.json').write_text(json.dumps(first))
+            with self.assertRaisesRegex(ValueError, 'lora mismatch'):
+                validate_resume_manifest(checkpoint, second)
+
+    def test_training_refuses_legacy_labels(self):
+        with self.assertRaisesRegex(ValueError, 'blocked for P2a label v1'):
+            require_v2_training({'label_version': 1})
+        require_v2_training({'label_version': 2})
 
     def test_prompt_compacts_only_coverage_date_arrays_and_keeps_summary(self):
         dates = [f'2023-01-{day:02d}' for day in range(1, 22)]

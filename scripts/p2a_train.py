@@ -12,6 +12,13 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+try:
+    from .p2a_numerics import (assert_finite_gradients, assert_finite_loss,
+                               require_supervised_positions)
+except ImportError:
+    from p2a_numerics import (assert_finite_gradients, assert_finite_loss,
+                              require_supervised_positions)
+
 os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
 
 TRAIN_MD5 = 'f6273e8a12e35fe1027f29ca2127b9c0'
@@ -201,6 +208,12 @@ def dataset_label_version(path):
     return dataset_label_spec(path)['label_version']
 
 
+def require_v2_training(label_spec):
+    if label_spec.get('label_version') != 2:
+        raise ValueError('Training is blocked for P2a label v1. Use a verified, gated v2 dataset; '
+                         'do not train on legacy or raw-price labels.')
+
+
 def sha256_file(path):
     digest = hashlib.sha256()
     with Path(path).open('rb') as stream:
@@ -211,7 +224,7 @@ def sha256_file(path):
 
 def make_training_manifest(train_path, label_version, max_length, epochs, flat_band_pct=None,
                            label_method=None, lora_config=None,
-                           training_config=None):
+                           training_config=None, target_modules=None):
     return {
         'label_version': label_version,
         'train_sha256': sha256_file(train_path),
@@ -225,7 +238,7 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'flat_band_pct': flat_band_pct,
         'epochs': epochs,
         'lora': dict(lora_config or LORA_CONFIG),
-        'target_modules': list(TARGET_MODULES),
+        'target_modules': list(target_modules or TARGET_MODULES),
         'training': dict(training_config or TRAINING_CONFIG),
         'seed': 42,
     }
@@ -330,26 +343,27 @@ def collate(features, pad_id):
             for key, pad in [('input_ids', pad_id), ('attention_mask', 0), ('labels', -100)]}
 
 
-def prepare_qlora_model(model):
+def prepare_qlora_model(model, lora_config=None, target_modules=None):
     from peft import LoraConfig, get_peft_model
 
     model.requires_grad_(False)
     model.config.use_cache = False
     model.enable_input_require_grads()
-    return get_peft_model(model, LoraConfig(**LORA_CONFIG,
-                                          target_modules=TARGET_MODULES, task_type='CAUSAL_LM'))
+    return get_peft_model(model, LoraConfig(**(lora_config or LORA_CONFIG),
+                                          target_modules=target_modules or TARGET_MODULES,
+                                          task_type='CAUSAL_LM'))
 
 
 def supervised_loss(model, inputs):
     import torch
     labels = inputs['labels'][:, 1:]
-    positions = torch.where((labels != -100).any(dim=0))[0]
+    positions = require_supervised_positions(torch.where((labels != -100).any(dim=0))[0])
     outputs = model(**{key: value for key, value in inputs.items() if key != 'labels'},
                     logits_to_keep=positions, use_cache=False)
     loss = torch.nn.functional.cross_entropy(
         outputs.logits.float().reshape(-1, outputs.logits.size(-1)),
         labels[:, positions].reshape(-1), ignore_index=-100)
-    return loss, outputs
+    return assert_finite_loss(loss), outputs
 
 
 def log_training_memory(model):
@@ -390,8 +404,28 @@ def main():
     p.add_argument('--resume', default=None)
     p.add_argument('--hub-repo')
     p.add_argument('--checkpoint-repo', default=os.environ.get('HF_CHECKPOINT_REPO', ''))
+    p.add_argument('--lora-r', type=int, default=LORA_CONFIG['r'])
+    p.add_argument('--lora-alpha', type=int, default=LORA_CONFIG['lora_alpha'])
+    p.add_argument('--lora-dropout', type=float, default=LORA_CONFIG['lora_dropout'])
+    p.add_argument('--learning-rate', type=float, default=TRAINING_CONFIG['learning_rate'])
+    p.add_argument('--gradient-accumulation-steps', type=int,
+                   default=TRAINING_CONFIG['gradient_accumulation_steps'])
+    p.add_argument('--target-modules', default=','.join(TARGET_MODULES))
     p.add_argument('--dry-run', action='store_true')
     a = p.parse_args()
+    if a.lora_r < 1 or a.lora_alpha < 1 or not 0 <= a.lora_dropout < 1:
+        p.error('LoRA rank/alpha must be positive and dropout must be in [0, 1)')
+    if (not math.isfinite(a.learning_rate) or a.learning_rate <= 0
+            or not math.isfinite(a.lora_dropout) or a.gradient_accumulation_steps < 1):
+        p.error('learning rate and gradient accumulation steps must be positive')
+    target_modules = [name.strip() for name in a.target_modules.split(',') if name.strip()]
+    if not target_modules or len(set(target_modules)) != len(target_modules):
+        p.error('--target-modules must contain unique, non-empty names')
+    lora_config = {'r': a.lora_r, 'lora_alpha': a.lora_alpha,
+                   'lora_dropout': a.lora_dropout}
+    training_config = dict(TRAINING_CONFIG)
+    training_config.update({'learning_rate': a.learning_rate,
+                            'gradient_accumulation_steps': a.gradient_accumulation_steps})
     output = Path(a.output_dir)
     print('OUTPUT_DIR', output, flush=True)
     checkpoint_api = None
@@ -418,6 +452,8 @@ def main():
     train = dataset_path(a.train, output / 'train.jsonl', a.train_md5)
     label_spec = dataset_label_spec(train)
     label_version = label_spec['label_version']
+    if not a.dry_run:
+        require_v2_training(label_spec)
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     tok.pad_token = tok.eos_token
@@ -433,7 +469,9 @@ def main():
         return
     training_manifest = make_training_manifest(
         train, label_version, a.max_length, a.epochs,
-        flat_band_pct=label_spec['flat_band_pct'], label_method=label_spec['label_method'])
+        flat_band_pct=label_spec['flat_band_pct'], label_method=label_spec['label_method'],
+        lora_config=lora_config, training_config=training_config,
+        target_modules=target_modules)
     if a.resume:
         validate_resume_manifest(a.resume, training_manifest)
     output.mkdir(parents=True, exist_ok=True)
@@ -536,7 +574,7 @@ def main():
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_ID, attn_implementation='sdpa', **model_kwargs)
         print('ATTN_IMPLEMENTATION', 'sdpa', flush=True)
-    model = prepare_qlora_model(model)
+    model = prepare_qlora_model(model, lora_config, target_modules)
     model.print_trainable_parameters()
     output.mkdir(parents=True, exist_ok=True)
 
@@ -590,9 +628,15 @@ def main():
             loss, outputs = supervised_loss(model, inputs)
             return (loss, outputs) if return_outputs else loss
 
+        def training_step(self, model, inputs, num_items_in_batch=None):
+            loss = super().training_step(model, inputs, num_items_in_batch)
+            if self.accelerator.sync_gradients:
+                assert_finite_gradients(model, torch.isfinite, self.state.global_step + 1)
+            return loss
+
     args = TrainingArguments(output_dir=str(output), num_train_epochs=a.epochs,
                              max_steps=a.max_steps, save_steps=a.save_steps,
-                             **TRAINING_CONFIG)
+                             **training_config)
     trainer = LabelTrainer(model=model, args=args, train_dataset=data,
                            data_collator=partial(collate, pad_id=tok.pad_token_id),
                            callbacks=[Progress(), SaveTrainingManifest()]

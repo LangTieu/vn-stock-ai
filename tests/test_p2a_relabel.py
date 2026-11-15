@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.p2a_relabel import relabel_file
+from scripts.p2a_relabel import relabel_file, relabel_row
 
 
 def make_row(as_of='2024-01-01'):
@@ -15,6 +15,16 @@ def make_row(as_of='2024-01-01'):
 
 
 class RelabelTests(unittest.TestCase):
+    def test_missing_as_of_session_is_censored_instead_of_inventing_a_date(self):
+        from datetime import date
+        days = [date(2024, 1, 2), date(2024, 1, 3)]
+        sessions = {'HOSE': (days, {day: index for index, day in enumerate(days)})}
+        row, outcome = relabel_row(make_row('2024-01-01'), sessions, {})
+        self.assertEqual(outcome['status'], 'censored')
+        self.assertEqual(outcome['reason'], 'missing_as_of_exchange_session')
+        self.assertIsNone(outcome['endpoint_date'])
+        self.assertIsNone(row['metadata']['label']['future_direction_120'])
+
     def test_horizon_uses_120_exchange_sessions_and_flat_deadband(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

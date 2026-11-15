@@ -36,6 +36,7 @@ image = (
         "jinja2==3.1.6",
     )
     .add_local_file(Path(__file__).parent / "p2a_train.py", "/workspace/p2a_train.py")
+    .add_local_file(Path(__file__).parent / "p2a_numerics.py", "/workspace/p2a_numerics.py")
 )
 
 volume = modal.Volume.from_name(VOLUME_NAME)
