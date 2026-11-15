@@ -103,6 +103,19 @@ def _sha256(path):
     return digest.hexdigest()
 
 
+def _safe_api_error(response):
+    try:
+        error = response.json().get('error') or {}
+    except (ValueError, AttributeError):
+        error = {}
+    reasons = sorted({item.get('reason', '') for item in error.get('errors', [])
+                      if item.get('reason')})
+    message = str(error.get('message') or '')
+    message = re.sub(r'(?i)bearer\s+\S+|ya29\.[A-Za-z0-9._-]+', '[REDACTED]', message)
+    return {'http_status': response.status_code, 'api_reasons': reasons,
+            'api_message': message[:400]}
+
+
 def inventory(token_file, output):
     import requests
     from google.auth.transport.requests import Request
@@ -118,28 +131,33 @@ def inventory(token_file, output):
     query = QUERY
     page_token = None
     files = []
-    while True:
-        params = {
-            'q': query, 'pageSize': 1000,
-            'fields': 'nextPageToken,files(id,name,mimeType,size,modifiedTime,driveId)',
-            'supportsAllDrives': 'true', 'includeItemsFromAllDrives': 'true',
-            'corpora': 'allDrives',
-        }
-        if page_token:
-            params['pageToken'] = page_token
-        response = session.get('https://www.googleapis.com/drive/v3/files',
-                               params=params, timeout=60)
-        if response.status_code == 400:
-            params.pop('corpora', None)
+    access_error = None
+    try:
+        while True:
+            params = {
+                'q': query, 'pageSize': 1000,
+                'fields': 'nextPageToken,files(id,name,mimeType,size,modifiedTime,driveId)',
+                'supportsAllDrives': 'true', 'includeItemsFromAllDrives': 'true',
+                'corpora': 'allDrives',
+            }
+            if page_token:
+                params['pageToken'] = page_token
             response = session.get('https://www.googleapis.com/drive/v3/files',
                                    params=params, timeout=60)
-        if response.status_code != 200:
-            raise RuntimeError(f'Google Drive list failed: HTTP {response.status_code}')
-        payload = response.json()
-        files.extend(payload.get('files') or [])
-        page_token = payload.get('nextPageToken')
-        if not page_token:
-            break
+            if response.status_code == 400:
+                params.pop('corpora', None)
+                response = session.get('https://www.googleapis.com/drive/v3/files',
+                                       params=params, timeout=60)
+            if response.status_code != 200:
+                access_error = _safe_api_error(response)
+                break
+            payload = response.json()
+            files.extend(payload.get('files') or [])
+            page_token = payload.get('nextPageToken')
+            if not page_token:
+                break
+    except requests.RequestException as error:
+        access_error = {'transport_error': type(error).__name__}
 
     records = []
     with tempfile.TemporaryDirectory(prefix='p2a-drive-read-') as temporary:
@@ -166,9 +184,13 @@ def inventory(token_file, output):
             records.append(record)
     result = {
         'method': 'Google Drive API read-only metadata and structural inventory; source data not exported',
+        'oauth_drive_file_scope_present': credentials.has_scopes(
+            ['https://www.googleapis.com/auth/drive.file']),
+        'drive_api_access_error': access_error,
         'expected_file_names': sorted(EXPECTED),
         'matching_file_count': len(records),
         'files': records,
+        'access_error': access_error,
         'missing_expected_files': sorted(
             name for name in EXPECTED if not any(file['name'] == name for file in records)),
     }
@@ -179,8 +201,9 @@ def inventory(token_file, output):
         'matching_file_count': len(records),
         'exact_source_file_count': sum(file['name'] in EXPECTED for file in records),
         'missing_expected_file_count': len(result['missing_expected_files']),
-        'schemas_valid': all(not file.get('json_decode_error')
-                             and not file.get('download_error') for file in records),
+        'schemas_valid': access_error is None and all(
+            not file.get('json_decode_error') and not file.get('download_error')
+            for file in records),
         'report': str(output),
     }, sort_keys=True))
     return result
