@@ -668,7 +668,9 @@ def cmd_run(args):
         if args.resume_checkpoint:
             bootstrap_values["RESUME_CHECKPOINT"] = args.resume_checkpoint
         for key in ("TRAIN_URL", "TRAIN_MD5", "HOLDOUT_URL", "HOLDOUT_MD5",
-                    "P2A_LOCAL_TRAIN", "SKIP_EVAL", "UPLOAD_HF"):
+                    "P2A_LOCAL_TRAIN", "P2A_EVAL_LIMIT", "SKIP_EVAL", "UPLOAD_HF",
+                    "LORA_R", "LORA_ALPHA", "LORA_DROPOUT", "LEARNING_RATE",
+                    "GRADIENT_ACCUMULATION_STEPS", "TARGET_MODULES", "SEED", "OUTPUT_DIR"):
             if key in os.environ:
                 bootstrap_values[key] = os.environ[key]
         if "HF_CHECKPOINT_REPO" in os.environ:
@@ -694,8 +696,10 @@ def cmd_run(args):
                 result["bootstrap_error"] = (reply["content"].get("ename", "")
                                              + ": " + reply["content"].get("evalue", ""))
         if args.upload_file:
-            local_path, remote_path = args.upload_file
-            result['private_input_transfer'] = upload_file(kc, local_path, remote_path)
+            result['private_input_transfers'] = [
+                upload_file(kc, local_path, remote_path)
+                for local_path, remote_path in args.upload_file
+            ]
         if args.file.endswith(".ipynb"):
             import nbformat
 
@@ -853,7 +857,7 @@ def main(argv=None):
             sp.add_argument("--out", default="vncolab_result.json")
             sp.add_argument("--download", nargs=2, metavar=("REMOTE_PATH", "LOCAL_PATH"),
                             help="download a runtime directory or file as a local zip")
-            sp.add_argument("--upload-file", nargs=2, metavar=("LOCAL_PATH", "REMOTE_PATH"),
+            sp.add_argument("--upload-file", nargs=2, action="append", metavar=("LOCAL_PATH", "REMOTE_PATH"),
                             help="transfer a small private input into /content of the temporary Colab runtime")
             sp.add_argument("--keep", action="store_true",
                             help="giu runtime sau khi chay xong")

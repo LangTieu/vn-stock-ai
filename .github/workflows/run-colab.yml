@@ -86,7 +86,20 @@ on:
         type: number
         required: true
         default: 2
-
+      p2a_v2_ablation:
+        description: "Run three controlled, short v2 LoRA/LR trials only"
+        type: boolean
+        required: true
+        default: false
+      p2a_ablation_source_run_id:
+        description: "Successful private Finfo v2-label Actions run"
+        required: false
+        default: ""
+      p2a_ablation_steps:
+        description: "Optimizer steps per trial (max 50; default 12)"
+        type: number
+        required: true
+        default: 12
 permissions:
   contents: read
   actions: read
@@ -153,7 +166,7 @@ jobs:
           retention-days: 3
 
   run-colab:
-    if: ${{ !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke }}
+    if: ${{ !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke && !inputs.p2a_v2_ablation }}
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -334,3 +347,76 @@ jobs:
             p2a-v2-baselines.json
           if-no-files-found: ignore
           retention-days: 7
+
+  p2a-v2-ablation:
+    if: ${{ inputs.p2a_v2_ablation && !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke }}
+    runs-on: [self-hosted, colab-driver-lv1]
+    timeout-minutes: 360
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download private v2 labels from audited source run
+        uses: actions/download-artifact@v4
+        with:
+          name: p2a-vndirect-adclose-audit
+          path: /tmp/p2a-v2-ablation-source
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.p2a_ablation_source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Select common fixed train and validation slices
+        run: |
+          set -euo pipefail
+          TRAIN_FILE="$(find /tmp/p2a-v2-ablation-source -type f -name p1_train_v2.jsonl -print -quit)"
+          HOLDOUT_FILE="$(find /tmp/p2a-v2-ablation-source -type f -name p1_holdout_v2.jsonl -print -quit)"
+          test -n "$TRAIN_FILE" && test -n "$HOLDOUT_FILE"
+          if find /tmp/p2a-v2-ablation-source -type f \( -name '*adclose-endpoints*' -o -name 'adjusted_prices.csv' \) | grep -q .; then
+            echo "Raw adjusted-price table found in private label artifact path; refusing model transfer."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('p1_train_v2.jsonl','p1_holdout_v2.jsonl'):
+              p=next(Path('/tmp/p2a-v2-ablation-source').rglob(name))
+              manifest=next(p.parent.glob(name.replace('.jsonl','.manifest.json')))
+              if json.loads(manifest.read_text())['label_version'] != 2:
+                  raise SystemExit(f'{name} manifest is not label v2')
+          PY
+          python3 scripts/p2a_validation.py --input "$TRAIN_FILE" \
+            --output /tmp/p2a_ablation_train_v2.jsonl \
+            --manifest /tmp/p2a_ablation_train_v2.manifest.json --per-class 64 --seed 42
+          python3 scripts/p2a_validation.py --input "$HOLDOUT_FILE" \
+            --output /tmp/p2a_ablation_validation_v2.jsonl \
+            --manifest /tmp/p2a_ablation_validation_v2.manifest.json --per-class 32 --seed 4242
+      - name: Refuse overlap with any active Colab training workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: python3 scripts/p2a_check_colab_overlap.py
+      - name: Run controlled short v2 ablations on Colab
+        env:
+          P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
+          P2_EVAL_TK5_EMAIL: ${{ vars.P2_EVAL_TK5_EMAIL }}
+        run: |
+          set -euo pipefail
+          if [ -x "$HOME/vncolab-venv/bin/python" ]; then
+            PY="$HOME/vncolab-venv/bin/python"
+          else
+            python3 -m venv .vncolab-venv
+            .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
+            PY=".vncolab-venv/bin/python"
+          fi
+          "$PY" scripts/p2a_colab_ablation.py \
+            --train /tmp/p2a_ablation_train_v2.jsonl \
+            --validation /tmp/p2a_ablation_validation_v2.jsonl \
+            --max-steps "${{ inputs.p2a_ablation_steps }}" --timeout 18000 \
+            --output-dir p2a-ablation
+      - name: Upload sanitized ablation manifests and metrics only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-v2-controlled-ablation
+          path: p2a-ablation/manifest.json
+          if-no-files-found: ignore
+          retention-days: 14

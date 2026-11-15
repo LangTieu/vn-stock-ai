@@ -43,6 +43,19 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         eval_cell = ''.join(notebook['cells'][9]['source'])
         self.assertIn("['--full-holdout'] if MODE == 'full'", eval_cell)
 
+    def test_smoke_eval_limit_is_shared_and_emits_compact_ablation_metrics(self):
+        notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
+        eval_cell = ''.join(notebook['cells'][9]['source'])
+        self.assertIn("os.environ.get('P2A_EVAL_LIMIT', '20')", eval_cell)
+        self.assertIn("P2A_ABLATION_EVAL ", eval_cell)
+
+    def test_colab_workflow_has_controlled_ablation_gate_and_caps_trials(self):
+        workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()
+        self.assertEqual(workflow.count('p2a-v2-ablation:'), 1)
+        self.assertIn('p2a_ablation_steps', workflow)
+        self.assertIn('max 50; default 12', workflow)
+        self.assertIn('source_run_id', workflow)
+
     def test_notebook_exposes_verified_dataset_hashes_and_ablation_settings(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         settings = ''.join(notebook['cells'][1]['source'])
