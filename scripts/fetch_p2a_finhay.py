@@ -143,7 +143,7 @@ def get_events(client, symbol, start, end):
                                    'page': page, 'page_size': 50})
         data = api_data(status, body)
         if not isinstance(data, dict):
-            return events, status
+            return events, status if status != 200 else 'api_error'
         batch = data.get('events') or []
         events.extend(item for item in batch if isinstance(item, dict))
         pagination = data.get('pagination') or {}
