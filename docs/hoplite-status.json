@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T11:56:36.249926Z",
+  "updated_at": "2026-11-15T11:57:13.621682Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Retry bounded ablation from review/p2-async-evaluation, source run 43691791091, 12 steps/trial, with initial fp16 loss scale 1024 and finite-gradient guard retained. Verify all three trials, actual requested-step setting, internal 2024 validation, and sanitized metrics. TK5 only after confirmed TK2 assignment HTTP 503; no merge/full training.",
+  "next_step": "Numerical-stability retry 43711359409 is running from review/p2-async-evaluation at 12 steps/trial, with fp16 initial loss scale 1024, source run 43691791091, and internal 2024 validation. Verify all three trials and sanitized metrics. TK5 only on confirmed TK2 assignment HTTP 503; no merge/full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -51,7 +51,8 @@
     "fc38d41",
     "a9c7ab4",
     "25588fb",
-    "7b137b2"
+    "7b137b2",
+    "025e6c6"
   ],
   "last_ablation_attempt": {
     "run_id": 43709776433,
@@ -69,5 +70,5 @@
     "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
     "diagnosis": "The first synchronized LoRA gradient is non-finite under fp16. The notebook enables fp16, and pinned Accelerate 1.6.0 defaults its GradScaler init_scale to 65536; the custom finite-gradient guard aborts before GradScaler can adapt. Retry lowers initial scale to 1024 while keeping the guard. The requested 12-step cap is now honored (previous smoke branch clamped it to 2)."
   },
-  "latest_ablation_run_id": 43709776433
+  "latest_ablation_run_id": 43711359409
 }
