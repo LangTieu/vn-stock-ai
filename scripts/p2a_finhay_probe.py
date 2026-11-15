@@ -33,15 +33,24 @@ class Probe:
             'Accept': 'application/json',
             'User-Agent': 'vn-stock-ai-p2a-data-audit/1.0',
         })
-        self.last_call = time.monotonic()
-        self.calls += 1
-        try:
-            with urllib.request.urlopen(request, timeout=45) as response:
-                return response.status, json.loads(response.read().decode('utf-8'))
-        except urllib.error.HTTPError as error:
-            return error.code, None
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
-            return None, None
+        for attempt in range(5):
+            if attempt:
+                delay = 1.05 - (time.monotonic() - self.last_call)
+                if delay > 0:
+                    time.sleep(delay)
+            self.last_call = time.monotonic()
+            self.calls += 1
+            try:
+                with urllib.request.urlopen(request, timeout=45) as response:
+                    return response.status, json.loads(response.read().decode('utf-8'))
+            except urllib.error.HTTPError as error:
+                if error.code not in (429, 500, 502, 503, 504) or attempt == 4:
+                    return error.code, None
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+                if attempt == 4:
+                    return None, None
+            time.sleep(min(60, 5 * (2 ** attempt)))
+        return None, None
 
 
 def records(payload, *path):
@@ -99,6 +108,12 @@ def probe_one(client, name, path, params=None, collection_paths=()):
     else:
         result['payload_keys'] = []
     return result
+
+
+def api_data(status, body):
+    if status != 200 or not isinstance(body, dict) or str(body.get('error_code')) != '0':
+        return None
+    return body.get('data')
 
 
 def run_probe(api_key):

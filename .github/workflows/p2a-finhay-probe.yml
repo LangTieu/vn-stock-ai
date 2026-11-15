@@ -1,11 +1,7 @@
 name: Probe Finhay market data for P2a
 
 on:
-  push:
-    branches: [review/p2-async-evaluation]
-    paths:
-      - '.github/workflows/p2a-finhay-probe.yml'
-      - 'scripts/p2a_finhay_probe.py'
+  workflow_dispatch:
 
 permissions:
   contents: read
