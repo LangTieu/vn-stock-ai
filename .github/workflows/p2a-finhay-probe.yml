@@ -1,0 +1,32 @@
+name: Probe Finhay market data for P2a
+
+on:
+  push:
+    branches: [review/p2-async-evaluation]
+    paths:
+      - '.github/workflows/p2a-finhay-probe.yml'
+      - 'scripts/p2a_finhay_probe.py'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/p2-async-evaluation
+      - name: Probe documented read-only endpoints
+        env:
+          FINHAY_API_KEY: ${{ secrets.FINHAY_API_KEY }}
+        run: python3 scripts/p2a_finhay_probe.py --output data/p2a-label-v2/finhay-api-probe.json
+      - name: Upload sanitized capability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-finhay-api-probe
+          path: data/p2a-label-v2/finhay-api-probe.json
+          if-no-files-found: ignore
+          retention-days: 7
