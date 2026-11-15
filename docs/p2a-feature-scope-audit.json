@@ -37,5 +37,25 @@
     ]
   },
   "decision": "Liaison approved closing the feature-level survivorship gate by excluding unavailable point-in-time sector/universe inputs. This does not claim the P1-observed ticker/as-of population is a complete historical market universe.",
-  "passes_feature_scope_gate": true
+  "passes_feature_scope_gate": true,
+  "model_input_transform_check": {
+    "checked_at": "2026-11-15T08:33:10.884976Z",
+    "transform_version": "v2-ohlcv-indicators-only-v1",
+    "real_v2_bulk_rows_transformed": 97766,
+    "label_version_counts": {
+      "2": 97766
+    },
+    "retained_top_level_fields": {
+      "ticker": 97766,
+      "as_of": 97766,
+      "price": 97766,
+      "indicators": 97766
+    },
+    "retained_price_fields": {
+      "ohlcv": 97766,
+      "unit": 97766
+    },
+    "rows_with_sector_universe_or_other_disallowed_features": 0,
+    "training_and_eval_share_messages_transform": true
+  }
 }
