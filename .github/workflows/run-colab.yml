@@ -362,12 +362,11 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ inputs.p2a_ablation_source_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Select common fixed train and validation slices
+      - name: Create leakage-safe internal train and validation slices
         run: |
           set -euo pipefail
           TRAIN_FILE="$(find /tmp/p2a-v2-ablation-source -type f -name p1_train_v2.jsonl -print -quit)"
-          HOLDOUT_FILE="$(find /tmp/p2a-v2-ablation-source -type f -name p1_holdout_v2.jsonl -print -quit)"
-          test -n "$TRAIN_FILE" && test -n "$HOLDOUT_FILE"
+          test -n "$TRAIN_FILE"
           if find /tmp/p2a-v2-ablation-source -type f \( -name '*adclose-endpoints*' -o -name 'adjusted_prices.csv' \) | grep -q .; then
             echo "Raw adjusted-price table found in private label artifact path; refusing model transfer."
             exit 1
@@ -375,18 +374,14 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          for name in ('p1_train_v2.jsonl','p1_holdout_v2.jsonl'):
-              p=next(Path('/tmp/p2a-v2-ablation-source').rglob(name))
-              manifest=next(p.parent.glob(name.replace('.jsonl','.manifest.json')))
-              if json.loads(manifest.read_text())['label_version'] != 2:
-                  raise SystemExit(f'{name} manifest is not label v2')
+          p=next(Path('/tmp/p2a-v2-ablation-source').rglob('p1_train_v2.jsonl'))
+          manifest=next(p.parent.glob('p1_train_v2.manifest.json'))
+          if json.loads(manifest.read_text())['label_version'] != 2:
+              raise SystemExit('train manifest is not label v2')
           PY
-          python3 scripts/p2a_validation.py --input "$TRAIN_FILE" \
-            --output /tmp/p2a_ablation_train_v2.jsonl \
-            --manifest /tmp/p2a_ablation_train_v2.manifest.json --per-class 64 --seed 42
-          python3 scripts/p2a_validation.py --input "$HOLDOUT_FILE" \
-            --output /tmp/p2a_ablation_validation_v2.jsonl \
-            --manifest /tmp/p2a_ablation_validation_v2.manifest.json --per-class 32 --seed 4242
+          python3 scripts/p2a_ablation_slices.py --input "$TRAIN_FILE" \
+            --output-dir /tmp/p2a-ablation-slices --validation-year 2024 \
+            --train-per-class 64 --validation-per-class 32 --seed 42
       - name: Refuse overlap with any active Colab training workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -407,8 +402,8 @@ jobs:
             PY=".vncolab-venv/bin/python"
           fi
           "$PY" scripts/p2a_colab_ablation.py \
-            --train /tmp/p2a_ablation_train_v2.jsonl \
-            --validation /tmp/p2a_ablation_validation_v2.jsonl \
+            --train /tmp/p2a-ablation-slices/train-v2.jsonl \
+            --validation /tmp/p2a-ablation-slices/validation-v2.jsonl \
             --max-steps "${{ inputs.p2a_ablation_steps }}" --timeout 18000 \
             --output-dir p2a-ablation
       - name: Upload sanitized ablation manifests and metrics only
