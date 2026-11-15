@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T10:06:18.938762Z",
+  "updated_at": "2026-11-15T10:10:35.558899Z",
   "current_item": 4,
   "done": [
     1,
@@ -8,9 +8,11 @@
     5
   ],
   "in_progress": 4,
-  "blocked": "Corrected ablation run 43702070325 stopped before GPU allocation: its assignment-preflight step was run with system python3 after dependencies were installed only in $HOME/vncolab-venv, causing ModuleNotFoundError: No module named google. No Colab runtime was allocated; no trial ran and no artifact was produced. The guard now invokes the venv Python.",
-  "questions": [],
-  "next_step": "Commit and test the assignment-guard interpreter fix, then rerun leakage-safe ablation with 12 steps/trial. The prior preflight did not query TK2 assignments; the corrected retry will perform the read-only query before allocation. Full training stays paused.",
+  "blocked": "Leakage-safe ablation dispatch is blocked: the feature-branch run-colab.yml declares p2a_v2_ablation, p2a_ablation_source_run_id, and p2a_ablation_steps, but origin/main does not. Dispatching those inputs returned HTTP 422; no run or trial was created. Do not edit main or use the external holdout without Liaison approval.",
+  "questions": [
+    "Liaison/Muse: approve adding the P2a ablation inputs to the default-branch run-colab workflow, or provide an already-approved workflow/ref that accepts them?"
+  ],
+  "next_step": "After Liaison resolves the default-branch dispatch schema blocker, run the bounded leakage-safe ablation with 12 steps/trial using only internal 2024 validation; check TK2 first and use TK5 only after a confirmed TK2 assignment HTTP 503. No full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -43,6 +45,9 @@
     "6bd947f",
     "551b11d",
     "c4ad0de",
-    "12df547"
+    "12df547",
+    "d10a857",
+    "83fd36e",
+    "b951f52"
   ]
 }

@@ -329,7 +329,9 @@ jobs:
       - name: Refuse allocation if TK2 already has an active Colab assignment
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
-        run: "$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2
+        run: |
+          set -euo pipefail
+          "$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2
       - name: Run bounded TK2 Colab smoke, TK5 only on assign HTTP 503
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
@@ -409,7 +411,9 @@ jobs:
       - name: Refuse allocation if TK2 already has an active Colab assignment
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
-        run: "$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2
+        run: |
+          set -euo pipefail
+          "$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2
       - name: Run controlled short v2 ablations on Colab
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
