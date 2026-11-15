@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T09:43:58.361772Z",
+  "updated_at": "2026-11-15T09:44:27.003578Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Dispatch run-colab.yml with p2a_v2_ablation=true, source_run_id=43691791091, p2a_ablation_steps=12. Execute three sequential fixed-slice V2 trials (baseline, half learning rate, rank 4), TK2 first/TK5 only on assign HTTP 503. Select a provisional best on the fixed 64-row V2 validation slice; do not start full training until separate approval.",
+  "next_step": "No other run-colab workflow is queued/active; private V2 source run 43691791091 is successful. Dispatch run-colab.yml with p2a_v2_ablation=true, source run ID 43691791091, 12 steps/trial. Inspect three configs/validation metrics and record provisional best; do not start full training before a separate authorization.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -37,6 +37,7 @@
     "597d5a3",
     "f347774",
     "99df17b",
-    "f19bc0c"
+    "f19bc0c",
+    "46ed4ba"
   ]
 }
