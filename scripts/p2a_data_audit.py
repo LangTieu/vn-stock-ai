@@ -71,18 +71,24 @@ def audit(paths, tokenizer_name=None):
         over_limit = collections.Counter()
         token_lengths = []
         token_batch = []
+        token_over_by_exchange = collections.Counter()
+        token_over_by_year = collections.Counter()
+        token_over_by_ticker = collections.Counter()
 
         def count_token_batch():
             if not token_batch:
                 return
-            conversations, directions = zip(*token_batch)
+            conversations, metadata = zip(*[(row[0], row[1:]) for row in token_batch])
             encoded = tokenizer.apply_chat_template(list(conversations), tokenize=True,
                                                    add_generation_prompt=True)
-            for ids, direction in zip(encoded, directions):
+            for ids, (direction, exchange, ticker, year) in zip(encoded, metadata):
                 length = len(ids) + target_lengths[direction]
                 token_lengths.append(length)
                 if length > 4096:
                     over_limit[direction] += 1
+                    token_over_by_exchange[exchange] += 1
+                    token_over_by_year[year] += 1
+                    token_over_by_ticker[ticker] += 1
             token_batch.clear()
         leaked_dates = []
         sector_keys = set()
@@ -155,7 +161,8 @@ def audit(paths, tokenizer_name=None):
                 if tokenizer and direction in ('UP', 'DOWN'):
                     messages = [{'role': 'system', 'content': system_prompt},
                                 {'role': 'user', 'content': text}]
-                    token_batch.append((messages, direction))
+                    token_batch.append((messages, direction, exchange, ticker,
+                                        as_of[:4] if as_of else 'unknown'))
                     if len(token_batch) >= 128:
                         count_token_batch()
                 if line_no % 20000 == 0:
@@ -189,7 +196,11 @@ def audit(paths, tokenizer_name=None):
             'date_range': [min(dates), max(dates)] if dates else None,
             'industry_sector_fields': sorted(sector_keys), 'future_prompt_date_examples': leaked_dates,
             'token_lengths': ({'count': len(token_lengths), 'over_4096': sum(over_limit.values()),
-                              'over_4096_by_label': dict(over_limit), 'max': max(token_lengths)}
+                              'over_4096_by_label': dict(over_limit),
+                              'over_4096_by_exchange': dict(token_over_by_exchange),
+                              'over_4096_by_year': dict(token_over_by_year),
+                              'over_4096_by_ticker': dict(token_over_by_ticker),
+                              'max': max(token_lengths)}
                              if token_lengths else None),
         }
         reports.append(report)
