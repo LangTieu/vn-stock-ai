@@ -116,7 +116,7 @@ def _safe_api_error(response):
             'api_message': message[:400]}
 
 
-def inventory(token_file, output):
+def inventory(token_file, output, quota_project=None):
     import requests
     from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
@@ -127,8 +127,9 @@ def inventory(token_file, output):
             raise RuntimeError('Google Drive OAuth credentials cannot be refreshed')
         credentials.refresh(Request())
     client_project = str(getattr(credentials, 'client_id', '') or '').split('-', 1)[0]
-    if client_project.isdigit():
-        credentials = credentials.with_quota_project(client_project)
+    selected_project = quota_project or (client_project if client_project.isdigit() else None)
+    if selected_project:
+        credentials = credentials.with_quota_project(selected_project)
     session = AuthorizedSession(credentials)
     query = QUERY
     page_token = None
@@ -188,7 +189,8 @@ def inventory(token_file, output):
         'method': 'Google Drive API read-only metadata and structural inventory; source data not exported',
         'oauth_drive_file_scope_present': credentials.has_scopes(
             ['https://www.googleapis.com/auth/drive.file']),
-        'quota_project_source': ('OAuth client project' if client_project.isdigit() else None),
+        'quota_project_source': ('caller-provided' if quota_project else
+                                 'OAuth client project' if client_project.isdigit() else None),
         'quota_project_configured': bool(getattr(credentials, 'quota_project_id', None)),
         'drive_api_access_error': access_error,
         'expected_file_names': sorted(EXPECTED),
@@ -217,8 +219,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--token-file', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--quota-project', default=None,
+                        help='Google Cloud quota project with serviceusage.services.use for this OAuth user')
     args = parser.parse_args()
-    inventory(args.token_file, args.output)
+    inventory(args.token_file, args.output, args.quota_project)
 
 
 if __name__ == '__main__':

@@ -63,6 +63,10 @@ on:
         type: boolean
         required: true
         default: false
+      drive_quota_project:
+        description: "Optional Google Cloud quota project ID where the Drive OAuth user has Service Usage Consumer"
+        required: false
+        default: ""
 
 jobs:
   drive-inventory:
@@ -80,9 +84,15 @@ jobs:
           printf '%s' "$VNCOLAB_TOKEN" > "$HOME/.config/vncolab/token.json"
           chmod 600 "$HOME/.config/vncolab/token.json"
       - name: Inventory Drive JSONs without exporting source rows or prices
+        env:
+          P2A_DRIVE_QUOTA_PROJECT: ${{ inputs.drive_quota_project }}
         run: |
           python3 -m pip install --quiet "google-auth>=2.49.1" "requests>=2.32.5"
-          python3 scripts/p2a_drive_inventory.py \
+          args=()
+          if [ -n "$P2A_DRIVE_QUOTA_PROJECT" ]; then
+            args+=(--quota-project "$P2A_DRIVE_QUOTA_PROJECT")
+          fi
+          python3 scripts/p2a_drive_inventory.py "${args[@]}" \
             --token-file "$HOME/.config/vncolab/token.json" \
             --output /tmp/p2a-drive-inventory/report.json
       - name: Upload schema/date/count/hash report only
