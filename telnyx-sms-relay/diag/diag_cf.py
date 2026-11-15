@@ -165,10 +165,15 @@ def main():
 
     section("live probes")
     sub = "vn-stock-ai"
-    for m, path in (("GET", "/"), ("POST", "/telnyx")):
-        s, j = req(m, "https://%s.%s.workers.dev%s" % (SCRIPT, sub, path),
-                   body=b"{}" if m == "POST" else None, auth=False, raw=True)
-        print(" ", m, path, "->", s, (j[:40] if isinstance(j, bytes) else j))
+    # Cloudflare edge rules (e.g. error 1010) block by User-Agent before the worker runs.
+    for ua in (None, "curl/8.5.0", "telnyx-webhooks", "Telnyx-Webhooks/1.0", "Go-http-client/1.1",
+               "Ruby", "Mozilla/5.0", ""):
+        for m, path in (("GET", "/"), ("POST", "/telnyx")):
+            h = {} if ua is None else {"User-Agent": ua}
+            s, j = req(m, "https://%s.%s.workers.dev%s" % (SCRIPT, sub, path),
+                       body=b"{}" if m == "POST" else None, headers=h, auth=False, raw=True)
+            print("  UA=%-22r %-4s %-7s -> %s %r" % (ua if ua is not None else "python-urllib(default)",
+                  m, path, s, (j[:30] if isinstance(j, bytes) else j)))
     return 0
 
 
