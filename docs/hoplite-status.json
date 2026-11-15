@@ -1,0 +1,25 @@
+{
+  "updated_at": "2026-11-15T14:25:00Z",
+  "task": "Cập nhật bản thảo P4 (docs/p4-draft.md) thêm năng lực tin tức theo yêu cầu Henrry",
+  "branch": "hoplite/kalchedon-50a2603d",
+  "current_item": null,
+  "done": [1, 2, 3],
+  "in_progress": null,
+  "blocked": null,
+  "commits": ["8d0771a"],
+  "changes": [
+    "§2.1: thêm năng lực 4 (tóm tắt tin thị trường/vĩ mô trong ngày) và 5 (hỏi đáp tin vĩ mô, doanh nghiệp/mã, thị trường); disclaimer chuyển thành mục 6",
+    "§2.1: chuẩn chống bịa cho tin tức: mọi tin có nguồn + link + ngày/giờ (ICT); không có nguồn thì không dùng; không tìm thấy tin thì báo 'không có tin/số liệu từ nguồn đã duyệt'; không dùng kiến thức model làm tin hiện tại",
+    "§2.1: đề xuất kỹ thuật: bộ thu tin định kỳ theo allowlist + tìm theo câu hỏi qua grounding You.com ở gateway P3; bản ghi tin chuẩn hóa; tần suất 15 phút trong giờ giao dịch/60 phút ngoài giờ, tóm tắt ~8:30 và ~15:30; độ mới: trong ngày từ 00:00 ICT, 72 giờ tin doanh nghiệp/thị trường, 7 ngày tin vĩ mô; format trả lời tin tách khỏi ABSTAIN; cache tin công khai có TTL",
+    "§1.1/§1.2: thêm hàng prerequisite tin tức; ghi rõ grounding You.com đã deploy 12/11 nhưng bị 403, chưa xác minh hoạt động",
+    "§2.2/§2.3/§2.4: tin tức xử lý server-side, dùng chung cho mọi kênh; thêm chuẩn tin vào tiêu chí nhất quán; ngoại lệ cache tin",
+    "§2.5: M1 thêm format/bản ghi tin; M4 đổi thành 'research + tin tức' với công việc và điều kiện hoàn tất cho tin; tiêu chí chung gồm tin tức",
+    "Câu hỏi duyệt 7-9: nguồn tin/You.com/apex, tần suất và ngưỡng độ mới, lưu trữ và bản quyền"
+  ],
+  "questions": [
+    "Duyệt allowlist nguồn tin; tiếp tục You.com Search (đang 403) hay đổi nguồn?",
+    "Duyệt tần suất cập nhật và ngưỡng độ mới đề xuất",
+    "Duyệt cache tin công khai có TTL và quy tắc chỉ tóm tắt + link"
+  ],
+  "next_step": "Chờ Henrry duyệt bản thảo và trả lời câu hỏi 7-9. Không triển khai code, không tạo kênh/tài khoản, không động vào apex aistockvn.com."
+}
