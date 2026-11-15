@@ -68,6 +68,17 @@ Năng lực nghiệp vụ theo bot LightVela 1 (`@br_stock_bot`) và skill `vn-s
 
 MVP đề xuất: web chat + một adapter Telegram; stream ở web; hội thoại ngắn tách theo người dùng/kênh; xóa/reset, rate limit và lỗi rõ ràng. Zalo/WhatsApp bật theo giai đoạn sau khi đủ điều kiện chính thức. Ngoài phạm vi: đặt lệnh, tự nhận là môi giới/tư vấn, lưu lịch sử lâu dài, fine-tune riêng theo kênh, hoặc tích hợp Pocket Personal.
 
+**Giao diện web — hướng thiết kế đã duyệt (15/11):** Henrry đã duyệt mẫu v0 prototype theo bố cục kiểu Perplexity Finance. Tham chiếu: v0 chat `https://v0.app/chat/v0YNAMEc3YD` (project “P4 stock assistant prototype”; chat riêng tư, cần đăng nhập v0 để xem). Mẫu dùng nội dung tiếng Việt và **số liệu mẫu**; bản thật phải thay toàn bộ bằng dữ liệu có nguồn/ngày giờ theo chuẩn ở trên.
+
+- **Sidebar trái:** điều hướng chính, chứa các tab **Thị trường / Cổ phiếu / Vĩ mô / Tin tức / Watchlist**.
+- **Thẻ chỉ số** VN-Index, HNX-Index, UPCoM-Index, VN30: điểm, thay đổi điểm/% và **sparkline** trong phiên; ghi mốc thời gian dữ liệu.
+- **Tóm tắt phiên** dạng mở rộng/thu gọn, hiển thị **số nguồn trích dẫn** (ví dụ “· 6 nguồn”); mở rộng thấy danh sách nguồn kèm ngày/giờ (năng lực 1).
+- **Heatmap VN30:** ô theo mã, màu theo % thay đổi; ghi mốc thời gian và nguồn dữ liệu giá.
+- **Tin tức dạng carousel theo chủ đề:** vĩ mô VN, vĩ mô thế giới, thị trường, doanh nghiệp; mỗi thẻ tin có nguồn + giờ đăng (năng lực 4–5, cùng chuẩn chống bịa).
+- **Watchlist:** danh sách mã người dùng theo dõi, lưu cục bộ trên trình duyệt trong MVP (không database P4).
+- **Ô chat cố định dưới cùng:** trả lời tiếng Việt, kết luận trước rồi số liệu/nguồn, kèm disclaimer (năng lực 6); stream qua P3.
+- Panel dữ liệu (chỉ số, heatmap, tin) và câu trả lời chat dùng chung một nguồn dữ liệu/khối tin, để số trên màn hình và trong câu trả lời khớp nhau. Thiếu dữ liệu thì panel hiển thị “không có số liệu”, không giữ số mẫu.
+
 ### 2.2 Kiến trúc đa kênh, đa model
 
 ```text
@@ -121,9 +132,9 @@ WhatsApp Business Platform/Cloud API ──────────────�
 |---|---|---|
 | M0 — prerequisites/quyết định | Hoàn tất các mục chưa sẵn sàng ở phần 1: repo/project, hostname, auth, model alias live, token/quyền các kênh, credentials/upstream. | Checklist prerequisites được owner xác nhận; không triển khai kênh thiếu quyền/credential. |
 | M1 — hợp đồng chung | Định nghĩa event schema, namespace user/conversation, format câu trả lời (gồm format tin tức), dữ liệu/nguồn/ngày, bản ghi tin chuẩn hóa, lỗi/SSE và policy model. | Contract test cho mọi adapter; không ghép identity giữa kênh. |
-| M2 — Web + P3 | Xây UI React/Vite, stream `/v1/chat/completions`, deploy preview Pages tại hostname con sau khi DNS/Pages sẵn sàng. | Chat/stop/retry, HTTPS, auth an toàn; bundle không có master/provider key; apex không đổi. |
+| M2 — Web + P3 | Xây UI React/Vite theo bố cục mẫu v0 đã duyệt (§2.1: sidebar, 5 tab, thẻ chỉ số + sparkline, tóm tắt phiên có số nguồn, heatmap VN30, carousel tin theo chủ đề, watchlist, ô chat dưới cùng); chuyển code mẫu v0 sang stack §2.4 nếu khác; stream `/v1/chat/completions`, deploy preview Pages tại hostname con sau khi DNS/Pages sẵn sàng. | Bố cục khớp mẫu đã duyệt trên desktop/mobile; chat/stop/retry, HTTPS, auth an toàn; bundle không có master/provider key; panel chưa có dữ liệu thật hiển thị rõ là mẫu/không có số liệu; apex không đổi. |
 | M3 — Telegram adapter | Webhook/Bot API server-side, xác minh update, chuẩn hóa ID và gọi backend chung. | Test chat và các tác vụ; namespace/secret đúng, dùng cùng policy/model. |
-| M4 — năng lực research + tin tức | Tích hợp tóm tắt phiên, phân tích mã/chỉ báo/vùng giá, khối ngoại/tự doanh, kết luận trước/disclaimer. Tin tức: xác minh lại grounding You.com (hết 403) hoặc nguồn thay thế; bộ thu tin theo allowlist/tần suất đã duyệt; tóm tắt tin trong ngày; hỏi đáp tin vĩ mô/doanh nghiệp/thị trường; chế độ trả lời tin tức tách khỏi format khuyến nghị. | Bộ test nghiệp vụ đạt; thiếu dữ liệu báo rõ, không bịa; web/Telegram nhất quán. Tin tức: mọi tin trong câu trả lời có nguồn + link + ngày/giờ khớp bản ghi nguồn; không có tin ngoài khối dữ liệu tin; tin quá ngưỡng độ mới không được gọi là tin mới; câu hỏi không có tin trả lời “không có tin/số liệu từ nguồn đã duyệt”; bản tóm tắt có mốc cập nhật và chạy đúng lịch. |
+| M4 — năng lực research + tin tức | Tích hợp tóm tắt phiên, phân tích mã/chỉ báo/vùng giá, khối ngoại/tự doanh, kết luận trước/disclaimer. Tin tức: xác minh lại grounding You.com (hết 403) hoặc nguồn thay thế; bộ thu tin theo allowlist/tần suất đã duyệt; tóm tắt tin trong ngày; hỏi đáp tin vĩ mô/doanh nghiệp/thị trường; chế độ trả lời tin tức tách khỏi format khuyến nghị. Nối dữ liệu thật vào thẻ chỉ số/sparkline, heatmap VN30, tóm tắt phiên và carousel tin của UI. | Bộ test nghiệp vụ đạt; thiếu dữ liệu báo rõ, không bịa; web/Telegram nhất quán. Tin tức: mọi tin trong câu trả lời có nguồn + link + ngày/giờ khớp bản ghi nguồn; không có tin ngoài khối dữ liệu tin; tin quá ngưỡng độ mới không được gọi là tin mới; câu hỏi không có tin trả lời “không có tin/số liệu từ nguồn đã duyệt”; bản tóm tắt có mốc cập nhật và chạy đúng lịch. |
 | M5 — alias model tạm/đa model | Xác minh/deploy alias `vn-stock-assistant` (Cerebras `gpt-oss-120b` + fallback `vn-stock`); test các upstream; thêm model sau duyệt. | Alias tồn tại trên mọi LiteLLM host; P3 chat test, fallback/log model và rollback được kiểm chứng. |
 | M6 — Zalo/WhatsApp | Chỉ sau khi OA/Business API, quyền duyệt, credential/webhook/chi phí sẵn sàng; triển khai adapter riêng vào pipeline chung. | Từng kênh qua webhook/auth/identity/rate-limit và test nghiệp vụ chính thức. |
 | M7 — promote P2 và phát hành | Đánh giá/pin LoRA cuối; đổi alias server-side sang Qwen2.5-14B + adapter, canary/rollback; deploy Pages production và bật kênh đã duyệt. | Chất lượng/health/latency/fallback đạt; domain HTTPS, từng kênh được owner nghiệm thu. |
