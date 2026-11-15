@@ -1,12 +1,19 @@
 {
-  "updated_at": "2026-11-15T14:25:00Z",
-  "task": "Cập nhật bản thảo P4 (docs/p4-draft.md) thêm năng lực tin tức theo yêu cầu Henrry",
+  "updated_at": "2026-11-15T15:25:00Z",
+  "task": "P4 draft: tin tức (8d0771a) + hướng UI đã duyệt theo mẫu v0",
   "branch": "hoplite/kalchedon-50a2603d",
   "current_item": null,
-  "done": [1, 2, 3],
+  "done": [
+    1,
+    2,
+    3
+  ],
   "in_progress": null,
   "blocked": null,
-  "commits": ["8d0771a"],
+  "commits": [
+    "8d0771a",
+    "104030c"
+  ],
   "changes": [
     "§2.1: thêm năng lực 4 (tóm tắt tin thị trường/vĩ mô trong ngày) và 5 (hỏi đáp tin vĩ mô, doanh nghiệp/mã, thị trường); disclaimer chuyển thành mục 6",
     "§2.1: chuẩn chống bịa cho tin tức: mọi tin có nguồn + link + ngày/giờ (ICT); không có nguồn thì không dùng; không tìm thấy tin thì báo 'không có tin/số liệu từ nguồn đã duyệt'; không dùng kiến thức model làm tin hiện tại",
@@ -14,12 +21,14 @@
     "§1.1/§1.2: thêm hàng prerequisite tin tức; ghi rõ grounding You.com đã deploy 12/11 nhưng bị 403, chưa xác minh hoạt động",
     "§2.2/§2.3/§2.4: tin tức xử lý server-side, dùng chung cho mọi kênh; thêm chuẩn tin vào tiêu chí nhất quán; ngoại lệ cache tin",
     "§2.5: M1 thêm format/bản ghi tin; M4 đổi thành 'research + tin tức' với công việc và điều kiện hoàn tất cho tin; tiêu chí chung gồm tin tức",
-    "Câu hỏi duyệt 7-9: nguồn tin/You.com/apex, tần suất và ngưỡng độ mới, lưu trữ và bản quyền"
+    "Câu hỏi duyệt 7-9: nguồn tin/You.com/apex, tần suất và ngưỡng độ mới, lưu trữ và bản quyền",
+    "§2.1: thêm mục Giao diện web — hướng thiết kế đã duyệt 15/11 (mẫu v0 kiểu Perplexity Finance, tham chiếu https://v0.app/chat/v0YNAMEc3YD): sidebar trái; tab Thị trường/Cổ phiếu/Vĩ mô/Tin tức/Watchlist; thẻ VN-Index/HNX/UPCoM/VN30 + sparkline; Tóm tắt phiên mở rộng có số nguồn; heatmap VN30; carousel tin theo chủ đề có nguồn + giờ đăng; watchlist lưu cục bộ; ô chat dưới cùng (tiếng Việt, kết luận trước, nguồn, disclaimer); số liệu mẫu phải thay bằng dữ liệu có nguồn",
+    "§2.5: M2 xây UI theo bố cục mẫu đã duyệt; M4 nối dữ liệu thật vào thẻ chỉ số, heatmap, tóm tắt phiên, carousel tin"
   ],
   "questions": [
     "Duyệt allowlist nguồn tin; tiếp tục You.com Search (đang 403) hay đổi nguồn?",
     "Duyệt tần suất cập nhật và ngưỡng độ mới đề xuất",
     "Duyệt cache tin công khai có TTL và quy tắc chỉ tóm tắt + link"
   ],
-  "next_step": "Chờ Henrry duyệt bản thảo và trả lời câu hỏi 7-9. Không triển khai code, không tạo kênh/tài khoản, không động vào apex aistockvn.com."
+  "next_step": "Chờ Henrry duyệt phần còn lại của bản thảo và trả lời câu hỏi 7-9. Không triển khai code, không tạo kênh/tài khoản, không động vào apex aistockvn.com."
 }
