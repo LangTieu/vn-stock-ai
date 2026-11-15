@@ -50,6 +50,12 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn("P2A_ABLATION_EVAL ", eval_cell)
         self.assertIn("['--limit', str(int(os.environ.get('P2A_EVAL_LIMIT', '20')))]", eval_cell)
 
+    def test_eval_cell_imports_json_for_metrics_load(self):
+        notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
+        eval_cell = ''.join(notebook['cells'][9]['source'])
+        self.assertTrue(eval_cell.startswith('import json\n'))
+        self.assertIn('json.loads(Path(metrics_path).read_text())', eval_cell)
+
     def test_smoke_mode_honors_requested_step_limit_with_two_step_default(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         train_cell = ''.join(notebook['cells'][7]['source'])

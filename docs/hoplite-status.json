@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T13:37:39.621265Z",
+  "updated_at": "2026-11-15T14:36:23.525565Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Root-cause fix deployed: notebook eval cell 9 now converts P2A_EVAL_LIMIT to str for subprocess argv; regression test and 74-test suite pass. Retry 43719957320 is running on review/p2-async-evaluation using v2 source 43691791091, 12 steps, internal 2024 validation, TK2 first/TK5 only on assignment 503. Verify trial metrics; no merge/full training.",
+  "next_step": "Root-cause fix prepared: run 43719957320 recorded NameError in eval cell 9; static inspection found json.loads without a notebook-global json import. The cell now imports json and has a regression test. After the 75-test suite and compile checks, dispatch one justified retry with unchanged training settings on review/p2-async-evaluation, source 43691791091, 12 steps, internal 2024 validation, TK2-first/TK5 only on assignment 503. If it fails, inspect the new artifact and stop unproven retries.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -57,25 +57,26 @@
     "6018ab2",
     "24643ad",
     "10d5d35",
-    "8de74ef"
+    "8de74ef",
+    "8c49896",
+    "f6b60cc"
   ],
   "last_ablation_attempt": {
-    "run_id": 43716466085,
+    "run_id": 43719957320,
     "conclusion": "failure",
     "profile": "tk5",
     "trial": "baseline",
     "failure_diagnostic": {
       "kind": "notebook_error",
-      "exception_type": "TypeError",
+      "exception_type": "NameError",
       "cell_index": 9
     },
     "tk5_fallback": "TK2 assignment returned HTTP 503; TK5 ran as authorized fallback",
     "finite_gradient_norm_observations": 48,
     "nonfinite_guard_triggered": false,
     "validation_metrics": null,
-    "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
-    "root_cause": "Notebook eval cell 9 built subprocess.run argv with int(os.environ[\"P2A_EVAL_LIMIT\"]) as an element: subprocess argv must contain strings, so the 64-row validation subprocess raised TypeError after training gradients were finite. The artifact identifies the TypeError/cell; source inspection confirms the offending integer argument. This is unrelated to fp16 scaler.",
-    "fix_plan": "Fixed in commit 10d5d35: cast P2A_EVAL_LIMIT to str before subprocess.run and add a regression assertion. The full 74-test suite, compileall, and diff checks pass. Root-cause-fixed retry 43719957320 was dispatched on review/p2-async-evaluation; await its sanitized metrics before claiming completion."
+    "root_cause": "Root exception is NameError in notebook eval cell 9. The cell calls json.loads(metrics_path.read_text()), but no preceding executed notebook cell imports json into the shared kernel namespace; importing the P2a training module does not bind json in the notebook globals. The subprocess argv str() correction was valid but did not address this separate missing import.",
+    "fix_plan": "Add import json in eval cell 9 and a regression test that the cell declares its direct imports before use. Keep training configuration unchanged. Run the targeted/full checks, then retry once for this newly diagnosed root cause; stop if it fails and inspect that run rather than changing parameters."
   },
   "latest_ablation_run_id": 43719957320
 }
