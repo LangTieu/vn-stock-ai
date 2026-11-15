@@ -12,6 +12,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+from p2a_numerics import assert_finite_gradients, assert_finite_loss
+
 os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
 
 TRAIN_MD5 = 'f6273e8a12e35fe1027f29ca2127b9c0'
@@ -344,12 +346,14 @@ def supervised_loss(model, inputs):
     import torch
     labels = inputs['labels'][:, 1:]
     positions = torch.where((labels != -100).any(dim=0))[0]
+    if not positions.numel():
+        raise ValueError('P2a batch has no supervised target tokens')
     outputs = model(**{key: value for key, value in inputs.items() if key != 'labels'},
                     logits_to_keep=positions, use_cache=False)
     loss = torch.nn.functional.cross_entropy(
         outputs.logits.float().reshape(-1, outputs.logits.size(-1)),
         labels[:, positions].reshape(-1), ignore_index=-100)
-    return loss, outputs
+    return assert_finite_loss(loss), outputs
 
 
 def log_training_memory(model):
@@ -589,6 +593,12 @@ def main():
         def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
             loss, outputs = supervised_loss(model, inputs)
             return (loss, outputs) if return_outputs else loss
+
+        def training_step(self, model, inputs, num_items_in_batch=None):
+            loss = super().training_step(model, inputs, num_items_in_batch)
+            if self.accelerator.sync_gradients:
+                assert_finite_gradients(model, torch.isfinite, self.state.global_step + 1)
+            return loss
 
     args = TrainingArguments(output_dir=str(output), num_train_epochs=a.epochs,
                              max_steps=a.max_steps, save_steps=a.save_steps,
