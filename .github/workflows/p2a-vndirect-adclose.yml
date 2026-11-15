@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   audit:
-    if: inputs.source_use_approved == true && vars.VNDIRECT_DATA_LICENSE_CONFIRMED == 'true'
+    if: inputs.source_use_approved == true
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -40,19 +40,30 @@ jobs:
             --output-dir /tmp/p2a-finfo/normalized
       - name: Fetch Finfo adClose at exact P1 endpoints
         env:
-          VNDIRECT_DATA_LICENSE_CONFIRMED: ${{ vars.VNDIRECT_DATA_LICENSE_CONFIRMED }}
+          VNDIRECT_DATA_LICENSE_CONFIRMED: ${{ inputs.source_use_approved }}
         run: |
           python3 scripts/p2a_finfo_adclose_audit.py \
             --p1 /tmp/p2a-finfo/p1/p1_train.jsonl.gz \
             --p1 /tmp/p2a-finfo/p1/p1_holdout.jsonl \
             --sessions /tmp/p2a-finfo/normalized/exchange_sessions.csv.gz \
             --output-dir /tmp/p2a-finfo/audit
-      - name: Upload adjusted-close endpoint audit (no labels generated)
+      - name: Build v2 labels from observed adClose endpoints
+        run: |
+          python3 scripts/p2a_build_finfo_v2.py \
+            --train /tmp/p2a-finfo/p1/p1_train.jsonl.gz \
+            --holdout /tmp/p2a-finfo/p1/p1_holdout.jsonl \
+            --sessions /tmp/p2a-finfo/normalized/exchange_sessions.csv.gz \
+            --endpoints /tmp/p2a-finfo/audit/finfo-adclose-endpoints.csv.gz \
+            --audit /tmp/p2a-finfo/audit/audit.json \
+            --output-dir /tmp/p2a-finfo/labels
+      - name: Upload coverage report and private v2 labels (never upload price endpoints)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: p2a-vndirect-adclose-audit
-          path: /tmp/p2a-finfo/audit/
+          path: |
+            /tmp/p2a-finfo/audit/audit.json
+            /tmp/p2a-finfo/labels/
           if-no-files-found: ignore
           retention-days: 14
           compression-level: 0
