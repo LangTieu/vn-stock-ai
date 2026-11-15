@@ -1,18 +1,18 @@
 {
-  "updated_at": "2026-11-15T07:28:02.339456Z",
+  "updated_at": "2026-11-15T07:29:41.319305Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
-  "blocked": "Mục 1: chưa có giá adjusted/total-return có coverage và semantics xác minh. VNDirect Finfo query đã timeout; cần Actions run có thể truy cập Finfo/API hoặc dữ liệu adjusted có giấy phép. Finhay Events cần X-FH-APIKEY; runtime chưa có key/secret phù hợp và truy cập không xác thực trả 401. Không tự tính labels từ nguồn thiếu.",
+  "blocked": "Mục 1: VNDirect Finfo adClose đã truy cập được qua api-finfo.vndirect.com.vn và trả dữ liệu cho VCB/FPT giai đoạn 2014 và VCB gần đây. Còn phải xác minh full-P1 ticker/date/exchange coverage, adClose methodology (total-return vs backward adjusted/reference price), đơn vị và quyền sử dụng trước gate. Finhay Events API key không có trong runtime; không cần chờ nếu Finfo xác minh được.",
   "questions": [
-    "Liaison: có thể dispatch workflow GitHub Actions nào (tên/inputs) để lấy VNDirect Finfo? Cần đảm bảo runner truy cập finfo-api.vndirect.com.vn và artifact gồm dữ liệu/coverage cho ticker, exchange, date, adClose cùng tài liệu semantics/license.",
-    "Liaison: nếu Finfo không đủ, có thể cấp X-FH-APIKEY qua secret được phép hoặc cung cấp dataset corporate-action/adjusted price lịch sử được cấp phép không?",
-    "Henrry: xác nhận cho phép GPU smoke/train ngắn để chẩn đoán NaN gradient ở mục 2? Trước đó có quy tắc không train mới cho đến khi có chốt rõ."
+    "Liaison/Muse: xin xác nhận/documentation hoặc quyền sử dụng của VNDirect Finfo `adClose`, gồm công thức và cách xử lý cash dividend, split/bonus/rights, adjusted series direction, price units, historical coverage và license. Đã probe HTTP 200: VCB 2014 adClose=9.298, raw close=31.9; cần xác định semantics trước khi coi là total-return.",
+    "Liaison/Muse: nếu Finfo adClose chỉ là backward-adjusted (không total-return) hoặc điều khoản không cho phép dùng, cung cấp nguồn total-return/corporate action có coverage 2014–2026 hoặc credential API-key Finhay được lưu ở đúng GitHub secret."
   ],
-  "next_step": "Kiểm tra Actions workflows/runs và permission read/write cho Finfo extraction; song song audit code/tests mục 2 và validation/baseline mục 3 mà không khởi chạy training.",
+  "next_step": "Tiếp tục lấy/audit Finfo adClose qua API (đầu tiên coverage trên ticker/date thật P1 và exchange), trong khi chẩn đoán code/test mục 2 và audit validation/baseline mục 3; không đợi phản hồi Liaison.",
   "commits": [
     "855cad8",
     "baf7261",
-    "d3264a1"
+    "d3264a1",
+    "441bc8f"
   ]
 }
