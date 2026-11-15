@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T10:10:35.558899Z",
+  "updated_at": "2026-11-15T11:08:35.713009Z",
   "current_item": 4,
   "done": [
     1,
@@ -8,11 +8,9 @@
     5
   ],
   "in_progress": 4,
-  "blocked": "Leakage-safe ablation dispatch is blocked: the feature-branch run-colab.yml declares p2a_v2_ablation, p2a_ablation_source_run_id, and p2a_ablation_steps, but origin/main does not. Dispatching those inputs returned HTTP 422; no run or trial was created. Do not edit main or use the external holdout without Liaison approval.",
-  "questions": [
-    "Liaison/Muse: approve adding the P2a ablation inputs to the default-branch run-colab workflow, or provide an already-approved workflow/ref that accepts them?"
-  ],
-  "next_step": "After Liaison resolves the default-branch dispatch schema blocker, run the bounded leakage-safe ablation with 12 steps/trial using only internal 2024 validation; check TK2 first and use TK5 only after a confirmed TK2 assignment HTTP 503. No full training.",
+  "blocked": null,
+  "questions": [],
+  "next_step": "Liaison approved dispatching run-colab.yml from ref review/p2-async-evaluation without merging to main. Dispatch the 12-step controlled ablation using private v2 labels from run 43691791091; the workflow creates internal 2024 validation only, checks TK2 first, and retries TK5 only on confirmed TK2 assignment HTTP 503. Full training stays paused.",
   "commits": [
     "855cad8",
     "baf7261",
