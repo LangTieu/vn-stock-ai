@@ -45,7 +45,9 @@ def positive_finite(value):
 
 def load_sessions(path):
     grouped = defaultdict(set)
-    with Path(path).open(encoding='utf-8', newline='') as stream:
+    path = Path(path)
+    opener = gzip.open if path.suffix == '.gz' else open
+    with opener(path, 'rt', encoding='utf-8', newline='') as stream:
         for row in csv.DictReader(stream):
             if row.get('exchange') and row.get('date'):
                 grouped[row['exchange'].strip().upper()].add(date.fromisoformat(row['date']))

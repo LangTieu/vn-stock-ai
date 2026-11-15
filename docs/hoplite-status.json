@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T07:32:47.009755Z",
+  "updated_at": "2026-11-15T07:35:08.165158Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
@@ -8,7 +8,7 @@
     "Liaison/Muse: xin xác nhận điều khoản/quyền dùng dữ liệu VNDirect Finfo qua API `api-finfo.vndirect.com.vn` trong nhãn/dataset nội bộ. VNDirect có trang chính thức nói adjusted close xử lý cổ tức tiền, split, bonus và quyền mua; cần biết API `adClose` hiện tại theo cùng phương pháp và có hạn chế license nào không.",
     "Liaison/Muse: nếu API Finfo không đủ coverage hoặc điều khoản không cho phép sử dụng, cung cấp nguồn adjusted total-return có giấy phép/corporate-action history 2014–2026 hoặc credential `X-FH-APIKEY` qua secret được phép."
   ],
-  "next_step": "Commit/push workflow GitHub Actions audit Finfo adClose cho mọi P1 ticker tại endpoint chính xác; kiểm tra artifact coverage/manifest. Sau item 1 tiếp tục mục 2 (gradient/smoke) và mục 3 (validation/baseline), không chờ Liaison.",
+  "next_step": "Rerun GitHub Actions Finfo audit after fixing gzip session-calendar input; inspect endpoint coverage and source-license gate. Continue independent local audits of gradient guard and v1 temporal-baseline evidence.",
   "commits": [
     "855cad8",
     "baf7261",

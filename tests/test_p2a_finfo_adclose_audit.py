@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_finfo_adclose_audit import audit, fetch_symbol
+from p2a_finfo_adclose_audit import audit, fetch_symbol, load_sessions
 
 
 def p1_row(day):
@@ -22,6 +22,16 @@ def p1_row(day):
 
 
 class FinfoAdCloseAuditTests(unittest.TestCase):
+    def test_loads_gzipped_observed_session_calendar(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'sessions.csv.gz'
+            with gzip.open(path, 'wt', newline='', encoding='utf-8') as stream:
+                writer = csv.DictWriter(stream, fieldnames=['exchange', 'date'])
+                writer.writeheader()
+                writer.writerow({'exchange': 'HOSE', 'date': '2024-01-02'})
+            sessions = load_sessions(path)
+        self.assertEqual(sessions['HOSE'][0], [date(2024, 1, 2)])
+
     def test_api_pagination_and_adclose_schema(self):
         replies = [
             {'data': [{'date': '2014-01-02', 'adClose': 8.0}], 'totalPages': 2},
