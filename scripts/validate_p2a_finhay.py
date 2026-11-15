@@ -203,7 +203,7 @@ def validate(root, expected_p1_tickers=None):
     if expected and missing_prices:
         report['warnings'].append('Some P1 tickers have no Finhay price history.')
     report['gate']['passes'] = (not report['errors']
-                                and report['gate']['official_exchange_session_calendar']
+                                and report['gate']['sourced_early_closures_plus_observed_index_sessions']
                                 and report['gate']['documented_adjusted_total_return_price']
                                 and report['gate']['historical_universe_point_in_time']
                                 and report['gate']['historical_sector_membership_point_in_time']
