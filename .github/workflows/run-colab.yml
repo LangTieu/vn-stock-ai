@@ -58,9 +58,43 @@ on:
         options: [github, machine1, lv1]
         required: true
         default: github
+      drive_inventory:
+        description: "Only inspect P2 source JSONs in Drive; do not start Colab or training"
+        type: boolean
+        required: true
+        default: false
 
 jobs:
+  drive-inventory:
+    if: ${{ inputs.drive_inventory }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure read-only Colab OAuth token
+        env:
+          VNCOLAB_TOKEN: ${{ secrets.VNCOLAB_TOKEN }}
+        run: |
+          umask 077
+          mkdir -p "$HOME/.config/vncolab"
+          printf '%s' "$VNCOLAB_TOKEN" > "$HOME/.config/vncolab/token.json"
+          chmod 600 "$HOME/.config/vncolab/token.json"
+      - name: Inventory Drive JSONs without exporting source rows or prices
+        run: |
+          python3 -m pip install --quiet "google-auth>=2.49.1" "requests>=2.32.5"
+          python3 scripts/p2a_drive_inventory.py \
+            --token-file "$HOME/.config/vncolab/token.json" \
+            --output /tmp/p2a-drive-inventory/report.json
+      - name: Upload schema/date/count/hash report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-drive-inventory
+          path: /tmp/p2a-drive-inventory/report.json
+          if-no-files-found: error
+          retention-days: 3
+
   run-colab:
+    if: ${{ !inputs.drive_inventory }}
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
