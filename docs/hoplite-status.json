@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T10:01:16.353145Z",
+  "updated_at": "2026-11-15T10:01:59.111871Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Corrected ablation now uses leakage-safe internal 2024 validation from train; a read-only preflight checks TK2 has no already-active Colab assignment, and required google-auth dependencies are installed before that check. External holdout is marked potentially exposed by canceled run 43700761631 and will not be used for selection. Run full tests, commit, then dispatch new 12-step three-trial ablation. Full training remains paused.",
+  "next_step": "Leakage-safe ablation retry 43702070325 is queued on the latest branch. Verify data preparation uses internal 2024 validation and train target endpoint strictly before validation as_of, run TK2 trials (baseline, half LR, rank 4), and record metrics/best config. External holdout is not used; full training remains paused.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -42,6 +42,7 @@
     "505fa28",
     "6bd947f",
     "551b11d",
-    "c4ad0de"
+    "c4ad0de",
+    "12df547"
   ]
 }
