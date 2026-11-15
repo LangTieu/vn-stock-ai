@@ -1,19 +1,22 @@
 {
-  "updated_at": "2026-11-15T07:35:08.165158Z",
+  "updated_at": "2026-11-15T07:37:00.713951Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
-  "blocked": null,
+  "blocked": "Mục 1: Actions run 43690604095 đang lấy adClose cho P1 endpoints sau khi sửa gzip-calendar parser; coverage và license chưa xác minh. Mục 2: không thể chạy smoke-train với P1 label v1 (trainer chặn) và sandbox không có torch/CUDA; chỉ thị plan yêu cầu không dùng nhãn sai. Mục 3: audit split/baseline v1 chạy xong nhưng v2 validation chưa thể pass trước gate.",
   "questions": [
-    "Liaison/Muse: xin xác nhận điều khoản/quyền dùng dữ liệu VNDirect Finfo qua API `api-finfo.vndirect.com.vn` trong nhãn/dataset nội bộ. VNDirect có trang chính thức nói adjusted close xử lý cổ tức tiền, split, bonus và quyền mua; cần biết API `adClose` hiện tại theo cùng phương pháp và có hạn chế license nào không.",
-    "Liaison/Muse: nếu API Finfo không đủ coverage hoặc điều khoản không cho phép sử dụng, cung cấp nguồn adjusted total-return có giấy phép/corporate-action history 2014–2026 hoặc credential `X-FH-APIKEY` qua secret được phép."
+    "Liaison/Muse: xác nhận quyền/điều khoản dùng dữ liệu VNDirect Finfo `adClose` qua API `api-finfo.vndirect.com.vn` cho nhãn/dataset nội bộ. Trang VNDirect mô tả adjusted close là điều chỉnh tiền mặt cổ tức, split, bonus và quyền mua; cần xác nhận field API hiện tại và license.",
+    "Liaison/Muse: nếu Finfo API không đủ coverage hoặc không được phép dùng, cung cấp nguồn adjusted total-return lịch sử 2014–2026 có license/terms hoặc API key X-FH-APIKEY trong secret được phép.",
+    "Liaison/Muse: khi có dataset v2 đã qua gate, xác nhận đường chạy GPU smoke ngắn (Colab/T4 qua workflow) để chẩn đoán NaN gradients; không chạy model train/eval trước khi dataset đủ điều kiện."
   ],
-  "next_step": "Rerun GitHub Actions Finfo audit after fixing gzip session-calendar input; inspect endpoint coverage and source-license gate. Continue independent local audits of gradient guard and v1 temporal-baseline evidence.",
+  "next_step": "Theo dõi Actions run 43690604095 và tải artifact khi xong; đối chiếu coverage adClose, gaps, exchange mismatch và nguồn license. Sau đó tiếp tục mục 2/3 bằng dữ liệu hợp lệ, không dừng chờ trả lời Liaison.",
   "commits": [
     "855cad8",
     "baf7261",
     "d3264a1",
     "441bc8f",
-    "bfa7a2e"
+    "bfa7a2e",
+    "c37410f",
+    "e5de5da"
   ]
 }
