@@ -6,11 +6,29 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from p2a_train import (compact_input, dataset_label_spec, dataset_label_version,
-                       make_training_manifest, messages, require_v2_training, rows,
+                       configure_initial_loss_scale, make_training_manifest, messages, require_v2_training, rows,
                        validate_resume_manifest)
 
 
 class TrainingRowFilterTests(unittest.TestCase):
+    def test_initial_fp16_loss_scale_is_lowered_before_training(self):
+        class Scaler:
+            def __init__(self, scale): self.scale = scale
+            def get_scale(self): return self.scale
+        class Accelerator:
+            scaler = Scaler(65536)
+        created = []
+        def factory(init_scale):
+            created.append(init_scale)
+            return Scaler(init_scale)
+        accelerator = Accelerator()
+        previous = configure_initial_loss_scale(accelerator, factory)
+        self.assertEqual(previous, 65536.0)
+        self.assertEqual(created, [1024.0])
+        self.assertEqual(accelerator.scaler.get_scale(), 1024.0)
+        accelerator.scaler = None
+        self.assertIsNone(configure_initial_loss_scale(accelerator, factory))
+
     def test_excludes_flat_and_censored_but_keeps_directions(self):
         values = [
             {'metadata': {'kind': 'bulk', 'label': {'future_direction_120': 'UP'}}},
@@ -43,6 +61,7 @@ class TrainingRowFilterTests(unittest.TestCase):
             manifest = make_training_manifest(data, spec['label_version'], 4096, 2,
                                               flat_band_pct=spec['flat_band_pct'],
                                               label_method=spec['label_method'])
+            self.assertEqual(manifest['training']['fp16_initial_loss_scale'], 1024.0)
             old_checkpoint = root / 'checkpoint-150'; old_checkpoint.mkdir()
             with self.assertRaisesRegex(ValueError, 'Cannot verify this legacy checkpoint'):
                 validate_resume_manifest(old_checkpoint, manifest)
