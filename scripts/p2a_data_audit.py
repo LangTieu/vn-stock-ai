@@ -66,6 +66,8 @@ def audit(paths, tokenizer_name=None):
         ticker_dates = collections.Counter()
         prompt_hashes = collections.Counter()
         dates = []
+        as_of_dates = []
+        target_endpoints = []
         gaps = []
         over_limit = collections.Counter()
         token_lengths = []
@@ -129,6 +131,7 @@ def audit(paths, tokenizer_name=None):
                         stats['invalid_as_of'] += 1
                         cutoff = None
                     if cutoff:
+                        as_of_dates.append(cutoff)
                         later = []
                         for date_text in DATE_RE.findall(text):
                             try:
@@ -145,7 +148,10 @@ def audit(paths, tokenizer_name=None):
                 endpoint = outcome.get('endpoint_date')
                 if as_of and endpoint:
                     try:
-                        gap = (date.fromisoformat(endpoint) - date.fromisoformat(as_of)).days
+                        endpoint_day = date.fromisoformat(endpoint)
+                        as_of_day = date.fromisoformat(as_of)
+                        target_endpoints.append(endpoint_day)
+                        gap = (endpoint_day - as_of_day).days
                         gaps.append(gap)
                         for threshold in THRESHOLDS:
                             if gap > threshold:
@@ -190,6 +196,11 @@ def audit(paths, tokenizer_name=None):
             'duplicate_ticker_asof_rows': sum(v - 1 for v in ticker_dates.values() if v > 1),
             'duplicate_prompt_rows': sum(v - 1 for v in prompt_hashes.values() if v > 1),
             'endpoint_gap_days': gap_summary, 'exchange_counts': exchange_report,
+            'as_of_date_range': ([min(as_of_dates).isoformat(), max(as_of_dates).isoformat()]
+                                 if as_of_dates else None),
+            'target_endpoint_date_range': ([min(target_endpoints).isoformat(),
+                                            max(target_endpoints).isoformat()]
+                                           if target_endpoints else None),
             'tickers_with_gap_gt_200': sum(bool(x['gap_gt_200']) for x in ticker_gaps.values()),
             'tickers_with_gap_gt_365': sum(bool(x['gap_gt_365']) for x in ticker_gaps.values()),
             'date_range': [min(dates), max(dates)] if dates else None,
@@ -203,13 +214,27 @@ def audit(paths, tokenizer_name=None):
                              if token_lengths else None),
         }
         reports.append(report)
-        global_by_split.append((set(ticker_dates), set(prompt_hashes)))
+        global_by_split.append((set(ticker_dates), set(prompt_hashes),
+                                as_of_dates, target_endpoints))
     if len(global_by_split) > 1:
         overlaps = {}
-        for i, (left_td, left_hash) in enumerate(global_by_split):
-            for j, (right_td, right_hash) in enumerate(global_by_split[i + 1:], i + 1):
+        for i, (left_td, left_hash, left_asofs, left_targets) in enumerate(global_by_split):
+            for j, (right_td, right_hash, right_asofs, _) in enumerate(global_by_split[i + 1:], i + 1):
+                temporal = {}
+                if left_asofs and left_targets and right_asofs:
+                    next_split_start = min(right_asofs)
+                    crossing_targets = [day for day in left_targets if day >= next_split_start]
+                    temporal = {
+                        'left_as_of_range': [min(left_asofs).isoformat(), max(left_asofs).isoformat()],
+                        'left_target_endpoint_range': [min(left_targets).isoformat(),
+                                                       max(left_targets).isoformat()],
+                        'right_as_of_start': next_split_start.isoformat(),
+                        'left_targets_at_or_after_right_as_of_start': len(crossing_targets),
+                        'passes_no_forward_target_overlap': not crossing_targets,
+                    }
                 overlaps[f'{i}:{j}'] = {'ticker_asof': len(left_td & right_td),
-                                         'prompt_hash': len(left_hash & right_hash)}
+                                         'prompt_hash': len(left_hash & right_hash),
+                                         'temporal_target_overlap': temporal or None}
         return {'reports': reports, 'cross_split_overlaps': overlaps}
     return {'reports': reports}
 

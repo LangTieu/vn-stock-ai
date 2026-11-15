@@ -26,6 +26,21 @@ def calibration(records):
         fn = sum(confusion[label][other] for other in ('UP', 'DOWN') if other != label)
         denom = 2 * tp + fp + fn
         class_f1[label] = 2 * tp / denom if denom else 0.0
+    class_counts = {label: sum(record['truth'] == label for record in records)
+                    for label in ('UP', 'DOWN')}
+    majority = 'UP' if class_counts['UP'] >= class_counts['DOWN'] else 'DOWN'
+    prior_up = class_counts['UP'] / n
+    baseline_confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
+                          for truth in ('UP', 'DOWN')}
+    for truth in ('UP', 'DOWN'):
+        baseline_confusion[truth][majority] = class_counts[truth]
+    baseline_f1 = {}
+    for label in ('UP', 'DOWN'):
+        tp = baseline_confusion[label][label]
+        fp = baseline_confusion['DOWN' if label == 'UP' else 'UP'][label]
+        fn = baseline_confusion[label]['DOWN' if label == 'UP' else 'UP']
+        denom = 2 * tp + fp + fn
+        baseline_f1[label] = 2 * tp / denom if denom else 0.0
     return {'count': n,
             'direction_accuracy': sum(r['prediction'] == r['truth'] for r in records) / n,
             'macro_f1': sum(class_f1.values()) / len(class_f1),
@@ -36,7 +51,16 @@ def calibration(records):
             'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
             'brier': sum((r['p_up'] - (r['truth'] == 'UP')) ** 2 for r in records) / n,
             'ece_4_bins': sum(b['count'] / n * abs(b['mean_p_up'] - b['observed_up_rate'])
-                              for b in bins if b['count']), 'bins': bins}
+                              for b in bins if b['count']), 'bins': bins,
+            'baselines': {
+                'class_counts': class_counts,
+                'majority_class': majority,
+                'majority_accuracy': max(class_counts.values()) / n,
+                'majority_macro_f1': sum(baseline_f1.values()) / len(baseline_f1),
+                'constant_prevalence_p_up': prior_up,
+                'constant_prevalence_brier': prior_up * (1 - prior_up),
+                'coin_flip_expected_accuracy': 0.5,
+            }}
 
 
 def main():
