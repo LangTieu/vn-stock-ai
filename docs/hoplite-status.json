@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-11-15T07:39:16.392212Z",
-  "current_item": 1,
+  "updated_at": "2026-11-15T07:39:51.397543Z",
+  "current_item": 2,
   "done": [],
-  "in_progress": 1,
+  "in_progress": 2,
   "blocked": "Mục 1: Finfo terms chính thức nói dữ liệu website chỉ cho mục đích cá nhân và tái phân phối cần chấp thuận bằng văn bản; chưa rõ phạm vi áp dụng cho API và model training. Actions run 43690604095 đã cancelled; GitHub xác nhận 0 artifacts. Workflow/script khóa bulk fetch tới khi có quyền bằng văn bản. Cần Liaison cung cấp xác nhận quyền sử dụng/license hoặc nguồn thay thế. Mục 2: không thể chạy smoke-train với P1 label v1 (trainer chặn) và sandbox không có torch/CUDA; chờ dataset v2 hợp lệ và đường smoke được phép. Mục 3: audit split/baseline v1 chạy xong nhưng v2 validation chưa thể pass trước gate.",
   "questions": [
     "Liaison/Muse: xin văn bản/điều khoản cho phép dùng dữ liệu giá VNDirect Finfo qua API `api-finfo.vndirect.com.vn` để tính nhãn và train model nội bộ. Website terms chỉ cho personal use, cấm redistribution nếu chưa được chấp thuận bằng văn bản; terms chưa nói rõ API/model training. Workflow bulk đã khóa cho tới khi có xác nhận.",
     "Liaison/Muse: nếu Finfo API không đủ coverage hoặc không được phép dùng, cung cấp nguồn adjusted total-return lịch sử 2014–2026 có license/terms hoặc API key X-FH-APIKEY trong secret được phép.",
     "Liaison/Muse: khi có dataset v2 đã qua gate, xác nhận đường chạy GPU smoke ngắn (Colab/T4 qua workflow) để chẩn đoán NaN gradients; không chạy model train/eval trước khi dataset đủ điều kiện."
   ],
-  "next_step": "Run 43690604095 đã dừng và GitHub báo 0 artifacts. Tiếp tục hoàn tất audit mục 2 và v1 validation/baseline mục 3; không chạy bulk fetch trước khi Liaison xác nhận quyền hoặc cung cấp nguồn thay thế được cấp phép.",
+  "next_step": "Mục 3: v1 split/baseline audit và balanced slice đã ghi trong docs; không đánh dấu hoàn tất v2. Mục 2: tiếp tục chẩn đoán guard/lịch sử smoke, giữ GPU run chặn cho tới khi có dataset v2 đã qua gate. Không chạy bulk Finfo trước khi Liaison xác nhận quyền hoặc cung cấp nguồn thay thế được cấp phép.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -18,6 +18,7 @@
     "bfa7a2e",
     "c37410f",
     "e5de5da",
-    "f736d17"
+    "f736d17",
+    "09ff304"
   ]
 }
