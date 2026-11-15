@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T08:34:04.157235Z",
+  "updated_at": "2026-11-15T08:36:23.027692Z",
   "current_item": 2,
   "done": [
     1,
@@ -8,7 +8,7 @@
   "in_progress": 2,
   "blocked": null,
   "questions": [],
-  "next_step": "Smoke workflow 43694829958 is downloading private v2 labels. Independently verified all 97,766 real v2 prompts pass the OHLCV/indicator-only transform with zero disallowed sector/universe/other features. Continue monitoring TK2-first Colab smoke; no full training.",
+  "next_step": "The first smoke attempt failed before Colab allocation because the LV1 runner has no gh CLI; the guard now uses the GitHub REST API and has tests. Commit this fix and redispatch run-colab.yml for source run 43691791091 with p2a_v2_smoke=true, max_steps=2. Keep full training stopped for Henrry.",
   "commits": [
     "855cad8",
     "baf7261",

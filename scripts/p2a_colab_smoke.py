@@ -35,7 +35,17 @@ def digest(path, algorithm='sha256'):
 
 
 def run_profile(profile, train_path, max_steps, timeout, work_dir):
-    home = stage_profile(profile)
+    try:
+        home = stage_profile(profile)
+    except Exception as error:  # Keep diagnostics redacted; never serialize credentials or email.
+        return {
+            'profile': profile, 'return_code': None, 'result_ok': False,
+            'requested_max_steps': max_steps, 'finite_gradient_norm_count': 0,
+            'nonfinite_guard_triggered': False, 'assign_503': False, 'ok': False,
+            'error_type': type(error).__name__,
+            'sha256_train_slice': digest(train_path),
+            'md5_train_slice': digest(train_path, 'md5'), 'log': '',
+        }
     try:
         env = os.environ.copy()
         env.update({
@@ -62,8 +72,18 @@ def run_profile(profile, train_path, max_steps, timeout, work_dir):
             '--save-steps', '1', '--upload-file', str(train_path),
             '/content/p2a_train_v2_smoke.jsonl',
         ]
-        proc = subprocess.run(command, env=env, capture_output=True, text=True,
-                              timeout=timeout + 300, check=False)
+        try:
+            proc = subprocess.run(command, env=env, capture_output=True, text=True,
+                                  timeout=timeout + 300, check=False)
+        except subprocess.TimeoutExpired:
+            return {
+                'profile': profile, 'return_code': 124, 'result_ok': False,
+                'requested_max_steps': max_steps, 'finite_gradient_norm_count': 0,
+                'nonfinite_guard_triggered': False, 'assign_503': False, 'ok': False,
+                'error_type': 'TimeoutExpired',
+                'sha256_train_slice': digest(train_path),
+                'md5_train_slice': digest(train_path, 'md5'), 'log': '',
+            }
         result = json.loads(result_path.read_text(encoding='utf-8')) if result_path.is_file() else {}
         combined = (proc.stdout or '') + '\n' + (proc.stderr or '')
         if result:

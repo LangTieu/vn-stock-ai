@@ -300,15 +300,12 @@ jobs:
             --output p2a-v2-baselines.json
       - name: Refuse overlap with any active Colab training workflow
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          active="$(gh run list --workflow run-colab.yml --limit 50 --json status \
-            --jq '[.[] | select(.status == "queued" or .status == "in_progress")] | length')"
-          if [ "$active" -ne 0 ]; then
-            echo "A Colab training workflow is queued or active; refusing to allocate TK2/TK5."
-            exit 1
-          fi
+          python3 scripts/p2a_check_colab_overlap.py
       - name: Run bounded TK2 Colab smoke, TK5 only on assign HTTP 503
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
