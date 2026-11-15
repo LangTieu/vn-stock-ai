@@ -68,9 +68,13 @@ def build(closures_path, index_sessions_path, output_path, manifest_path):
             raise ValueError(f'{exchange} index history begins too late: {first_index}')
         days = START
         early = []
-        while days < first_index:
+        early_end = min(first_index, INDEX_CUTOFF)
+        while days < early_end:
             if days.weekday() < 5 and days not in closures[exchange]:
-                source_url = ','.join(sorted({url for url, _ in closures[exchange].values()}))
+                source_url = ','.join(sorted({url for closure_day, (url, _) in closures[exchange].items()
+                                               if closure_day.year == days.year}))
+                if not source_url:
+                    raise ValueError(f'no closure-notice sources recorded for {exchange} {days.year}')
                 early.append({'exchange': exchange, 'date': days.isoformat(),
                               'source_index': 'weekday_calendar_minus_cited_exchange_closures',
                               'source_reference': source_url})
