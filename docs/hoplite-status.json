@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T12:57:47.175120Z",
+  "updated_at": "2026-11-15T13:37:04.851641Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Instrumented diagnostic run 43716466085 is running on review/p2-async-evaluation, source 43691791091, 12 steps/trial, internal 2024 validation. The run is specifically to recover sanitized Colab exception type/signature from the previously hidden result JSON; TK2 first, TK5 only on 503. Use that signature to fix the runtime root cause before claiming ablation completion. No merge/full training.",
+  "next_step": "Fix and test the confirmed notebook eval argv TypeError (cell 9); then dispatch a justified ablation retry on review/p2-async-evaluation using v2 source 43691791091, 12 steps, internal 2024 validation, TK2-first/TK5 only on assignment HTTP 503. No merge or full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -54,23 +54,26 @@
     "7b137b2",
     "025e6c6",
     "ab87ec4",
-    "6018ab2"
+    "6018ab2",
+    "24643ad"
   ],
   "last_ablation_attempt": {
-    "run_id": 43711359409,
+    "run_id": 43716466085,
     "conclusion": "failure",
     "profile": "tk5",
     "trial": "baseline",
-    "return_code": 1,
+    "failure_diagnostic": {
+      "kind": "notebook_error",
+      "exception_type": "TypeError",
+      "cell_index": 9
+    },
+    "tk5_fallback": "TK2 assignment returned HTTP 503; TK5 ran as authorized fallback",
     "finite_gradient_norm_observations": 48,
     "nonfinite_guard_triggered": false,
-    "failure_diagnostic": {
-      "kind": "colab_process_failed"
-    },
-    "tk5_fallback": "TK2 preflight passed, then its Colab assignment returned HTTP 503; the approved TK5 fallback ran. TK5 attempt itself had no assignment 503.",
     "validation_metrics": null,
     "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
-    "diagnosis": "This run did not reproduce the step-1 non-finite gradient: it recorded 48 finite gradient-norm observations and no non-finite guard. It still exited 1 on the TK5 baseline, before validation metrics. The Actions log exposes only the wrapper summary; run_trial captures vncolab stdout/stderr and does not upload the Colab result JSON, while failure_diagnostic ignored vncolab top-level/cell error fields. Therefore the runtime root exception is not retained and cannot be established from this run. The fp16 loss-scale change is not shown to explain this second failure."
+    "root_cause": "Notebook eval cell 9 built subprocess.run argv with int(os.environ[\"P2A_EVAL_LIMIT\"]) as an element: subprocess argv must contain strings, so the 64-row validation subprocess raised TypeError after training gradients were finite. The artifact identifies the TypeError/cell; source inspection confirms the offending integer argument. This is unrelated to fp16 scaler.",
+    "fix_plan": "Convert the P2A_EVAL_LIMIT argument to str before subprocess.run. Add a regression test that argv elements are strings / expression is cast. Then rerun the controlled ablation only after tests pass; same source run, 12 steps, internal 2024 split, TK2 first and TK5 only on assignment HTTP 503."
   },
   "latest_ablation_run_id": 43716466085
 }
