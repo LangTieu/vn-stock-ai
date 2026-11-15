@@ -224,7 +224,11 @@ def sha256_file(path):
 
 def make_training_manifest(train_path, label_version, max_length, epochs, flat_band_pct=None,
                            label_method=None, lora_config=None,
-                           training_config=None, target_modules=None):
+                           training_config=None, target_modules=None, seed=42):
+    script_path = Path(__file__)
+    numerics_path = script_path.with_name('p2a_numerics.py')
+    resolved_training_config = dict(training_config or TRAINING_CONFIG)
+    resolved_training_config['seed'] = seed
     return {
         'label_version': label_version,
         'train_sha256': sha256_file(train_path),
@@ -239,8 +243,10 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'epochs': epochs,
         'lora': dict(lora_config or LORA_CONFIG),
         'target_modules': list(target_modules or TARGET_MODULES),
-        'training': dict(training_config or TRAINING_CONFIG),
-        'seed': 42,
+        'training': resolved_training_config,
+        'seed': seed,
+        'trainer_code_sha256': sha256_file(script_path),
+        'numerics_code_sha256': sha256_file(numerics_path),
     }
 
 
@@ -252,7 +258,8 @@ def validate_resume_manifest(checkpoint, current):
     saved = json.loads(manifest_path.read_text(encoding='utf-8'))
     for key in ('label_version', 'train_sha256', 'max_length', 'model_id', 'system_prompt_sha256',
                 'input_transform_version',
-                'population_scope', 'flat_band_pct', 'lora', 'target_modules', 'training', 'epochs'):
+                'population_scope', 'flat_band_pct', 'lora', 'target_modules', 'training',
+                'epochs', 'seed', 'trainer_code_sha256', 'numerics_code_sha256'):
         if saved.get(key) != current.get(key):
             raise ValueError(f'Resume checkpoint {key} mismatch: '
                              f'{saved.get(key)!r} != {current.get(key)!r}; start from base model')
@@ -411,6 +418,7 @@ def main():
     p.add_argument('--gradient-accumulation-steps', type=int,
                    default=TRAINING_CONFIG['gradient_accumulation_steps'])
     p.add_argument('--target-modules', default=','.join(TARGET_MODULES))
+    p.add_argument('--seed', type=int, default=TRAINING_CONFIG['seed'])
     p.add_argument('--dry-run', action='store_true')
     a = p.parse_args()
     if a.lora_r < 1 or a.lora_alpha < 1 or not 0 <= a.lora_dropout < 1:
@@ -425,27 +433,10 @@ def main():
                    'lora_dropout': a.lora_dropout}
     training_config = dict(TRAINING_CONFIG)
     training_config.update({'learning_rate': a.learning_rate,
-                            'gradient_accumulation_steps': a.gradient_accumulation_steps})
+                            'gradient_accumulation_steps': a.gradient_accumulation_steps,
+                            'seed': a.seed})
     output = Path(a.output_dir)
     print('OUTPUT_DIR', output, flush=True)
-    checkpoint_api = None
-    if a.checkpoint_repo:
-        token = os.environ.get('HF_TOKEN')
-        if not token:
-            print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
-                  'reason=HF_TOKEN is not set; uploads disabled', flush=True)
-        else:
-            try:
-                from huggingface_hub import HfApi
-                checkpoint_api = HfApi(token=token)
-                checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
-                                           private=True, exist_ok=True)
-                print(f'HF_CHECKPOINT_UPLOAD_ENABLED repo={a.checkpoint_repo}', flush=True)
-            except Exception as error:  # noqa: BLE001 — persistence must not block training
-                checkpoint_api = None
-                print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
-                      f'reason=client setup {type(error).__name__}: {error}; uploads disabled',
-                      flush=True)
     upload_hf = hf_upload_enabled(a.upload_hf)
     if upload_hf and not a.hub_repo:
         p.error('--hub-repo is required when HF upload is enabled')
@@ -467,11 +458,29 @@ def main():
                           'masked_prefix_tokens': len(first['input_ids']) - len(active),
                           'supervised_tokens': len(active)}, ensure_ascii=False))
         return
+    checkpoint_api = None
+    if a.checkpoint_repo:
+        token = os.environ.get('HF_TOKEN')
+        if not token:
+            print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
+                  'reason=HF_TOKEN is not set; uploads disabled', flush=True)
+        else:
+            try:
+                from huggingface_hub import HfApi
+                checkpoint_api = HfApi(token=token)
+                checkpoint_api.create_repo(repo_id=a.checkpoint_repo, repo_type='model',
+                                           private=True, exist_ok=True)
+                print(f'HF_CHECKPOINT_UPLOAD_ENABLED repo={a.checkpoint_repo}', flush=True)
+            except Exception as error:  # noqa: BLE001 — persistence must not block training
+                checkpoint_api = None
+                print(f'CHECKPOINT_UPLOAD_FAILED repo={a.checkpoint_repo} '
+                      f'reason=client setup {type(error).__name__}: {error}; uploads disabled',
+                      flush=True)
     training_manifest = make_training_manifest(
         train, label_version, a.max_length, a.epochs,
         flat_band_pct=label_spec['flat_band_pct'], label_method=label_spec['label_method'],
         lora_config=lora_config, training_config=training_config,
-        target_modules=target_modules)
+        target_modules=target_modules, seed=a.seed)
     if a.resume:
         validate_resume_manifest(a.resume, training_manifest)
     output.mkdir(parents=True, exist_ok=True)
@@ -485,7 +494,7 @@ def main():
     from transformers import AutoModelForCausalLM, BitsAndBytesConfig, Trainer, TrainingArguments, TrainerCallback, set_seed
     if not torch.cuda.is_available():
         raise RuntimeError('CUDA GPU required for training')
-    set_seed(42)
+    set_seed(a.seed)
 
     # Liger Kernel monkey-patch, before the model is instantiated on purpose:
     # it swaps RMSNorm/RoPE/SwiGLU on the transformers module classes, so it

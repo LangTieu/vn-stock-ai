@@ -65,15 +65,16 @@ class TrainingRowFilterTests(unittest.TestCase):
                 data, 2, 4096, 2,
                 lora_config={'r': 8, 'lora_alpha': 32, 'lora_dropout': 0.1},
                 training_config={'learning_rate': 1e-4, 'gradient_accumulation_steps': 32},
-                target_modules=['q_proj', 'v_proj'])
+                target_modules=['q_proj', 'v_proj'], seed=42)
             second = make_training_manifest(
                 data, 2, 4096, 2,
-                lora_config={'r': 16, 'lora_alpha': 32, 'lora_dropout': 0.1},
+                lora_config={'r': 8, 'lora_alpha': 32, 'lora_dropout': 0.1},
                 training_config={'learning_rate': 1e-4, 'gradient_accumulation_steps': 32},
-                target_modules=['q_proj', 'v_proj'])
-            self.assertNotEqual(first['lora'], second['lora'])
+                target_modules=['q_proj', 'v_proj'], seed=43)
+            self.assertNotEqual(first['seed'], second['seed'])
+            self.assertNotEqual(first['training'], second['training'])
             (checkpoint / 'p2a_training_manifest.json').write_text(json.dumps(first))
-            with self.assertRaisesRegex(ValueError, 'lora mismatch'):
+            with self.assertRaisesRegex(ValueError, 'training mismatch'):
                 validate_resume_manifest(checkpoint, second)
 
     def test_training_refuses_legacy_labels(self):

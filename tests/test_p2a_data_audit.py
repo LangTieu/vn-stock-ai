@@ -24,6 +24,7 @@ class DatasetAuditTests(unittest.TestCase):
             report = audit([first, second])
             self.assertEqual(report['reports'][0]['rows']['rows_with_future_prompt_dates'], 1)
             self.assertEqual(report['reports'][0]['exchange_counts']['HOSE']['gap_gt_200'], 1)
+            self.assertEqual(report['reports'][0]['labels_by_as_of_year']['2024:UP'], 1)
             self.assertEqual(report['cross_split_overlaps']['0:1']['ticker_asof'], 1)
             self.assertEqual(report['cross_split_overlaps']['0:1']['prompt_hash'], 1)
             self.assertEqual(report['cross_split_overlaps']['0:1']['temporal_target_overlap'][

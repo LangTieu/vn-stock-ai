@@ -51,8 +51,9 @@ class TrainingNotebookSyncTests(unittest.TestCase):
             self.assertIn(name, settings)
             self.assertIn(name, train)
         for name in ('--lora-r', '--lora-alpha', '--lora-dropout', '--learning-rate',
-                     '--gradient-accumulation-steps', '--target-modules'):
+                     '--gradient-accumulation-steps', '--target-modules', '--seed'):
             self.assertIn(name, train)
+        self.assertIn('SEED = os.environ.get("SEED", "42")', settings)
 
 
 if __name__ == '__main__':

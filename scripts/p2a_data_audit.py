@@ -60,6 +60,8 @@ def audit(paths, tokenizer_name=None):
         path = Path(dataset_path)
         stats = collections.Counter()
         labels = collections.Counter()
+        labels_by_as_of_year = collections.Counter()
+        labels_by_as_of_quarter = collections.Counter()
         exchanges = collections.defaultdict(collections.Counter)
         tickers = collections.Counter()
         ticker_gaps = collections.defaultdict(collections.Counter)
@@ -132,6 +134,9 @@ def audit(paths, tokenizer_name=None):
                         cutoff = None
                     if cutoff:
                         as_of_dates.append(cutoff)
+                        labels_by_as_of_year[(cutoff.year, direction)] += 1
+                        labels_by_as_of_quarter[(cutoff.year, (cutoff.month - 1) // 3 + 1,
+                                                 direction)] += 1
                         later = []
                         for date_text in DATE_RE.findall(text):
                             try:
@@ -189,6 +194,14 @@ def audit(paths, tokenizer_name=None):
             'tokenizer_transform': 'p2a_train.messages / ' +
                                    ("compact-coverage-date-lists-v1" if tokenizer else 'not-run'),
             'rows': dict(stats), 'labels': dict(labels), 'tickers': len(tickers),
+            'labels_by_as_of_year': {
+                f'{year}:{label}': count
+                for (year, label), count in sorted(labels_by_as_of_year.items())
+            },
+            'labels_by_as_of_quarter': {
+                f'{year}-Q{quarter}:{label}': count
+                for (year, quarter, label), count in sorted(labels_by_as_of_quarter.items())
+            },
             'max_rows_per_ticker': max(tickers.values(), default=0),
             'ticker_rows_p50_p90': ([sorted(tickers.values())[int(.5 * (len(tickers) - 1))],
                                      sorted(tickers.values())[int(.9 * (len(tickers) - 1))]]
