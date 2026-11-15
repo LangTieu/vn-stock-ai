@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T11:08:55.701158Z",
+  "updated_at": "2026-11-15T11:36:16.814589Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Approved feature-ref dispatch succeeded: run 43707481952 on review/p2-async-evaluation, source v2-label run 43691791091, 12 steps/trial. Monitor leakage-safe internal 2024 split, TK2 preflight/trials, and sanitized metrics; TK5 is allowed only after confirmed TK2 assignment HTTP 503. Do not merge or start full training.",
+  "next_step": "Dispatch the corrected bounded ablation from review/p2-async-evaluation with source run 43691791091 and 12 steps/trial. Verify per-trial run steps and safe numerical failure signature; TK2 first, TK5 only on confirmed TK2 assignment HTTP 503. Do not use external holdout, merge, or start full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -46,6 +46,21 @@
     "12df547",
     "d10a857",
     "83fd36e",
-    "b951f52"
-  ]
+    "b951f52",
+    "e72b821",
+    "fc38d41",
+    "a9c7ab4"
+  ],
+  "last_ablation_attempt": {
+    "run_id": 43707481952,
+    "conclusion": "failure",
+    "profile": "tk2",
+    "trial": "baseline",
+    "return_code": 1,
+    "nonfinite_guard_triggered": true,
+    "finite_gradient_norm_observations": 0,
+    "tk5_fallback": "not attempted; TK2 assignment preflight was clear and no assign HTTP 503 was recorded",
+    "metrics": null,
+    "diagnosis": "The sanitized artifact confirms the baseline stopped at the non-finite loss/gradient guard before validation; the job log did not preserve which tensor/step, so the exact numerical source is not established. Code review found the smoke notebook hard-coded 2 steps even when the dispatch requested 12; fixed to honor MAX_STEPS (default remains 2) and added a safe failure signature to the sanitized manifest for the retry."
+  }
 }

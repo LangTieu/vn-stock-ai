@@ -49,6 +49,11 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn("os.environ.get('P2A_EVAL_LIMIT', '20')", eval_cell)
         self.assertIn("P2A_ABLATION_EVAL ", eval_cell)
 
+    def test_smoke_mode_honors_requested_step_limit_with_two_step_default(self):
+        notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
+        train_cell = ''.join(notebook['cells'][7]['source'])
+        self.assertIn("'--max-steps', MAX_STEPS or '2'", train_cell)
+
     def test_colab_workflow_has_controlled_ablation_gate_and_caps_trials(self):
         workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()
         self.assertEqual(workflow.count('p2a-v2-ablation:'), 1)

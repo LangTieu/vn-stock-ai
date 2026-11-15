@@ -21,6 +21,24 @@ ASSIGN_503 = re.compile(
     r'/tun/m/assign(?![A-Za-z0-9_-])[^\n]*503|503[^\n]*/tun/m/assign(?![A-Za-z0-9_-])', re.I)
 EVAL_METRICS = re.compile(r'^P2A_ABLATION_EVAL (\{.*\})$', re.M)
 GRAD_NORM = re.compile(r"grad_norm['\"]?\s*[:=]\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|nan|inf)", re.I)
+NONFINITE_GRADIENT = re.compile(
+    r'Non-finite P2a gradient before optimizer step (\d+): ([A-Za-z0-9_.]+)')
+NONFINITE_LOSS = re.compile(r'Non-finite P2a loss before backward: ([^\s]+)')
+
+
+def failure_diagnostic(text, return_code, result_ok):
+    gradient = NONFINITE_GRADIENT.search(text)
+    if gradient:
+        return {'kind': 'nonfinite_gradient', 'optimizer_step': int(gradient.group(1)),
+                'parameter': gradient.group(2)}
+    loss = NONFINITE_LOSS.search(text)
+    if loss:
+        return {'kind': 'nonfinite_loss', 'loss': loss.group(1)}
+    if return_code:
+        return {'kind': 'colab_process_failed'}
+    if not result_ok:
+        return {'kind': 'colab_notebook_failed'}
+    return {'kind': 'missing_validation_metrics'}
 
 TRIALS = (
     {'name':'baseline','lora_r':8,'lora_alpha':32,'lora_dropout':0.1,'learning_rate':1e-4},
@@ -101,6 +119,8 @@ def run_trial(profile,trial,train_slice,validation_slice,max_steps,timeout,work_
         eval_matches=EVAL_METRICS.findall(text)
         evaluation=json.loads(eval_matches[-1]) if eval_matches else None
         guard_failed='Non-finite P2a gradient' in text or 'Non-finite P2a loss' in text
+        ok=(proc.returncode==0 and result.get('ok') is True and not guard_failed
+            and bool(finite) and bool(evaluation) and evaluation.get('count')==64)
         return {
             'trial':trial,'profile':profile,'return_code':proc.returncode,
             'result_ok':result.get('ok') is True,'requested_max_steps':max_steps,
@@ -109,8 +129,9 @@ def run_trial(profile,trial,train_slice,validation_slice,max_steps,timeout,work_
             'training_slice_sha256':sha256(train_slice),
             'validation_slice_sha256':sha256(validation_slice),
             'training_slice_md5':train_md5,'validation_slice_md5':holdout_md5,
-            'ok':(proc.returncode==0 and result.get('ok') is True and not guard_failed
-                  and bool(finite) and bool(evaluation) and evaluation.get('count')==64),
+            'ok':ok,
+            'failure_diagnostic':None if ok else failure_diagnostic(
+                text,proc.returncode,result.get('ok') is True),
             'assign_503':bool(ASSIGN_503.search(text)),
         }
     finally:

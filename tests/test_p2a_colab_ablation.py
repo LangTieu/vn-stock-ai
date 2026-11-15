@@ -6,7 +6,8 @@ from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_colab_ablation import TRIALS, _run_with_fallback, choose_best, run_ablation
+from p2a_colab_ablation import (TRIALS, _run_with_fallback, choose_best,
+                                failure_diagnostic, run_ablation)
 
 
 class ColabAblationTests(unittest.TestCase):
@@ -45,6 +46,16 @@ class ColabAblationTests(unittest.TestCase):
         result=_run_with_fallback({'name':'test'},'train','valid',12,3600,'/tmp',runner=no503)
         self.assertEqual(attempts,['tk2'])
         self.assertFalse(result['ok'])
+
+    def test_failure_diagnostic_reports_safe_nonfinite_location(self):
+        self.assertEqual(
+            failure_diagnostic(
+                'FloatingPointError: Non-finite P2a gradient before optimizer step 1: '
+                'base.layers.0.q_proj.lora_A.weight', 1, False),
+            {'kind': 'nonfinite_gradient', 'optimizer_step': 1,
+             'parameter': 'base.layers.0.q_proj.lora_A.weight'})
+        self.assertEqual(failure_diagnostic('ValueError: invalid run', 1, False),
+                         {'kind': 'colab_process_failed'})
 
     def test_ablation_refuses_a_split_without_internal_temporal_separation(self):
         with tempfile.TemporaryDirectory() as directory:
