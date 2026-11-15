@@ -88,6 +88,12 @@ def main():
     s, j = cf("GET", "/accounts/%s/workers/subdomain" % ACC)
     print(s, (j.get("result") or {}) if s == 200 else errs(j))
 
+    if os.environ.get("ENABLE_LOGS") == "1":
+        section("enable Workers Logs (settings only; code and secrets untouched)")
+        s, j = cf("PATCH", "/accounts/%s/workers/scripts/%s/script-settings" % (ACC, SCRIPT),
+                  {"observability": {"enabled": True, "head_sampling_rate": 1}})
+        print("status", s, json.dumps((j.get("result") or {}).get("observability")) if s == 200 else errs(j))
+
     section("telnyx-sms-relay settings (binding names/types only)")
     s, j = cf("GET", "/accounts/%s/workers/scripts/%s/settings" % (ACC, SCRIPT))
     print("status", s, errs(j) if s != 200 else "")
