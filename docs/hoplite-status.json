@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T08:29:32.134972Z",
+  "updated_at": "2026-11-15T08:30:58.799465Z",
   "current_item": 2,
   "done": [
     1,
@@ -8,7 +8,7 @@
   "in_progress": 2,
   "blocked": null,
   "questions": [],
-  "next_step": "Commit/push the smoke path integrated into .github/workflows/run-colab.yml, then dispatch that existing workflow with p2a_v2_smoke=true, source_run_id=43691791091 and max_steps=2. It creates a balanced 32-UP/32-DOWN slice, runs TK2 first and TK5 only after assign HTTP 503, and uploads sanitized reports only. Full training remains paused for Henrry.",
+  "next_step": "Smoke workflow run 43694829958 is downloading the private v2 label artifact. Verify it selects 32 UP/32 DOWN v2-only examples, then observe TK2 Colab smoke; TK5 is permitted only after confirmed /tun/m/assign HTTP 503. Full training remains paused for Henrry.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -24,6 +24,7 @@
     "e7db5ea",
     "6af5bed",
     "306ab32",
-    "ec3de76"
+    "ec3de76",
+    "b304438"
   ]
 }
