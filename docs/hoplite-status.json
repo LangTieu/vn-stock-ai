@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T12:57:11.409314Z",
+  "updated_at": "2026-11-15T12:57:47.175120Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Do not retry without diagnostics. Fix the ablation result summarizer to classify safe exception types/signatures from vncolab top-level/cell errors without exposing full Colab output. Dispatch one instrumented diagnostic ablation on review/p2-async-evaluation (source 43691791091, 12 steps, internal 2024 split, TK2-first/TK5 only on 503); use the preserved signature to make the runtime fix before another full ablation cycle. No merge/full training.",
+  "next_step": "Instrumented diagnostic run 43716466085 is running on review/p2-async-evaluation, source 43691791091, 12 steps/trial, internal 2024 validation. The run is specifically to recover sanitized Colab exception type/signature from the previously hidden result JSON; TK2 first, TK5 only on 503. Use that signature to fix the runtime root cause before claiming ablation completion. No merge/full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -53,7 +53,8 @@
     "25588fb",
     "7b137b2",
     "025e6c6",
-    "ab87ec4"
+    "ab87ec4",
+    "6018ab2"
   ],
   "last_ablation_attempt": {
     "run_id": 43711359409,
@@ -71,5 +72,5 @@
     "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
     "diagnosis": "This run did not reproduce the step-1 non-finite gradient: it recorded 48 finite gradient-norm observations and no non-finite guard. It still exited 1 on the TK5 baseline, before validation metrics. The Actions log exposes only the wrapper summary; run_trial captures vncolab stdout/stderr and does not upload the Colab result JSON, while failure_diagnostic ignored vncolab top-level/cell error fields. Therefore the runtime root exception is not retained and cannot be established from this run. The fp16 loss-scale change is not shown to explain this second failure."
   },
-  "latest_ablation_run_id": 43711359409
+  "latest_ablation_run_id": 43716466085
 }
