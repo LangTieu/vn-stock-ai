@@ -56,7 +56,8 @@
     "ab87ec4",
     "6018ab2",
     "24643ad",
-    "10d5d35"
+    "10d5d35",
+    "8de74ef"
   ],
   "last_ablation_attempt": {
     "run_id": 43716466085,
@@ -74,7 +75,7 @@
     "validation_metrics": null,
     "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
     "root_cause": "Notebook eval cell 9 built subprocess.run argv with int(os.environ[\"P2A_EVAL_LIMIT\"]) as an element: subprocess argv must contain strings, so the 64-row validation subprocess raised TypeError after training gradients were finite. The artifact identifies the TypeError/cell; source inspection confirms the offending integer argument. This is unrelated to fp16 scaler.",
-    "fix_plan": "Convert the P2A_EVAL_LIMIT argument to str before subprocess.run. Add a regression test that argv elements are strings / expression is cast. Then rerun the controlled ablation only after tests pass; same source run, 12 steps, internal 2024 split, TK2 first and TK5 only on assignment HTTP 503."
+    "fix_plan": "Fixed in commit 10d5d35: cast P2A_EVAL_LIMIT to str before subprocess.run and add a regression assertion. The full 74-test suite, compileall, and diff checks pass. Root-cause-fixed retry 43719957320 was dispatched on review/p2-async-evaluation; await its sanitized metrics before claiming completion."
   },
   "latest_ablation_run_id": 43719957320
 }
