@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T09:51:19.783152Z",
+  "updated_at": "2026-11-15T09:56:00.001964Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Ablation workflow is ready and local real-v2 split check confirms 128 train rows target before the 64-row validation window; external holdout is not used. Commit/push the leakage-safe split and tests, then monitor Actions run 43700761631 or dispatch a fresh run after validation. Full training remains held for Henrry.",
+  "next_step": "Corrected ablation now makes a leakage-safe internal 2024 validation split; it refuses if train target endpoints reach validation. Old run 43700761631 was canceled with no artifact after it referenced external holdout; that holdout is marked exposed and will not be used for tuning. Commit this corrected split and TK2 assignment preflight, then dispatch new three-trial V2 ablation (12 steps per trial).",
   "commits": [
     "855cad8",
     "baf7261",
@@ -40,6 +40,7 @@
     "f19bc0c",
     "46ed4ba",
     "505fa28",
-    "6bd947f"
+    "6bd947f",
+    "551b11d"
   ]
 }

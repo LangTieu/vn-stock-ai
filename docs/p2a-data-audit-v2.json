@@ -413,5 +413,14 @@
   "source_audit_date": "2026-11-15",
   "feature_scope_version": "v2-ohlcv-indicators-only-v1",
   "feature_scope_gate_passes": true,
-  "population_scope_limit": "P1-observed sample; no claim of complete market-wide historical universe."
+  "population_scope_limit": "P1-observed sample; no claim of complete market-wide historical universe.",
+  "passes_temporal_split_and_prompt_leakage_checks": true,
+  "external_holdout_independence": {
+    "status": "potentially_exposed_to_initial_ablation_attempt",
+    "run_id": 43700761631,
+    "conclusion": "cancelled",
+    "artifact_count": 0,
+    "details": "An initial ablation dispatch accidentally selected the external P1 holdout for validation and transferred its v2 slice into the Colab ablation path. The run was canceled while the ablation step was active and produced no artifact/recorded metric; whether optimizer/evaluation steps completed is unverified. Treat this holdout as unsuitable for future config selection or an untouched final test.",
+    "corrective_action": "The corrected ablation uses an internal 2024 window from train and enforces train target endpoints before validation as_of."
+  }
 }

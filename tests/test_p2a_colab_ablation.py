@@ -1,10 +1,12 @@
 import sys
+import json
+import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_colab_ablation import TRIALS, _run_with_fallback, choose_best
+from p2a_colab_ablation import TRIALS, _run_with_fallback, choose_best, run_ablation
 
 
 class ColabAblationTests(unittest.TestCase):
@@ -43,6 +45,16 @@ class ColabAblationTests(unittest.TestCase):
         result=_run_with_fallback({'name':'test'},'train','valid',12,3600,'/tmp',runner=no503)
         self.assertEqual(attempts,['tk2'])
         self.assertFalse(result['ok'])
+
+    def test_ablation_refuses_a_split_without_internal_temporal_separation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            train=root/'train.jsonl';validation=root/'valid.jsonl';split=root/'split.json'
+            train.write_text('{}\n');validation.write_text('{}\n')
+            split.write_text(json.dumps({'passes':False,'external_holdout_used_for_selection':True,
+                'actual_split':{'train_target_before_validation_as_of':False}}))
+            with self.assertRaisesRegex(ValueError,'leakage-safe internal V2 split'):
+                run_ablation(train,validation,output_dir=root/'out',split_manifest=split)
 
 
 if __name__=='__main__':

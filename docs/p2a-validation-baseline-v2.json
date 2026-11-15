@@ -767,5 +767,6 @@
   "source_audit_date": "2026-11-15",
   "feature_scope_version": "v2-ohlcv-indicators-only-v1",
   "feature_scope_gate_passes": true,
-  "population_scope_limit": "P1-observed sample; no claim of complete market-wide historical universe."
+  "population_scope_limit": "P1-observed sample; no claim of complete market-wide historical universe.",
+  "external_holdout_independence": "potentially exposed to cancelled ablation run 43700761631; data-only baseline remains descriptive, but do not use holdout for future hyperparameter selection or claim it is untouched."
 }

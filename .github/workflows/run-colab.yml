@@ -319,6 +319,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/p2a_check_colab_overlap.py
+      - name: Refuse allocation if TK2 already has an active Colab assignment
+        env:
+          P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
+        run: python3 scripts/p2a_colab_assignment_check.py --profile tk2
       - name: Run bounded TK2 Colab smoke, TK5 only on assign HTTP 503
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
@@ -388,6 +392,10 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: python3 scripts/p2a_check_colab_overlap.py
+      - name: Refuse allocation if TK2 already has an active Colab assignment
+        env:
+          P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
+        run: python3 scripts/p2a_colab_assignment_check.py --profile tk2
       - name: Run controlled short v2 ablations on Colab
         env:
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
@@ -404,6 +412,7 @@ jobs:
           "$PY" scripts/p2a_colab_ablation.py \
             --train /tmp/p2a-ablation-slices/train-v2.jsonl \
             --validation /tmp/p2a-ablation-slices/validation-v2.jsonl \
+            --split-manifest /tmp/p2a-ablation-slices/split-manifest.json \
             --max-steps "${{ inputs.p2a_ablation_steps }}" --timeout 18000 \
             --output-dir p2a-ablation
       - name: Upload sanitized ablation manifests and metrics only

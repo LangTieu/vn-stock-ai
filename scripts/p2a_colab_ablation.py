@@ -125,8 +125,14 @@ def _run_with_fallback(trial,train_slice,validation_slice,max_steps,timeout,work
     return runner('tk5',trial,train_slice,validation_slice,max_steps,timeout,work_dir)
 
 
-def run_ablation(train,validation,max_steps=12,timeout=18000,output_dir='p2a-ablation'):
+def run_ablation(train,validation,max_steps=12,timeout=18000,output_dir='p2a-ablation',
+                 split_manifest=None):
     if max_steps<1 or max_steps>50:raise ValueError('ablation max_steps must be 1..50')
+    split_report=json.loads(Path(split_manifest).read_text(encoding='utf-8')) if split_manifest else None
+    if split_report and (not split_report.get('passes')
+                         or not split_report.get('actual_split',{}).get('train_target_before_validation_as_of')
+                         or split_report.get('external_holdout_used_for_selection') is not False):
+        raise ValueError('ablation split manifest does not certify a leakage-safe internal V2 split')
     train_spec=dataset_label_spec(train); val_spec=dataset_label_spec(validation)
     if train_spec.get('label_version')!=2 or val_spec.get('label_version')!=2:
         raise ValueError('ablation accepts only label-v2 train/validation files')
@@ -157,6 +163,8 @@ def run_ablation(train,validation,max_steps=12,timeout=18000,output_dir='p2a-abl
                 'training_slice_rows':128,'validation_slice_rows':64,
                 'training_slice_sha256':train_slice_manifest['slice_sha256'],
                 'validation_slice_sha256':validation_slice_manifest['slice_sha256'],
+                'internal_split_manifest':split_report,
+                'external_holdout_used_for_selection':False,
                 'training_label_sha256':sha256(train),'validation_label_sha256':sha256(validation),
                 'trials':results,'best_trial':best,'passes':passed,
                 'selection_rule':'highest validation direction accuracy; then macro-F1; then lowest Brier',
@@ -171,10 +179,12 @@ def run_ablation(train,validation,max_steps=12,timeout=18000,output_dir='p2a-abl
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--train',required=True);parser.add_argument('--validation',required=True)
+    parser.add_argument('--split-manifest',required=True)
     parser.add_argument('--max-steps',type=int,default=12);parser.add_argument('--timeout',type=int,default=18000)
     parser.add_argument('--output-dir',default='p2a-ablation')
     args=parser.parse_args()
-    report=run_ablation(args.train,args.validation,args.max_steps,args.timeout,args.output_dir)
+    report=run_ablation(args.train,args.validation,args.max_steps,args.timeout,
+                         args.output_dir,args.split_manifest)
     print(json.dumps({'passes':report['passes'],'best_trial':report['best_trial'],
                       'trial_count':len(report['trials']),'full_training_started':False},sort_keys=True))
     if not report['passes']:raise SystemExit(2)
