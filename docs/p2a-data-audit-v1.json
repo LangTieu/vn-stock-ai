@@ -103,7 +103,13 @@
           },
           "rows_over_4096": 0
         },
-        "method": "Exact tokenizer + training chat template + supervised target tokens"
+        "method": "Exact tokenizer + training chat template + supervised target tokens",
+        "tokenizer_files_sha256": {
+          "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "tokenizer_config.json": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "config.json": "0f2085dbbe2ee251bd6a6a0797d84a6ce34436044d629aa3cba793b43d311a9e"
+        },
+        "transform_method": "scripts/p2a_train.py: messages() -> compact_input() -> tokenizer.apply_chat_template -> target tokens + EOS"
       }
     },
     {
@@ -207,7 +213,13 @@
           },
           "rows_over_4096": 0
         },
-        "method": "Exact tokenizer + training chat template + supervised target tokens"
+        "method": "Exact tokenizer + training chat template + supervised target tokens",
+        "tokenizer_files_sha256": {
+          "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "tokenizer_config.json": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "config.json": "0f2085dbbe2ee251bd6a6a0797d84a6ce34436044d629aa3cba793b43d311a9e"
+        },
+        "transform_method": "scripts/p2a_train.py: messages() -> compact_input() -> tokenizer.apply_chat_template -> target tokens + EOS"
       }
     }
   ],
