@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T07:52:05.942108Z",
+  "updated_at": "2026-11-15T07:53:50.960983Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
@@ -8,7 +8,7 @@
     "Liaison/Muse: provide point-in-time historical listing/delisting/universe and sector membership, or decide whether sector/universe features may be excluded to close the survivorship gate.",
     "Liaison/Muse: confirm the approved GPU smoke route after private v2 labels are built; do not use P1 v1 labels."
   ],
-  "next_step": "Workflow 43691791091 is running with source_use_approved=true; inspect Finfo endpoint coverage, then privately generated v2 label manifests. No raw adClose endpoint CSV is included in the artifact. Continue items 2 and 3 with the resulting real v2 data and do not mark item 1 complete while point-in-time universe/sector gate remains open.",
+  "next_step": "Monitor Actions run 43691791091 through adClose exact-endpoint coverage and private label build. Review artifact and coverage/censor statistics. Then perform v2 temporal split audit/baselines; proceed to smoke only on valid v2 labels, with no raw adjusted-price artifact/publication.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -20,6 +20,7 @@
     "f736d17",
     "09ff304",
     "47240bb",
-    "9f539e1"
+    "9f539e1",
+    "e7db5ea"
   ]
 }
