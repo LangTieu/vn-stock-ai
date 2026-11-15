@@ -5,6 +5,7 @@ import csv
 import gzip
 import hashlib
 import json
+import math
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 from pathlib import Path
@@ -22,7 +23,7 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def build(closures_path, index_sessions_path, output_path, manifest_path):
+def build(closures_path, index_sessions_path, output_path, manifest_path, price_sessions_path=None):
     closures = defaultdict(dict)
     with Path(closures_path).open(newline='', encoding='utf-8') as stream:
         reader = csv.DictReader(stream)
@@ -58,7 +59,7 @@ def build(closures_path, index_sessions_path, output_path, manifest_path):
             observed[exchange].add(day)
             index_source[(exchange, day)] = row.get('source_index') or ''
 
-    rows = []
+    row_map = {}
     early_counts = {}
     for exchange in EXCHANGES:
         if not observed[exchange]:
@@ -80,11 +81,47 @@ def build(closures_path, index_sessions_path, output_path, manifest_path):
                               'source_reference': source_url})
             days += timedelta(days=1)
         early_counts[exchange] = len(early)
-        rows.extend(early)
+        for row in early:
+            row_map[(row['exchange'], row['date'])] = row
         for day in sorted(observed[exchange]):
-            rows.append({'exchange': exchange, 'date': day.isoformat(),
-                         'source_index': index_source[(exchange, day)],
-                         'source_reference': 'Finhay daily exchange-index history'})
+            row_map[(exchange, day.isoformat())] = {
+                'exchange': exchange, 'date': day.isoformat(),
+                'source_index': index_source[(exchange, day)],
+                'source_reference': 'Finhay daily exchange-index history'}
+
+    price_session_rows = 0
+    if price_sessions_path:
+        with gzip.open(price_sessions_path, 'rt', newline='', encoding='utf-8') as stream:
+            reader = csv.DictReader(stream)
+            if not {'exchange', 'date', 'open', 'high', 'low', 'close'} <= set(reader.fieldnames or ()):
+                raise ValueError('Finhay daily prices must contain exchange,date,OHLC columns')
+            for row in reader:
+                exchange = row['exchange'].strip().upper()
+                if exchange not in EXCHANGES:
+                    continue
+                try:
+                    values = [float(row[field]) for field in ('open', 'high', 'low', 'close')]
+                    day = date.fromisoformat(row['date'])
+                except (TypeError, ValueError):
+                    continue
+                if (any(not math.isfinite(value) or value <= 0 for value in values)
+                        or not (values[2] <= min(values[0], values[3])
+                                <= max(values[0], values[3]) <= values[1])
+                        or day.weekday() >= 5):
+                    continue
+                key = exchange, day.isoformat()
+                current = row_map.get(key)
+                if current:
+                    if 'Finhay stock OHLCV bar' not in current['source_index']:
+                        current['source_index'] += '+Finhay stock OHLCV bar'
+                        current['source_reference'] += '; Finhay daily stock OHLCV history'
+                else:
+                    row_map[key] = {'exchange': exchange, 'date': day.isoformat(),
+                                    'source_index': 'Finhay stock OHLCV bar',
+                                    'source_reference': 'Finhay daily stock OHLCV history'}
+                price_session_rows += 1
+
+    rows = list(row_map.values())
 
     rows.sort(key=lambda row: (row['exchange'], row['date']))
     keys = [(row['exchange'], row['date']) for row in rows]
@@ -105,6 +142,7 @@ def build(closures_path, index_sessions_path, output_path, manifest_path):
         'output_sha256': sha256(output_path),
         'rows_by_exchange_year': {f'{ex}:{year}': count for (ex, year), count in sorted(years.items())},
         'derived_weekday_rows_2014_2016': early_counts,
+        'additional_stock_price_session_rows': price_session_rows,
         'official_session_status': 'early dates are derived from cited exchange holiday notices and weekdays; later dates are observed index bars',
     }
     manifest_path = Path(manifest_path)
@@ -118,10 +156,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--closures', required=True)
     parser.add_argument('--finhay-index-sessions', required=True)
+    parser.add_argument('--finhay-daily-prices', help='optional daily prices CSV.GZ to add observed exchange trading dates missing from the index series')
     parser.add_argument('--output', required=True)
     parser.add_argument('--manifest', required=True)
     args = parser.parse_args()
-    report = build(args.closures, args.finhay_index_sessions, args.output, args.manifest)
+    report = build(args.closures, args.finhay_index_sessions, args.output, args.manifest,
+                   args.finhay_daily_prices)
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
 
 

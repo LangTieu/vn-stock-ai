@@ -23,8 +23,14 @@ class SessionCalendarBuildTests(unittest.TestCase):
                                         ('UPCOM', 'UPCOMINDEX')]:
                     writer.writerow({'exchange': exchange, 'date': '2017-01-03', 'source_index': index})
                     writer.writerow({'exchange': exchange, 'date': '2017-01-04', 'source_index': index})
+            prices_path = Path(directory) / 'prices.csv.gz'
+            with gzip.open(prices_path, 'wt', encoding='utf-8', newline='') as stream:
+                writer = csv.DictWriter(stream, fieldnames=['exchange', 'date', 'open', 'high', 'low', 'close'])
+                writer.writeheader()
+                writer.writerow({'exchange': 'HOSE', 'date': '2017-01-05',
+                                 'open': 10, 'high': 11, 'low': 9, 'close': 10})
             output, manifest = Path(directory) / 'sessions.csv.gz', Path(directory) / 'manifest.json'
-            report = build(closures, index_path, output, manifest)
+            report = build(closures, index_path, output, manifest, prices_path)
             self.assertEqual(report['rows_by_exchange_year']['HOSE:2014'], 247)
             self.assertEqual(report['rows_by_exchange_year']['HNX:2014'], 246)
             self.assertEqual(report['rows_by_exchange_year']['UPCOM:2014'], 246)
@@ -37,6 +43,10 @@ class SessionCalendarBuildTests(unittest.TestCase):
             self.assertNotIn('2015-04-29', hose_2015)
             self.assertIn('2015-04-27', hose_2015)
             self.assertIn('2017-01-03', {row['date'] for row in rows})
+            self.assertEqual(report['rows_by_exchange_year']['HOSE:2017'], 3)
+            self.assertIn('Finhay stock OHLCV bar',
+                          next(row['source_index'] for row in rows
+                               if row['exchange'] == 'HOSE' and row['date'] == '2017-01-05'))
 
 
 if __name__ == '__main__':
