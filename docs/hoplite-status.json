@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T09:44:27.003578Z",
+  "updated_at": "2026-11-15T09:45:40.424312Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "No other run-colab workflow is queued/active; private V2 source run 43691791091 is successful. Dispatch run-colab.yml with p2a_v2_ablation=true, source run ID 43691791091, 12 steps/trial. Inspect three configs/validation metrics and record provisional best; do not start full training before a separate authorization.",
+  "next_step": "Controlled ablation run 43700761631 is queued/in progress. Monitor artifact download and run the 3 sequential 12-step V2 trials on the same 128-row train slice and 64-row holdout slice. Use TK5 only after TK2 assign HTTP 503. Full training remains paused.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -38,6 +38,7 @@
     "f347774",
     "99df17b",
     "f19bc0c",
-    "46ed4ba"
+    "46ed4ba",
+    "505fa28"
   ]
 }
