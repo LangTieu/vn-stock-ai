@@ -72,6 +72,28 @@ on:
         type: boolean
         required: true
         default: false
+      p2a_v2_smoke:
+        description: "Run the authorized bounded P2a v2 gradient smoke (never full training)"
+        type: boolean
+        required: true
+        default: false
+      p2a_source_run_id:
+        description: "Completed Finfo v2-label Actions run containing the private label artifact"
+        required: false
+        default: ""
+      p2a_smoke_max_steps:
+        description: "Smoke only; max 50 steps (default 2)"
+        type: number
+        required: true
+        default: 2
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: p2-colab-tk2-tk5
+  cancel-in-progress: false
 
 jobs:
   drive-inventory:
@@ -131,7 +153,7 @@ jobs:
           retention-days: 3
 
   run-colab:
-    if: ${{ !inputs.drive_inventory && !inputs.hf_source_audit }}
+    if: ${{ !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke }}
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -216,3 +238,102 @@ jobs:
           name: p2a-output
           path: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
           if-no-files-found: ignore
+
+  p2a-v2-smoke:
+    if: ${{ inputs.p2a_v2_smoke && !inputs.drive_inventory && !inputs.hf_source_audit }}
+    runs-on: [self-hosted, colab-driver-lv1]
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download private v2 labels from the audited source run
+        uses: actions/download-artifact@v4
+        with:
+          name: p2a-vndirect-adclose-audit
+          path: /tmp/p2a-v2-smoke-source
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.p2a_source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Select real balanced v2 smoke slice
+        run: |
+          set -euo pipefail
+          TRAIN_FILE="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/p2a-v2-smoke-source')
+          candidates=list(root.rglob('p1_train_v2.jsonl'))
+          if len(candidates)!=1:
+              raise SystemExit(f'expected one v2 train file, found {len(candidates)}')
+          if list(root.rglob('*adclose-endpoints*')) or list(root.rglob('adjusted_prices.csv')):
+              raise SystemExit('raw adjusted-price files must not be transferred to Colab')
+          manifest=next(candidates[0].parent.glob('p1_train_v2.manifest.json'))
+          if json.loads(manifest.read_text())['label_version'] != 2:
+              raise SystemExit('smoke input must use label v2')
+          print(candidates[0])
+          PY
+          )"
+          python3 scripts/p2a_validation.py --input "$TRAIN_FILE" \
+            --output /tmp/p2a_train_v2_smoke.jsonl \
+            --manifest /tmp/p2a_train_v2_smoke.manifest.json --per-class 32 --seed 42
+          python3 - <<'PY'
+          import collections,hashlib,json
+          from pathlib import Path
+          p=Path('/tmp/p2a_train_v2_smoke.jsonl'); counts=collections.Counter(); versions=set()
+          with p.open() as f:
+              for line in f:
+                  m=json.loads(line)['metadata']; versions.add(m.get('p2a_label_version'))
+                  counts[(m.get('label') or {}).get('future_direction_120')]+=1
+          if versions!={2} or counts!={'UP':32,'DOWN':32}:
+              raise SystemExit(f'invalid smoke slice: versions={versions} counts={counts}')
+          print(json.dumps({'rows':sum(counts.values()),'labels':dict(counts),
+                            'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                            'raw_adjusted_prices_in_slice':False},sort_keys=True))
+          PY
+      - name: Audit v2 temporal split and data-only baselines
+        run: |
+          set -euo pipefail
+          TRAIN_FILE="$(find /tmp/p2a-v2-smoke-source -type f -name p1_train_v2.jsonl -print -quit)"
+          HOLDOUT_FILE="$(find /tmp/p2a-v2-smoke-source -type f -name p1_holdout_v2.jsonl -print -quit)"
+          test -n "$TRAIN_FILE" && test -n "$HOLDOUT_FILE"
+          python3 scripts/p2a_data_audit.py --input "$TRAIN_FILE" --input "$HOLDOUT_FILE" \
+            --output p2a-v2-data-audit.json
+          python3 scripts/p2a_baseline_report.py --input "$TRAIN_FILE" --input "$HOLDOUT_FILE" \
+            --output p2a-v2-baselines.json
+      - name: Refuse overlap with any active Colab training workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          active="$(gh run list --workflow run-colab.yml --limit 50 --json status \
+            --jq '[.[] | select(.status == "queued" or .status == "in_progress")] | length')"
+          if [ "$active" -ne 0 ]; then
+            echo "A Colab training workflow is queued or active; refusing to allocate TK2/TK5."
+            exit 1
+          fi
+      - name: Run bounded TK2 Colab smoke, TK5 only on assign HTTP 503
+        env:
+          P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
+          P2_EVAL_TK5_EMAIL: ${{ vars.P2_EVAL_TK5_EMAIL }}
+        run: |
+          set -euo pipefail
+          if [ -x "$HOME/vncolab-venv/bin/python" ]; then
+            PY="$HOME/vncolab-venv/bin/python"
+          else
+            python3 -m venv .vncolab-venv
+            .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
+            PY=".vncolab-venv/bin/python"
+          fi
+          "$PY" scripts/p2a_colab_smoke.py \
+            --train /tmp/p2a_train_v2_smoke.jsonl \
+            --max-steps "${{ inputs.p2a_smoke_max_steps }}" --timeout 18000 \
+            --output p2a-v2-smoke-summary.json
+      - name: Upload sanitized v2 validation and smoke summaries only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-v2-gradient-smoke-summary
+          path: |
+            p2a-v2-smoke-summary.json
+            p2a-v2-data-audit.json
+            p2a-v2-baselines.json
+          if-no-files-found: ignore
+          retention-days: 7

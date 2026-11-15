@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T08:27:49.075295Z",
+  "updated_at": "2026-11-15T08:29:32.134972Z",
   "current_item": 2,
   "done": [
     1,
@@ -8,7 +8,7 @@
   "in_progress": 2,
   "blocked": null,
   "questions": [],
-  "next_step": "Commit/push the feature-scoped v2 training/eval transform and TK2-first smoke workflow, then dispatch it with source_run_id=43691791091 and max_steps=2. It downloads the private v2 artifact, creates a balanced 32-UP/32-DOWN slice, uses TK5 only after a confirmed assign HTTP 503, and uploads only sanitized audit/smoke results. Full training remains paused for Henrry.",
+  "next_step": "Commit/push the smoke path integrated into .github/workflows/run-colab.yml, then dispatch that existing workflow with p2a_v2_smoke=true, source_run_id=43691791091 and max_steps=2. It creates a balanced 32-UP/32-DOWN slice, runs TK2 first and TK5 only after assign HTTP 503, and uploads sanitized reports only. Full training remains paused for Henrry.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -23,6 +23,7 @@
     "9f539e1",
     "e7db5ea",
     "6af5bed",
-    "306ab32"
+    "306ab32",
+    "ec3de76"
   ]
 }
