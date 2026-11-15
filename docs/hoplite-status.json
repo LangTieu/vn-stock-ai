@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T08:36:23.027692Z",
+  "updated_at": "2026-11-15T08:36:52.220332Z",
   "current_item": 2,
   "done": [
     1,
@@ -8,7 +8,7 @@
   "in_progress": 2,
   "blocked": null,
   "questions": [],
-  "next_step": "The first smoke attempt failed before Colab allocation because the LV1 runner has no gh CLI; the guard now uses the GitHub REST API and has tests. Commit this fix and redispatch run-colab.yml for source run 43691791091 with p2a_v2_smoke=true, max_steps=2. Keep full training stopped for Henrry.",
+  "next_step": "Smoke retry 43695321962 is queued after the first attempt 43694829958 stopped before GPU allocation because gh is unavailable on LV1. The overlap guard is fixed and tested through GitHub REST. Verify the retry reaches TK2 Colab; TK5 only after assign HTTP 503. Full training remains paused for Henrry.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -27,6 +27,7 @@
     "ec3de76",
     "b304438",
     "d0d11be",
-    "bdee2fa"
+    "bdee2fa",
+    "a858fda"
   ]
 }
