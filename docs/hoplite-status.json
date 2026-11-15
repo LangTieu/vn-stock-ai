@@ -1,16 +1,14 @@
 {
-  "updated_at": "2026-11-15T08:42:57.698200Z",
+  "updated_at": "2026-11-15T09:02:21.874240Z",
   "current_item": 2,
   "done": [
     1,
     3
   ],
   "in_progress": 2,
-  "blocked": "Smoke run 43695321962 passed private v2 artifact download, balanced v2 slice, and temporal/baseline audits, but did not allocate a GPU: the TK2 Colab profile file is absent on the LV1 runner (FileNotFoundError). TK5 was not used because no /tun/m/assign HTTP 503 occurred. Need Liaison to restore the approved TK2 profile at a supported secure runner path; do not send tokens in chat. Full training remains paused for Henrry.",
-  "questions": [
-    "Liaison/Muse: securely restore the approved TK2 Colab token profile on colab-driver-lv1 at one of the paths recognized by scripts/p2a_eval_async.py (`~/.config/vncolab/token.json.tk2`, `~/.config/vncolab/tk2/token.json`, or `~/.config/vncolab/token_tk2.json`) and confirm the runner can refresh it. TK5 must remain unused unless TK2 allocation returns HTTP 503."
-  ],
-  "next_step": "After Liaison provisions the TK2 profile, rerun run-colab.yml with p2a_v2_smoke=true, source_run_id=43691791091 and max_steps=2. Use TK5 only for a confirmed /tun/m/assign HTTP 503. Keep full training paused for Henrry.",
+  "blocked": null,
+  "questions": [],
+  "next_step": "Liaison confirmed TK2 profile was restored securely with mode 0600 and userinfo verified. Existing Colab runs are all completed; dispatch run-colab.yml v2 smoke now with source_run_id=43691791091, max_steps=2. TK5 only after a confirmed /tun/m/assign HTTP 503. Full training remains paused for Henrry.",
   "commits": [
     "855cad8",
     "baf7261",
