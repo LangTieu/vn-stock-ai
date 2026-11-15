@@ -1,0 +1,37 @@
+name: Telnyx SMS relay diagnostics
+
+# Read-only: prints metadata only (names, timestamps, statuses), never secret values.
+on:
+  push:
+    branches: [hoplite/kalchedon-06a8542e]
+    paths: [telnyx-sms-relay/diag/**, .github/workflows/telnyx-diag.yml]
+  workflow_dispatch:
+
+jobs:
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python3 telnyx-sms-relay/diag/diag_cf.py
+
+  github-secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          TELNYX_API_KEY_GH: ${{ secrets.TELNYX_API_KEY }}
+          TELEGRAM_BOT_TOKEN_GH: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          DISCORD_WEBHOOK_URL_GH: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python3 telnyx-sms-relay/diag/diag_host.py
+
+  lv1-host:
+    runs-on: [self-hosted, colab-driver-lv1]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 telnyx-sms-relay/diag/diag_host.py
