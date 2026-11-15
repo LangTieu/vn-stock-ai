@@ -29,6 +29,16 @@ requires:
    valid quote and censors that row.
 3. The original P1 JSONL dataset.
 
+For the period before Finhay's exchange-index series starts, the checked-in
+`data/p2a-label-v2/market_closures_2014_2016.csv` records sourced exchange
+closures (including the 2014 HOSE/HNX reopening-date difference and the full
+2015 Apr 28–May 1 closure). `scripts/p2a_build_session_calendar.py` derives
+weekday sessions for 2014–2016 from those notices, then appends Finhay's observed
+daily index bars from 2017 onward. The builder records the sources and hashes in
+its manifest. The historical segment is a notice-derived calendar, not a daily
+exchange-published trading-calendar feed; unknown unscheduled closures remain
+an audit item.
+
 The generated manifest hashes the input, calendar, price table and output, and
 reports class/censor counts. The resulting train and holdout checksums must be
 recorded in the notebook/config before any future training. Each checkpoint also
@@ -38,13 +48,15 @@ checkpoints without a manifest must start from the base model, not be resumed.
 
 ## Current gate
 
-The old P1 JSONLs are available, but the repository contains neither the dataset
-builder nor source OHLCV, corporate-action adjustment factors, exchange-session
-calendar, historical universe membership, or point-in-time sector mappings. The
-old source fields identify files under `data/train_2014_2026_*.json`, which are
-not in this checkout. Therefore the relabel utility is tested on synthetic data,
-but a production v2 dataset and a survivorship-bias pass have not been produced.
-Do not mark this gate passed or train from the old labels pending those inputs.
+The old P1 JSONLs are available. A sourced 2014–2016 holiday table and calendar
+builder now exist; the Finhay collector supplies observed exchange-index sessions
+from 2017 onward. However, raw P1 source OHLCV for 2014–2016, documented
+corporate-action-adjusted prices, complete historical ticker universe, and
+point-in-time sectors are not yet available. The old source fields identify
+`data/train_2014_2026_*.json`, which is not in this checkout. Thus the relabeler
+has only synthetic tests so far, and a production v2 dataset or
+survivorship-bias pass has not been completed. Do not train from old labels as if
+they were v2.
 
 The reproducible v1 audit is saved at `docs/p2a-data-audit-v1.json`. It
 checks label counts, date gaps by exchange, ticker/date and prompt overlap,
