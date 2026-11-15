@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from validate_p2a_finhay import validate
+from validate_p2a_finhay import has_observed_index_source, validate
 
 
 def write_gz(path, columns, rows):
@@ -17,6 +17,10 @@ def write_gz(path, columns, rows):
 
 
 class FinhayArtifactValidationTests(unittest.TestCase):
+    def test_combined_source_names_retain_index_provenance(self):
+        self.assertTrue(has_observed_index_source({'UPCOMINDEX+Finhay stock OHLCV bar': 1}))
+        self.assertFalse(has_observed_index_source({'Finhay stock OHLCV bar': 1}))
+
     def test_checks_schemas_and_never_passes_unsupported_adjustments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

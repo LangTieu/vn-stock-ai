@@ -22,6 +22,11 @@ REQUIRED = {
 }
 
 
+def has_observed_index_source(source_counts):
+    indexes = {'VNINDEX', 'HNXINDEX', 'UPCOMINDEX'}
+    return any(bool(set(source.split('+')) & indexes) for source in source_counts)
+
+
 def sha256(path):
     digest = hashlib.sha256()
     with Path(path).open('rb') as stream:
@@ -75,6 +80,7 @@ def validate(root, expected_p1_tickers=None):
     price_dates_by_exchange = defaultdict(list)
     adjusted_present = Counter()
     off_calendar = Counter()
+    quality_flags = Counter()
     bad_prices = 0
     path = root / 'daily_prices.csv.gz'
     reader, stream = _reader(path)
@@ -95,6 +101,7 @@ def validate(root, expected_p1_tickers=None):
             ticker_dates[key].add(day)
             prices_by_exchange[exchange] += 1
             price_dates_by_exchange[exchange].append(day)
+            quality_flags[row.get('data_quality_flag') or 'not_flagged'] += 1
             if row['adjusted_total_return_close'].strip():
                 adjusted_present[exchange] += 1
             if sessions.get(exchange) and day not in sessions[exchange]:
@@ -115,6 +122,7 @@ def validate(root, expected_p1_tickers=None):
         'tickers': len(price_tickers), 'rows_by_exchange': dict(prices_by_exchange),
         'adjusted_total_return_rows_by_exchange': dict(adjusted_present),
         'prices_not_on_calendar_by_exchange': dict(off_calendar), 'invalid_numeric_values': bad_prices,
+        'data_quality_flag_counts': dict(quality_flags),
         'price_date_range_by_exchange': {
             exchange: [min(days).isoformat(), max(days).isoformat()]
             for exchange, days in sorted(price_dates_by_exchange.items()) if days
@@ -187,8 +195,7 @@ def validate(root, expected_p1_tickers=None):
         'sourced_early_closures_plus_observed_index_sessions': all(
             any('weekday_calendar_minus_cited_exchange_closures' in source
                 for source in session_sources_by_exchange[exchange])
-            and any(source in {'VNINDEX', 'HNXINDEX', 'UPCOMINDEX'}
-                    for source in session_sources_by_exchange[exchange])
+            and has_observed_index_source(session_sources_by_exchange[exchange])
             for exchange in ('HOSE', 'HNX', 'UPCOM')),
         'documented_adjusted_total_return_price': bool(adjusted_present),
         'historical_universe_point_in_time': False,
