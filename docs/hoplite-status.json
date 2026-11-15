@@ -1,0 +1,36 @@
+{
+  "updated_at": "2026-11-15T15:12:00Z",
+  "task": "Telnyx SMS receive path: end-to-end diagnosis and fix",
+  "branch": "hoplite/kalchedon-06a8542e",
+  "status": "partially_fixed",
+  "conclusion": {
+    "fault_layer": "Telnyx -> webhook dispatch (before the worker). Not the worker, not Telegram/Discord.",
+    "evidence": [
+      "Cloudflare Workers analytics (workersInvocationsAdaptive, by minute and HTTP status) list every request the worker got since 2026-11-14 00:00Z: 07:09 200, 07:11 200 (2 subrequests = test forward), 07:54 401, 11:32 404, 13:19 200+401, 14:06 401+200x2, 15/11 11:44 404, 11:58 404. All are deploy-time tests or probes.",
+      "No request at 11:41Z 14/11 (Meta SMS 18:41 ICT), 13:07Z 14/11 (Henrry's test SMS 20:07 ICT) or around 14:00Z 15/11 (Meta 21:00 ICT). The analytics also record 401 and 404 (proved by this run's own probes), so a Telnyx webhook rejected by the signature check would still show up. Telnyx never reached the worker code.",
+      "The Cloudflare edge blocks only Python's default User-Agent (error 1010). curl, Telnyx-style, Go, Ruby, Mozilla and empty User-Agents all reach the worker (GET / 200, unsigned POST /telnyx 401). So Cloudflare is not blocking Telnyx.",
+      "The deployed code (version bb20d8d9, 14/11 14:06Z) is identical to telnyx-sms-relay/worker.js. Secrets present: TELNYX_PUBLIC_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DISCORD_WEBHOOK_URL."
+    ],
+    "meta_today": "Meta side, not Telnyx. The worker got nothing around 21:00 ICT 15/11, and the liaison's Message Detail Report has no inbound record. On 14/11 that same report even listed the SMS Telnyx blocked under the trial rule, so an SMS that reaches Telnyx shows up there even when blocked. A missing record means the SMS never reached Telnyx. Most likely Meta/short code 39041 is holding SMS after the 4 resends on 14/11. Per plan: no new code requested, no resend.",
+    "symptom1_likely_cause": "Telnyx did not send the message.received webhook to https://telnyx-sms-relay.vn-stock-ai.workers.dev/telnyx for either message. Hypotheses, in order: (a) at 18:41 ICT the webhook URL was not yet on profile 'SMS Receiving', or the number was not yet linked to the profile (the config was only confirmed at 21:16 ICT); (b) the 20:07 SMS was blocked by the Trial rule (unverified sender), and Telnyx does not send a webhook for blocked messages; (c) the profile's webhook URL is wrong or misspelled. A wrong path would show as a 404 at the matching minute, and none did, so a wrong host is more likely than a wrong path."
+  },
+  "fixed": [
+    "Turned on Workers Logs (observability, sampling 100%, persisted) for the telnyx-sms-relay worker via the settings API (code and secrets untouched) and pinned it in telnyx-sms-relay/wrangler.toml. Every future Telnyx webhook will be visible: time, path, status, signature-rejection log."
+  ],
+  "not_fixed_yet": [
+    "Telnyx config could not be changed or confirmed from here: no Telnyx API key found (not in the repo's GitHub secrets, not on the GitHub runner). The LV1 scan job (lv1-host in the 'Telnyx SMS relay diagnostics' workflow) is still queued because the LV1 runner is busy with the Colab run 43725322373. When it runs, it will look for Telnyx/Telegram/Discord keys and, if it finds a Telnyx key, read the number's profile, the profile's webhook URL and webhook_deliveries for 14-15/11.",
+    "End-to-end delivery of a real signed webhook through the worker is still unproven."
+  ],
+  "questions": [
+    {
+      "for": "liaison",
+      "ask": "In the Telnyx portal (lethanhdongus@gmail.com): (1) Messaging -> 'SMS Receiving': copy the exact Webhook URL / Failover URL / API version; (2) Numbers -> +12015785620 -> Messaging: confirm the profile is 'SMS Receiving'; (3) Debugging -> Webhooks (webhook delivery history) for 14-15/11: is there any message.received event at all? If there is, record the URL and HTTP status of each attempt. If there is a Telnyx API key (Auth -> API Keys), put it in the repo's GitHub Actions secret TELNYX_API_KEY so Hoplite can check this automatically."
+    },
+    {
+      "for": "liaison",
+      "ask": "Once the config is right: Henrry sends 1 SMS by hand from a VERIFIED number on the Telnyx trial account (an unverified number gets blocked under the trial rule and won't test anything). Hoplite then reads Workers Logs and analytics to confirm the webhook reached the worker (200) and was forwarded (subrequests=2)."
+    }
+  ],
+  "next_step": "Read the lv1-host job when the LV1 runner is free. Use the Telnyx data (or the liaison's answers) to fix the profile/number config, then verify with Workers Logs plus 1 hand-sent SMS from a verified number.",
+  "commits": []
+}
