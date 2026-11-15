@@ -352,7 +352,6 @@ jobs:
     if: ${{ inputs.p2a_v2_ablation && !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke }}
     runs-on: [self-hosted, colab-driver-lv1]
     timeout-minutes: 360
-    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - name: Download private v2 labels from audited source run
