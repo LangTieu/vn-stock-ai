@@ -19,6 +19,7 @@ from pathlib import Path
 REPO_ID = 'Jerlob/vn-stock-ai-p2a-checkpoints'
 HOLDOUT_URL = 'https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/resolve/main/p1_holdout.jsonl'
 LOCK_ROOT = Path.home() / '.cache/vn-stock-ai/p2-eval'
+QUEUE_ROOT = LOCK_ROOT / 'queue'
 RESULT_ROOT = Path(os.environ.get('P2_EVAL_OUTPUT_DIR', str(Path.home() / 'p2-evaluations')))
 ACCOUNT_ORDER = ('tk2', 'tk5')
 TKN = ('openid', 'https://www.googleapis.com/auth/userinfo.profile',

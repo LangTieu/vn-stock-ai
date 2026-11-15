@@ -57,6 +57,10 @@ class FinfoV2BuildTests(unittest.TestCase):
                 'p1_sha256': {train.name:digest(train), holdout.name:digest(holdout)},
                 'sessions_sha256': digest(sessions),
                 'endpoint_prices_sha256': digest(endpoints),
+                'p1_reports': {
+                    train.name:{'counts':{'p1_bulk_rows':1,'exact_session_endpoints_required':1}},
+                    holdout.name:{'counts':{'p1_bulk_rows':1,'exact_session_endpoints_required':1}},
+                },
             }), encoding='utf-8')
 
             out = root / 'labels'
@@ -68,6 +72,34 @@ class FinfoV2BuildTests(unittest.TestCase):
             self.assertFalse(summary['passes'])
             self.assertFalse(summary['adclose_endpoint_prices_in_artifact'])
             self.assertFalse((out / 'adjusted_prices.csv').exists())
+
+    def test_mismatched_exchange_prices_are_excluded_but_censoring_keeps_label_method_valid(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary); start=date(2024,1,1)
+            train=root/'p1_train.jsonl'; holdout=root/'p1_holdout.jsonl'
+            train.write_text(json.dumps(sample_row(start))+'\n')
+            holdout.write_text(json.dumps(sample_row(start))+'\n')
+            sessions=root/'sessions.csv.gz'
+            with gzip.open(sessions,'wt',newline='') as stream:
+                w=csv.DictWriter(stream,fieldnames=['exchange','date']);w.writeheader()
+                for offset in range(121):w.writerow({'exchange':'HOSE','date':(start+timedelta(days=offset)).isoformat()})
+            endpoints=root/'endpoints.csv.gz'
+            with gzip.open(endpoints,'wt',newline='') as stream:
+                w=csv.DictWriter(stream,fieldnames=['ticker','exchange','date','close','adClose']);w.writeheader()
+                w.writerow({'ticker':'AAA','exchange':'HOSE','date':start.isoformat(),'close':'10','adClose':'5'})
+                w.writerow({'ticker':'AAA','exchange':'HOSE','date':(start+timedelta(days=120)).isoformat(),'close':'11','adClose':'6'})
+            audit=root/'audit.json'
+            audit.write_text(json.dumps({
+                'fetch_errors_by_type':{},'exchange_mismatches':{'HOSE:HNX':3},
+                'p1_sha256':{train.name:digest(train),holdout.name:digest(holdout)},
+                'sessions_sha256':digest(sessions),'endpoint_prices_sha256':digest(endpoints),
+                'p1_reports':{p.name:{'counts':{'p1_bulk_rows':1,'exact_session_endpoints_required':1}}
+                              for p in (train,holdout)},
+            }))
+            result=build(train,holdout,sessions,endpoints,audit,root/'labels')
+        self.assertTrue(result['passes'])
+        self.assertEqual(result['mismatched_exchange_price_rows_excluded_and_censored'],{'HOSE:HNX':3})
+        self.assertFalse(result['adclose_endpoint_prices_in_artifact'])
 
     def test_rejects_fetch_errors_and_input_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -381,6 +381,47 @@ def execute_code(kc, code, timeout=1800, stream_output=False, stream_callback=No
     return outputs, reply
 
 
+def upload_file_code(data, remote_path, chunk_bytes=24 * 1024):
+    """Generate bounded, base64-only writes for a private Colab runtime file."""
+    import base64
+    from pathlib import PurePosixPath
+
+    remote = PurePosixPath(remote_path)
+    if (not remote.is_absolute() or remote.parts[:2] != ('/', 'content')
+            or '..' in remote.parts):
+        raise ValueError('Colab uploads are restricted to /content')
+    if chunk_bytes < 1024 or chunk_bytes > 64 * 1024:
+        raise ValueError('upload chunks must be between 1 KiB and 64 KiB')
+    chunks = [data[offset:offset + chunk_bytes]
+              for offset in range(0, len(data), chunk_bytes)]
+    if not chunks:
+        chunks = [b'']
+    for index, chunk in enumerate(chunks):
+        encoded = base64.b64encode(chunk).decode('ascii')
+        mode = 'wb' if index == 0 else 'ab'
+        yield ("import base64\nfrom pathlib import Path\n"
+               f"_p = Path({str(remote)!r})\n_p.parent.mkdir(parents=True, exist_ok=True)\n"
+               f"with _p.open({mode!r}) as _f: _f.write(base64.b64decode({encoded!r}, validate=True))\n")
+
+
+def upload_file(kc, local_path, remote_path):
+    """Transfer a small approved input file into the temporary Colab runtime."""
+    import hashlib
+
+    data = Path(local_path).read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    chunks = 0
+    for code in upload_file_code(data, remote_path):
+        _, reply = execute_code(kc, code, timeout=60)
+        if reply.get('content', {}).get('status') == 'error':
+            raise RuntimeError('Colab private input transfer failed')
+        chunks += 1
+    print(f'private input transferred: bytes={len(data)} chunks={chunks} sha256={digest}',
+          file=sys.stderr, flush=True)
+    return {'bytes': len(data), 'chunks': chunks, 'sha256': digest,
+            'remote_path': remote_path}
+
+
 def p2_eval_events(text, enabled=True):
     if not enabled:
         return []
@@ -626,7 +667,11 @@ def cmd_run(args):
             bootstrap_values["SAVE_STEPS"] = str(args.save_steps)
         if args.resume_checkpoint:
             bootstrap_values["RESUME_CHECKPOINT"] = args.resume_checkpoint
-        if os.environ.get("HF_CHECKPOINT_REPO"):
+        for key in ("TRAIN_URL", "TRAIN_MD5", "HOLDOUT_URL", "HOLDOUT_MD5",
+                    "P2A_LOCAL_TRAIN", "SKIP_EVAL", "UPLOAD_HF"):
+            if key in os.environ:
+                bootstrap_values[key] = os.environ[key]
+        if "HF_CHECKPOINT_REPO" in os.environ:
             bootstrap_values["HF_CHECKPOINT_REPO"] = os.environ["HF_CHECKPOINT_REPO"]
         hf_token = os.environ.get("HF_TOKEN")
         if bootstrap_values or hf_token:
@@ -648,6 +693,9 @@ def cmd_run(args):
                 ok = False
                 result["bootstrap_error"] = (reply["content"].get("ename", "")
                                              + ": " + reply["content"].get("evalue", ""))
+        if args.upload_file:
+            local_path, remote_path = args.upload_file
+            result['private_input_transfer'] = upload_file(kc, local_path, remote_path)
         if args.file.endswith(".ipynb"):
             import nbformat
 
@@ -805,6 +853,8 @@ def main(argv=None):
             sp.add_argument("--out", default="vncolab_result.json")
             sp.add_argument("--download", nargs=2, metavar=("REMOTE_PATH", "LOCAL_PATH"),
                             help="download a runtime directory or file as a local zip")
+            sp.add_argument("--upload-file", nargs=2, metavar=("LOCAL_PATH", "REMOTE_PATH"),
+                            help="transfer a small private input into /content of the temporary Colab runtime")
             sp.add_argument("--keep", action="store_true",
                             help="giu runtime sau khi chay xong")
             sp.add_argument("--mode", choices=["smoke", "full"], default=None,

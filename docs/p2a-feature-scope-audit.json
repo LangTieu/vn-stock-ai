@@ -1,0 +1,41 @@
+{
+  "checked_on": "2026-11-15",
+  "source_audit": "docs/p2a-drive-source-audit.json",
+  "inputs": [
+    {
+      "file": "p1_train.jsonl",
+      "sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "bulk_rows": 83942
+    },
+    {
+      "file": "p1_holdout.jsonl",
+      "sha256": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d",
+      "bulk_rows": 13824
+    }
+  ],
+  "bulk_rows_audited": 97766,
+  "sector_universe_feature_keys_found": [],
+  "sector_universe_listing_terms_in_prompts": 0,
+  "v2_model_input_transform": {
+    "version": "v2-ohlcv-indicators-only-v1",
+    "retained": [
+      "ticker",
+      "as_of",
+      "price.ohlcv",
+      "price.unit",
+      "indicators.*"
+    ],
+    "excluded": [
+      "sector",
+      "industry",
+      "universe/listing membership",
+      "flows",
+      "fundamentals",
+      "macro",
+      "signal_text",
+      "source metadata"
+    ]
+  },
+  "decision": "Liaison approved closing the feature-level survivorship gate by excluding unavailable point-in-time sector/universe inputs. This does not claim the P1-observed ticker/as-of population is a complete historical market universe.",
+  "passes_feature_scope_gate": true
+}

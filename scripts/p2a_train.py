@@ -127,6 +127,7 @@ SYSTEM = ('Dự báo hướng giá sau 120 phiên từ snapshot được cung c�
           'Trả lời đúng một từ: TĂNG hoặc GIẢM.')
 LABELS = {'UP': 'TĂNG', 'DOWN': 'GIẢM'}
 INPUT_TRANSFORM_VERSION = 'compact-coverage-date-lists-v1'
+V2_FEATURE_SCOPE_VERSION = 'v2-ohlcv-indicators-only-v1'
 VERIFIED_DATA_MARKER = 'VERIFIED_DATA\n'
 ISO_DATE_PATTERN = re.compile(r'^20\d{2}-\d{2}-\d{2}$')
 
@@ -235,8 +236,10 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'max_length': max_length,
         'model_id': MODEL_ID,
         'system_prompt_sha256': hashlib.sha256(SYSTEM.encode('utf-8')).hexdigest(),
-        'input_transform_version': INPUT_TRANSFORM_VERSION,
-        'population_scope': 'P1-observed ticker/as-of sample; not verified as full point-in-time market universe',
+        'input_transform_version': (INPUT_TRANSFORM_VERSION if label_version == 1 else
+                                    INPUT_TRANSFORM_VERSION + '+' + V2_FEATURE_SCOPE_VERSION),
+        'population_scope': ('P1-observed ticker/as-of sample; sector/universe features excluded; '
+                             'not a claim of complete point-in-time market coverage'),
         'label_method': label_method or ('120 source rows' if label_version == 1 else
                         'adjusted total-return close at 120 exchange sessions'),
         'flat_band_pct': flat_band_pct,
@@ -267,12 +270,15 @@ def validate_resume_manifest(checkpoint, current):
 
 def messages(row, stats=None):
     # P0 instructions require UNKNOWN and prohibit prediction, so P2a has its own task.
+    metadata = row.get('metadata') or {}
     return [{'role': 'system', 'content': SYSTEM},
-            {'role': 'user', 'content': compact_input(row['input'], stats)}]
+            {'role': 'user', 'content': compact_input(
+                row['input'], stats,
+                ohlcv_indicators_only=metadata.get('p2a_label_version', 1) == 2)}]
 
 
-def compact_input(text, stats=None):
-    """Remove verbose coverage-date arrays while retaining their summary fields."""
+def compact_input(text, stats=None, ohlcv_indicators_only=False):
+    """Compact coverage dates and apply the v2 OHLCV/indicator-only feature scope."""
     if VERIFIED_DATA_MARKER not in text:
         return text
     prefix, payload_text = text.split(VERIFIED_DATA_MARKER, 1)
@@ -281,6 +287,22 @@ def compact_input(text, stats=None):
     except (TypeError, ValueError):
         return text
     removed = 0
+    modified = False
+    if ohlcv_indicators_only and isinstance(payload, dict):
+        scoped = {key: payload[key] for key in ('ticker', 'as_of') if key in payload}
+        price = payload.get('price')
+        if isinstance(price, dict) and 'ohlcv' in price:
+            scoped['price'] = {'ohlcv': price['ohlcv']}
+            if 'unit' in price:
+                scoped['price']['unit'] = price['unit']
+        indicators = payload.get('indicators')
+        if isinstance(indicators, dict):
+            scoped['indicators'] = indicators
+        modified = scoped != payload
+        if stats is not None:
+            stats['non_ohlcv_features_removed'] = stats.get('non_ohlcv_features_removed', 0) + sum(
+                key not in ('ticker', 'as_of', 'price', 'indicators') for key in payload)
+        payload = scoped
 
     def compact(value):
         nonlocal removed
@@ -302,7 +324,7 @@ def compact_input(text, stats=None):
     compact(payload)
     if stats is not None:
         stats['coverage_dates_compacted'] = stats.get('coverage_dates_compacted', 0) + removed
-    if not removed:
+    if not removed and not modified:
         return text
     return prefix + VERIFIED_DATA_MARKER + json.dumps(
         payload, ensure_ascii=False, separators=(',', ':')) + payload_text[end:]

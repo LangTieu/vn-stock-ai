@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: p2-colab-tk2-tk5
+  cancel-in-progress: false
+
 jobs:
   evaluate:
     runs-on: [self-hosted, colab-driver-lv1]

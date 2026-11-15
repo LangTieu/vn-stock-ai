@@ -176,6 +176,8 @@ def relabel_file(source, output, manifest_path, calendar_path, prices_path,
         if exchange not in sessions or day not in sessions[exchange][1]:
             raise ValueError(f'adjusted price is not on its exchange calendar: {ticker} {exchange} {day}')
     stats = Counter()
+    censor_by_exchange = {}
+    censor_by_ticker = {}
     source_path = Path(source)
     if source_path.resolve() == output_path.resolve():
         raise ValueError('output must be a new path; source is never overwritten')
@@ -191,6 +193,7 @@ def relabel_file(source, output, manifest_path, calendar_path, prices_path,
                         output_stream.write(line if line.endswith('\n') else line + '\n')
                         stats['preserved_non_bulk'] += 1
                         continue
+                    ticker, exchange, _ = row_identity(row)
                     row, label = relabel_row(row, sessions, prices, flat_band_pct)
                 except Exception as error:
                     raise ValueError(f'{source}:{line_no}: {error}') from error
@@ -199,6 +202,8 @@ def relabel_file(source, output, manifest_path, calendar_path, prices_path,
                     stats['class_' + row['metadata']['label']['future_direction_120']] += 1
                 else:
                     stats['censored_' + label['reason']] += 1
+                    censor_by_exchange.setdefault(exchange, Counter())[label['reason']] += 1
+                    censor_by_ticker.setdefault(ticker, Counter())[label['reason']] += 1
                 output_stream.write(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n')
         os.replace(temp_output, output_path)
     finally:
@@ -211,6 +216,14 @@ def relabel_file(source, output, manifest_path, calendar_path, prices_path,
         'source': str(source), 'source_sha256': sha256(source),
         'calendar_sha256': sha256(calendar_path), 'adjusted_prices_sha256': sha256(prices_path),
         'output_sha256': sha256(output), 'counts': dict(sorted(stats.items())),
+        'censor_counts_by_exchange': {
+            exchange: dict(sorted(counts.items()))
+            for exchange, counts in sorted(censor_by_exchange.items())
+        },
+        'censor_counts_by_ticker': {
+            ticker: dict(sorted(counts.items()))
+            for ticker, counts in sorted(censor_by_ticker.items())
+        },
     }
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     temp_manifest = manifest_path.with_name(manifest_path.name + f'.tmp-{os.getpid()}')

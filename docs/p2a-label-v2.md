@@ -16,12 +16,16 @@
   unavailable, mark the row censored and exclude it from supervised training and
   directional scoring. Never substitute a later quote or silently discard a
   ticker. Keep censor counts by exchange and ticker.
-- Historical sector and exchange membership must be point-in-time. Current
-  ticker lists are not an acceptable survivorship-bias correction.
-- To prevent thousands of redundant flow-coverage dates from causing silent
-  training-row loss, train and eval use the same deterministic prompt transform:
-  omit only nested `coverage.dates` arrays while retaining their count, bounds and
-  status. The transform version is stored in every training manifest.
+- V2 model input is restricted to ticker/as-of context, OHLCV bars and technical
+  indicators. Sector, industry, universe/listing-membership, flow, fundamental,
+  macro, source and signal-text features are removed because reliable historical
+  point-in-time inputs are unavailable. Liaison approved this scope decision;
+  it closes the feature-level survivorship gate but does not claim P1 is a
+  complete historical market universe. See
+  `docs/p2a-feature-scope-audit.json`.
+- Train and eval use the same deterministic prompt transform. It omits verbose
+  coverage date arrays; for v2 it also retains only OHLCV and indicator inputs.
+  Both transform versions are fingerprinted in the training manifest.
   On the audited P1 files, this shortened 1,439/83,147 eligible train prompts
   (1.73%, 3,732,820 characters total) and 621/13,641 holdout prompts (4.55%,
   1,858,958 characters). Exact Qwen2.5-14B tokenization with the training template
@@ -60,16 +64,11 @@ checkpoints without a manifest must start from the base model, not be resumed.
 
 ## Current gate
 
-The real Drive OHLCV files restore observed sessions for the former 13,062
-train rows from 2014–2016; they do **not** contain adjusted prices. Exact raw
-120-session start/end quotes exist for 83,832/83,942 train rows and
-13,816/13,824 holdout rows. These are diagnostics only; 110 train and 8
-holdout rows lack an exact endpoint quote. There are still 0
-`adjusted_total_return_close` values and no verified corporate-action total
-return series. Historical event coverage/terms and point-in-time universe also
-remain incomplete. The production v2 labels and survivorship-bias pass are
-therefore still blocked; do not train from v1 labels or raw closes as if they
-were v2. See `docs/p2a-label-v2-data-gate.md`.
+Liaison-authorized Finfo `adClose` v2 labels were generated from exact 120th observed exchange-session endpoints. Train has 72,929 labeled and 11,013 censored of 83,942 rows; holdout has 13,570 labeled and 254 censored of 13,824 bulk rows. Censored rows have missing exact start/end adjusted prices; no later quote or synthetic value was substituted. Class/censor counts and input/output hashes are in `docs/p2a-finfo-adclose-coverage.json`.
+
+The v2 split audit reports zero forward-target overlap into holdout, zero ticker/as-of duplicates, zero duplicate prompts, and zero future prompt dates. The model input transform retains only ticker/as-of, OHLCV and technical indicators; sector/universe and other non-approved features are excluded. This passes the feature-level survivorship gate by Liaison decision, while the P1-observed sample is not claimed to cover every historical market listing. The audit is in `docs/p2a-data-audit-v2.json`; data-only baselines are in `docs/p2a-validation-baseline-v2.json`.
+
+Do not train on v1. The approved next step is a bounded Colab gradient smoke using only the v2 balanced slice (TK2 first; TK5 only after an assign HTTP 503; maximum 50 steps, default two). Full training remains paused for Henrry. Do not publish raw Finfo adjusted prices to HF or the repository.
 
 The reproducible v1 audit is saved at `docs/p2a-data-audit-v1.json`. It
 checks label counts, date gaps by exchange, ticker/date and prompt overlap,

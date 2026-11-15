@@ -100,6 +100,38 @@ class TrainingRowFilterTests(unittest.TestCase):
         self.assertEqual(parsed['flows']['trading_days'], dates)
         self.assertEqual(messages(row)[1]['content'], compacted)
 
+    def test_v2_messages_only_expose_ohlcv_and_indicators(self):
+        payload = {
+            'ticker': 'AAA', 'as_of': '2025-01-02', 'price': {
+                'unit': 'VND', 'ohlcv': {'close': 10, 'volume': 1000},
+                'change_pct_1d': 5,
+            },
+            'indicators': {'rsi14': 55, 'macd': 0.4},
+            'flows': {'foreign': {'net': 100}}, 'fundamentals': {'pe': 12},
+            'macro': {'gdp': 3}, 'signal_text': 'extra feature',
+            'source': {'ohlcv': 'raw'},
+        }
+        row = {'input': 'BRIEF: test\nVERIFIED_DATA\n' + json.dumps(payload),
+               'metadata': {'kind': 'bulk', 'p2a_label_version': 2}}
+        message = messages(row)[1]['content']
+        scoped = json.loads(message.split('VERIFIED_DATA\n', 1)[1])
+        self.assertEqual(set(scoped), {'ticker', 'as_of', 'price', 'indicators'})
+        self.assertEqual(set(scoped['price']), {'unit', 'ohlcv'})
+        self.assertEqual(scoped['indicators'], {'rsi14': 55, 'macd': 0.4})
+        self.assertNotIn('foreign', message)
+        self.assertNotIn('fundamentals', message)
+        self.assertNotIn('macro', message)
+
+    def test_v2_feature_scope_is_fingerprinted_but_v1_scope_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'train.jsonl'
+            path.write_text('fixture')
+            v1 = make_training_manifest(path, 1, 4096, 2)
+            v2 = make_training_manifest(path, 2, 4096, 2)
+        self.assertEqual(v1['input_transform_version'], 'compact-coverage-date-lists-v1')
+        self.assertEqual(v2['input_transform_version'],
+                         'compact-coverage-date-lists-v1+v2-ohlcv-indicators-only-v1')
+
 
 if __name__ == '__main__':
     unittest.main()

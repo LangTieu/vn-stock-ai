@@ -63,6 +63,10 @@ class RelabelTests(unittest.TestCase):
             self.assertIsNone(label['future_direction_120'])
             self.assertEqual(row['metadata']['p2a_label_status'], 'censored')
             self.assertEqual(result['counts']['censored_missing_endpoint_adjusted_close'], 1)
+            self.assertEqual(result['censor_counts_by_exchange']['HOSE'],
+                             {'missing_endpoint_adjusted_close': 1})
+            self.assertEqual(result['censor_counts_by_ticker']['AAA'],
+                             {'missing_endpoint_adjusted_close': 1})
 
 
 if __name__ == '__main__':

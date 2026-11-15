@@ -66,11 +66,18 @@ def build(train, holdout, sessions, endpoints, audit_path, output_dir):
             result['calendar_sha256'] = audit['sessions_sha256']
             result['finfo_endpoint_audit_p1_sha256'] = expected_hashes[source_path.name]
             result['adclose_endpoint_prices_exported'] = False
-            result['gate_status'] = 'label candidates only; full survivorship/sector gate is separate'
+            result['gate_status'] = 'OHLCV/indicator feature scope only; missing price endpoints are censored'
             manifest_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n',
                                      encoding='utf-8')
             manifests[label] = result
 
+    source_errors = audit.get('fetch_errors_by_type') or {}
+    exchange_mismatches = audit.get('exchange_mismatches') or {}
+    labeled_rows = sum(result['counts'].get('labeled', 0) for result in manifests.values())
+    directions = sum(
+        result['counts'].get('class_UP', 0) + result['counts'].get('class_DOWN', 0)
+        for result in manifests.values())
+    gate_passes = not source_errors and labeled_rows > 0 and directions > 0
     summary = {
         'method': 'VNDirect Finfo adClose; exact 120th observed exchange session; unavailable endpoints censored',
         'source': 'VNDirect Finfo API via api-finfo.vndirect.com.vn',
@@ -80,8 +87,26 @@ def build(train, holdout, sessions, endpoints, audit_path, output_dir):
         'endpoint_prices_sha256': audit['endpoint_prices_sha256'],
         'labels_generated': True,
         'adclose_endpoint_prices_in_artifact': False,
-        'passes': False,
-        'blocked_by': ['point-in-time listing/universe history', 'point-in-time sector history'],
+        'passes': gate_passes,
+        'blocked_by': ([] if gate_passes else [
+            reason for reason, condition in (
+                ('Finfo source fetch errors', bool(source_errors)),
+                ('no valid adjusted endpoint labels', labeled_rows == 0 or directions == 0),
+            ) if condition
+        ]),
+        'coverage_counts': {
+            split: audit['p1_reports'][Path(source_path).name]['counts']
+            for split, source_path in (('train', train), ('holdout', holdout))
+        },
+        'mismatched_exchange_price_rows_excluded_and_censored': exchange_mismatches,
+        'labeled_rows': labeled_rows,
+        'feature_scope': 'OHLCV and technical indicators only; sector, universe, flow, fundamental and macro features excluded by the v2 input transform',
+        'population_scope_limitation': 'The P1-observed ticker/as-of sample is retained; this is not a claim of complete market-universe sampling.',
+        'liaison_decisions': {
+            'internal_finfo_training_use_authorized': True,
+            'raw_adjusted_price_publication_prohibited': True,
+            'sector_universe_features_excluded_due_to_no_point_in_time_history': True,
+        },
         'splits': manifests,
     }
     (output_dir / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n',

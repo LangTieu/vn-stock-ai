@@ -9,6 +9,31 @@ from p2a_data_audit import audit
 
 
 class DatasetAuditTests(unittest.TestCase):
+    def test_audits_v2_censored_rows_with_missing_direction(self):
+        row={'input':'BRIEF: Mã AAA tại 2024-01-01\nVERIFIED_DATA\n'+json.dumps({
+             'ticker':'AAA','as_of':'2024-01-01','source':{'ohlcv':'data/train_HOSE.json'}}),
+             'metadata':{'kind':'bulk','exchange':'HOSE','p2a_label_version':2,
+                         'p2a_label_status':'censored','label':{'future_direction_120':None,
+                         'future_outcomes':{'120':{'status':'censored','reason':'missing_endpoint_adjusted_close'}}}}}
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'v2.jsonl'; path.write_text(json.dumps(row)+'\n')
+            result=audit([path])['reports'][0]
+        self.assertEqual(result['labels_by_as_of_year']['2024:None'],1)
+        self.assertEqual(result['labels_by_as_of_quarter']['2024-Q1:None'],1)
+
+    def test_reports_sector_and_universe_feature_fields(self):
+        row = {'input': 'BRIEF: Mã AAA tại 2024-01-01\nVERIFIED_DATA\n' + json.dumps({
+            'ticker': 'AAA', 'as_of': '2024-01-01',
+            'sector': 'banking', 'universe_membership': ['AAA'],
+            'source': {'ohlcv': 'data/train_HOSE.json'},
+        }), 'metadata': {'kind': 'bulk', 'label': {'future_direction_120': 'UP'}}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'train.jsonl'
+            path.write_text(json.dumps(row) + '\n')
+            report = audit([path])
+        self.assertIn('sector', report['reports'][0]['industry_sector_fields'])
+        self.assertIn('universe_membership', report['reports'][0]['industry_sector_fields'])
+
     def test_flags_future_prompt_dates_and_split_duplicates(self):
         row = {'input': 'BRIEF: Phân tích mã AAA tại 2024-01-01.\nVERIFIED_DATA\n'
                          + json.dumps({'ticker': 'AAA', 'as_of': '2024-01-01',

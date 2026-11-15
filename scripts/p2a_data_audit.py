@@ -100,7 +100,9 @@ def audit(paths, tokenizer_name=None):
             if isinstance(obj, dict):
                 for key, value in obj.items():
                     lowered = str(key).lower()
-                    if any(word in lowered for word in ('sector', 'industry', 'ngành', 'nganh')):
+                    if any(word in lowered for word in (
+                            'sector', 'industry', 'ngành', 'nganh', 'universe',
+                            'constituent', 'listing', 'delist', 'exchange_membership')):
                         sector_keys.add(str(key))
                     inspect_keys(value)
             elif isinstance(obj, list):
@@ -196,11 +198,14 @@ def audit(paths, tokenizer_name=None):
             'rows': dict(stats), 'labels': dict(labels), 'tickers': len(tickers),
             'labels_by_as_of_year': {
                 f'{year}:{label}': count
-                for (year, label), count in sorted(labels_by_as_of_year.items())
+                for (year, label), count in sorted(
+                    labels_by_as_of_year.items(), key=lambda item: (item[0][0], str(item[0][1])))
             },
             'labels_by_as_of_quarter': {
                 f'{year}-Q{quarter}:{label}': count
-                for (year, quarter, label), count in sorted(labels_by_as_of_quarter.items())
+                for (year, quarter, label), count in sorted(
+                    labels_by_as_of_quarter.items(),
+                    key=lambda item: (item[0][0], item[0][1], str(item[0][2])))
             },
             'max_rows_per_ticker': max(tickers.values(), default=0),
             'ticker_rows_p50_p90': ([sorted(tickers.values())[int(.5 * (len(tickers) - 1))],
