@@ -42,6 +42,7 @@ def validate(root, expected_p1_tickers=None):
     session_counts = Counter()
     session_duplicate_rows = 0
     session_source = Counter()
+    session_sources_by_exchange = defaultdict(Counter)
     path = root / 'exchange_sessions.csv.gz'
     reader, stream = _reader(path)
     missing = sorted(REQUIRED[path.name] - set(reader.fieldnames or ()))
@@ -60,11 +61,14 @@ def validate(root, expected_p1_tickers=None):
             sessions[exchange].add(day)
             session_counts[exchange] += 1
             session_source[row.get('source_index') or 'unspecified'] += 1
+            session_sources_by_exchange[exchange][row.get('source_index') or 'unspecified'] += 1
     stream.close()
     report['files'][path.name] = {'sha256': sha256(path), 'sessions_by_exchange':
                                   {k: len(v) for k, v in sorted(sessions.items())},
                                   'duplicate_session_rows': session_duplicate_rows,
-                                  'sources': dict(session_source)}
+                                  'sources': dict(session_source),
+                                  'sources_by_exchange': {ex: dict(v) for ex, v in sorted(
+                                      session_sources_by_exchange.items())}}
 
     ticker_dates = defaultdict(set)
     prices_by_exchange = Counter()
@@ -176,6 +180,12 @@ def validate(root, expected_p1_tickers=None):
     report['gate'] = {
         'source_artifacts_schema_valid': not report['errors'],
         'official_exchange_session_calendar': False,
+        'sourced_early_closures_plus_observed_index_sessions': all(
+            any('weekday_calendar_minus_cited_exchange_closures' in source
+                for source in session_sources_by_exchange[exchange])
+            and any(source in {'VNINDEX', 'HNXINDEX', 'UPCOMINDEX'}
+                    for source in session_sources_by_exchange[exchange])
+            for exchange in ('HOSE', 'HNX', 'UPCOM')),
         'documented_adjusted_total_return_price': bool(adjusted_present),
         'historical_universe_point_in_time': False,
         'historical_sector_membership_point_in_time': history_valid_intervals > 0,
