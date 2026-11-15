@@ -118,7 +118,7 @@ def _safe_api_error(response):
 
 def inventory(token_file, output):
     import requests
-    from google.auth.transport.requests import Request
+    from google.auth.transport.requests import AuthorizedSession, Request
     from google.oauth2.credentials import Credentials
 
     credentials = Credentials.from_authorized_user_file(str(token_file))
@@ -126,11 +126,10 @@ def inventory(token_file, output):
         if not credentials.expired or not credentials.refresh_token:
             raise RuntimeError('Google Drive OAuth credentials cannot be refreshed')
         credentials.refresh(Request())
-    session = requests.Session()
-    session.headers.update({'Authorization': f'Bearer {credentials.token}'})
     client_project = str(getattr(credentials, 'client_id', '') or '').split('-', 1)[0]
     if client_project.isdigit():
-        session.headers['x-goog-user-project'] = client_project
+        credentials = credentials.with_quota_project(client_project)
+    session = AuthorizedSession(credentials)
     query = QUERY
     page_token = None
     files = []
@@ -190,6 +189,7 @@ def inventory(token_file, output):
         'oauth_drive_file_scope_present': credentials.has_scopes(
             ['https://www.googleapis.com/auth/drive.file']),
         'quota_project_source': ('OAuth client project' if client_project.isdigit() else None),
+        'quota_project_configured': bool(getattr(credentials, 'quota_project_id', None)),
         'drive_api_access_error': access_error,
         'expected_file_names': sorted(EXPECTED),
         'matching_file_count': len(records),
