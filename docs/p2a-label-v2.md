@@ -42,11 +42,14 @@ requires:
 3. The original P1 JSONL dataset.
 
 `scripts/p2a_build_session_calendar.py` includes a date only when an observed
-exchange-index row or a positive-close stock-price row exists for it. Sourced
-closure notices are used only to reject conflicting observed dates; they never
-create sessions. The builder records source hashes and provenance. With the
-current Finhay snapshot this means there are no sessions before 2017; missing
-historical dates remain missing and must be obtained from another real source.
+exchange-index row or a positive-close stock-price row exists for it. The
+liaison-provided source files are now mirrored under
+`raw-2014-2026/` in the P1 HF dataset. Their observed rows supply 3,204 session
+dates per exchange from 2014-01-02 through 2026-11-06; no dates are generated
+from weekdays. The audit compares those dates to Finhay's observed index bars
+over 2017-01-03–2026-11-06; HOSE has two additional observed price dates that
+Finhay's index file lacks. Source hashes and counts are recorded in
+`docs/p2a-drive-source-audit.json`.
 
 The generated manifest hashes the input, calendar, price table and output, and
 reports class/censor counts. The resulting train and holdout checksums must be
@@ -57,15 +60,16 @@ checkpoints without a manifest must start from the base model, not be resumed.
 
 ## Current gate
 
-The real Finhay snapshot has now been checked against P1. It contains 0
-documented adjusted total-return closes, starts stock-price history in 2017
-(while P1 starts in 2014), omits one P1 ticker, and has no point-in-time listing
-or sector history. The previous calendar builder version generated 2014–2016
-weekday dates from closure notices; that inferred segment is not a valid data
-source and has been removed. Raw-price-only endpoint coverage is diagnostic and
-not a valid substitute for total-return labels. The production v2 dataset and
-survivorship-bias pass remain blocked; do not train from old labels or
-unadjusted closes as if they were v2. See `docs/p2a-label-v2-data-gate.md`.
+The real Drive OHLCV files restore observed sessions for the former 13,062
+train rows from 2014–2016; they do **not** contain adjusted prices. Exact raw
+120-session start/end quotes exist for 83,832/83,942 train rows and
+13,816/13,824 holdout rows. These are diagnostics only; 110 train and 8
+holdout rows lack an exact endpoint quote. There are still 0
+`adjusted_total_return_close` values and no verified corporate-action total
+return series. Historical event coverage/terms and point-in-time universe also
+remain incomplete. The production v2 labels and survivorship-bias pass are
+therefore still blocked; do not train from v1 labels or raw closes as if they
+were v2. See `docs/p2a-label-v2-data-gate.md`.
 
 The reproducible v1 audit is saved at `docs/p2a-data-audit-v1.json`. It
 checks label counts, date gaps by exchange, ticker/date and prompt overlap,
