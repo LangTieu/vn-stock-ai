@@ -219,6 +219,7 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'model_id': MODEL_ID,
         'system_prompt_sha256': hashlib.sha256(SYSTEM.encode('utf-8')).hexdigest(),
         'input_transform_version': INPUT_TRANSFORM_VERSION,
+        'population_scope': 'P1-observed ticker/as-of sample; not verified as full point-in-time market universe',
         'label_method': label_method or ('120 source rows' if label_version == 1 else
                         'adjusted total-return close at 120 exchange sessions'),
         'flat_band_pct': flat_band_pct,
@@ -238,7 +239,7 @@ def validate_resume_manifest(checkpoint, current):
     saved = json.loads(manifest_path.read_text(encoding='utf-8'))
     for key in ('label_version', 'train_sha256', 'max_length', 'model_id', 'system_prompt_sha256',
                 'input_transform_version',
-                'flat_band_pct', 'lora', 'target_modules', 'training', 'epochs'):
+                'population_scope', 'flat_band_pct', 'lora', 'target_modules', 'training', 'epochs'):
         if saved.get(key) != current.get(key):
             raise ValueError(f'Resume checkpoint {key} mismatch: '
                              f'{saved.get(key)!r} != {current.get(key)!r}; start from base model')
@@ -606,6 +607,7 @@ def main():
     (final / 'p2a_config.json').write_text(json.dumps({'model': MODEL_ID,
         'system': SYSTEM, 'horizon_sessions': 120, 'flat_band_pct': training_manifest['flat_band_pct'],
         'label_version': label_version,
+        'population_scope': training_manifest['population_scope'],
         'probability': 'normalized label sequence likelihood',
         'probability_bins': [0, 0.25, 0.5, 0.75, 1]}, ensure_ascii=False, indent=2))
     if upload_hf:
