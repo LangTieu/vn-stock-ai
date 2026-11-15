@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-11-15T07:53:50.960983Z",
+  "updated_at": "2026-11-15T07:54:21.607644Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
-  "blocked": null,
+  "blocked": "Mục 1: Finfo adClose audit/label workflow đang chạy (run 43691791091). Dù Liaison đã cho phép internal training, overall gate vẫn cần historical listing/delisting/universe và sector point-in-time evidence hoặc Liaison quyết định bỏ requirement đó. Mục 2 smoke chỉ chạy sau khi v2 data hợp lệ; không dùng v1.",
   "questions": [
     "Liaison/Muse: provide point-in-time historical listing/delisting/universe and sector membership, or decide whether sector/universe features may be excluded to close the survivorship gate.",
     "Liaison/Muse: confirm the approved GPU smoke route after private v2 labels are built; do not use P1 v1 labels."
@@ -21,6 +21,7 @@
     "09ff304",
     "47240bb",
     "9f539e1",
-    "e7db5ea"
+    "e7db5ea",
+    "6af5bed"
   ]
 }
