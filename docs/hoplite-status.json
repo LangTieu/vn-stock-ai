@@ -1,16 +1,17 @@
 {
-  "updated_at": "2026-11-15T14:37:15.296001Z",
+  "updated_at": "2026-11-15T23:15:20.946723Z",
   "current_item": 4,
   "done": [
     1,
     2,
     3,
+    4,
     5
   ],
-  "in_progress": 4,
+  "in_progress": null,
   "blocked": null,
   "questions": [],
-  "next_step": "Root cause from run 43719957320 is fixed: eval cell 9 now imports json for its metrics parse, verified by regression test. Retry 43725322373 is running on review/p2-async-evaluation with source 43691791091, 12 steps, internal 2024 validation, unchanged training settings; TK2 first/TK5 only on assignment HTTP 503. Inspect the result artifact/logs before declaring success; no merge/full training.",
+  "next_step": "Item 4 ablation is complete as a bounded exploratory comparison. Baseline configuration ranked highest within the three trials, but all were below simple direction-accuracy and Brier baselines on this tiny internal validation slice. Do not start full training from these results; full training remains paused for separate Liaison selection and Henrry approval. The external holdout remains compromised for pristine-test claims.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -60,24 +61,87 @@
     "8de74ef",
     "8c49896",
     "f6b60cc",
-    "ef200f2"
+    "ef200f2",
+    "2a11bea"
   ],
   "last_ablation_attempt": {
-    "run_id": 43719957320,
-    "conclusion": "failure",
-    "profile": "tk5",
-    "trial": "baseline",
-    "failure_diagnostic": {
-      "kind": "notebook_error",
-      "exception_type": "NameError",
-      "cell_index": 9
+    "run_id": 43725322373,
+    "conclusion": "success",
+    "artifact_id": 14170730720,
+    "artifact_name": "p2a-v2-controlled-ablation",
+    "artifact_size_bytes": 9432,
+    "artifact_expires_at": "2026-11-29",
+    "source_label_run_id": 43691791091,
+    "label_version": 2,
+    "max_steps_per_trial": 12,
+    "seed": 42,
+    "split": {
+      "validation_year": 2024,
+      "train_target_endpoint_max": "2023-12-26",
+      "validation_as_of_min": "2024-01-02",
+      "external_holdout_used_for_selection": false,
+      "train_rows": 128,
+      "validation_rows": 64,
+      "train_slice_sha256": "b4de731e8d6ba7ee6cc61d23c3d2325949350694f022ae94228fc3685df95895",
+      "validation_slice_sha256": "b6bee90e7eb8296e076f7886c6c4bee03e9b39090c890a8b74880a07c418c7d7"
     },
-    "tk5_fallback": "TK2 assignment returned HTTP 503; TK5 ran as authorized fallback",
-    "finite_gradient_norm_observations": 48,
-    "nonfinite_guard_triggered": false,
-    "validation_metrics": null,
-    "root_cause": "Root exception is NameError in notebook eval cell 9. The cell calls json.loads(metrics_path.read_text()), but no preceding executed notebook cell imports json into the shared kernel namespace; importing the P2a training module does not bind json in the notebook globals. The subprocess argv str() correction was valid but did not address this separate missing import.",
-    "fix_plan": "Add import json in eval cell 9 and a regression test that the cell declares its direct imports before use. Keep training configuration unchanged. Run the targeted/full checks, then retry once for this newly diagnosed root cause; stop if it fails and inspect that run rather than changing parameters."
+    "trials": [
+      {
+        "name": "baseline",
+        "profile": "tk2",
+        "lora_r": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 0.0001,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.46875,
+        "macro_f1": 0.4682306940371457,
+        "brier": 0.27515066267169097,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      },
+      {
+        "name": "lower_learning_rate",
+        "profile": "tk2",
+        "lora_r": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 5e-05,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.46875,
+        "macro_f1": 0.4666666666666667,
+        "brier": 0.34576657697460356,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      },
+      {
+        "name": "lower_lora_rank",
+        "profile": "tk2",
+        "lora_r": 4,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 0.0001,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.4375,
+        "macro_f1": 0.43529411764705883,
+        "brier": 0.27854838508106783,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      }
+    ],
+    "selected_config": "baseline (LoRA r=8, alpha=32, dropout=0.1, LR=1e-4)",
+    "selection_rule": "highest direction accuracy, then macro-F1, then lowest Brier",
+    "simple_baselines": {
+      "majority_accuracy": 0.5,
+      "majority_macro_f1": 0.3333333333333333,
+      "constant_prevalence_brier": 0.25
+    },
+    "interpretation": "Baseline is the within-ablation winner by direction accuracy, then macro-F1, then Brier tie-break if needed; however all three trials have lower direction accuracy than majority baseline and worse Brier than constant-prevalence baseline. These 12-step runs are exploratory only, not evidence of useful predictive skill or authorization for full training.",
+    "tk5_fallback": "not used; all three trials ran on TK2 and no assignment HTTP 503 occurred",
+    "full_training_started": false
   },
   "latest_ablation_run_id": 43725322373
 }
