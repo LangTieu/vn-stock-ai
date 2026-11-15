@@ -457,5 +457,70 @@
         "status": "not_accessed_for_bulk_data"
       }
     ]
+  },
+  "adjusted_price_source_followup": {
+    "checked_on": "2026-11-15",
+    "raw_source_schema_check": {
+      "files_checked": [
+        "train_2014_2026_HOSE.json",
+        "train_2014_2026_HNX.json",
+        "train_2014_2026_UPCOM.json",
+        "train_2014_2026_OTC.json"
+      ],
+      "adjusted_close_aliases_checked": [
+        "adClose",
+        "adjustedClose",
+        "adjusted_close"
+      ],
+      "adjusted_close_field_found": false,
+      "observed_bar_fields": [
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ]
+    },
+    "finhay_events_api": {
+      "method": "GET",
+      "route": "/market/stocks/{symbol}/events",
+      "documentation": "https://developers.fhsc.com.vn/api-reference/tin-tuc-su-kien/su-kien-quyen-cua-stock",
+      "auth_documentation": "https://developers.fhsc.com.vn/authentication",
+      "documented_auth_header": "X-FH-APIKEY",
+      "documented_params": [
+        "from",
+        "to",
+        "event_type",
+        "page",
+        "page_size"
+      ],
+      "history_completeness_guarantee": false,
+      "adjustment_formula_documented": false,
+      "authenticated_collection_attempted": false,
+      "current_runtime_fhsc_api_secret_present": false,
+      "no_auth_probe_http_status": 401,
+      "probe_body_saved": false
+    },
+    "finhay_history_api": {
+      "route": "GET /market/quotes/stocks/{symbol}/history",
+      "documentation": "https://developers.fhsc.com.vn/api-reference/bang-gia-thi-truong/lich-su-gia-co-phieu",
+      "documented_adjusted_close_field": false
+    },
+    "exchange_rule_references": [
+      {
+        "id": "22/QD-HDTV",
+        "scope": "HOSE/HNX listed securities",
+        "url": "https://thuvienphapluat.vn/van-ban/Chung-khoan/Quyet-dinh-22-QD-HDTV-2026-Quy-che-Niem-yet-va-giao-dich-chung-khoan-niem-yet-699119.aspx",
+        "used_to_calculate_prices": false
+      },
+      {
+        "id": "23/QD-HDTV",
+        "scope": "UPCoM unlisted securities",
+        "url": "https://luatvietnam.vn/chung-khoan/quyet-dinh-23-qd-hdtv-2026-ban-hanh-quy-che-dang-ky-va-quan-ly-giao-dich-chung-khoan-chua-niem-yet-435227-d1.html",
+        "used_to_calculate_prices": false
+      }
+    ],
+    "disposition": "No source currently provides a verified adjusted total-return history with complete historical event terms and coverage. No adjusted prices or v2 labels were computed; label gate remains blocked."
   }
 }
