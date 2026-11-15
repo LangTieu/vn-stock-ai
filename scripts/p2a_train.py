@@ -5,6 +5,7 @@ import math
 import os
 import hashlib
 import gzip
+import re
 import shutil
 import time
 from pathlib import Path
@@ -118,6 +119,9 @@ SYSTEM = ('Dự báo hướng giá sau 120 phiên từ snapshot được cung c�
           'Đây là dự báo thống kê, không phải khuyến nghị giao dịch. '
           'Trả lời đúng một từ: TĂNG hoặc GIẢM.')
 LABELS = {'UP': 'TĂNG', 'DOWN': 'GIẢM'}
+INPUT_TRANSFORM_VERSION = 'compact-coverage-date-lists-v1'
+VERIFIED_DATA_MARKER = 'VERIFIED_DATA\n'
+ISO_DATE_PATTERN = re.compile(r'^20\d{2}-\d{2}-\d{2}$')
 
 
 def rows(path, limit=0, stats=None):
@@ -214,6 +218,7 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'max_length': max_length,
         'model_id': MODEL_ID,
         'system_prompt_sha256': hashlib.sha256(SYSTEM.encode('utf-8')).hexdigest(),
+        'input_transform_version': INPUT_TRANSFORM_VERSION,
         'label_method': label_method or ('120 source rows' if label_version == 1 else
                         'adjusted total-return close at 120 exchange sessions'),
         'flat_band_pct': flat_band_pct,
@@ -232,20 +237,58 @@ def validate_resume_manifest(checkpoint, current):
                          'training configuration; start from the base model')
     saved = json.loads(manifest_path.read_text(encoding='utf-8'))
     for key in ('label_version', 'train_sha256', 'max_length', 'model_id', 'system_prompt_sha256',
+                'input_transform_version',
                 'flat_band_pct', 'lora', 'target_modules', 'training', 'epochs'):
         if saved.get(key) != current.get(key):
             raise ValueError(f'Resume checkpoint {key} mismatch: '
                              f'{saved.get(key)!r} != {current.get(key)!r}; start from base model')
 
 
-def messages(row):
+def messages(row, stats=None):
     # P0 instructions require UNKNOWN and prohibit prediction, so P2a has its own task.
     return [{'role': 'system', 'content': SYSTEM},
-            {'role': 'user', 'content': row['input']}]
+            {'role': 'user', 'content': compact_input(row['input'], stats)}]
+
+
+def compact_input(text, stats=None):
+    """Remove verbose coverage-date arrays while retaining their summary fields."""
+    if VERIFIED_DATA_MARKER not in text:
+        return text
+    prefix, payload_text = text.split(VERIFIED_DATA_MARKER, 1)
+    try:
+        payload, end = json.JSONDecoder().raw_decode(payload_text)
+    except (TypeError, ValueError):
+        return text
+    removed = 0
+
+    def compact(value):
+        nonlocal removed
+        if isinstance(value, dict):
+            for key, item in list(value.items()):
+                if (key == 'dates' and isinstance(item, list)
+                        and isinstance(value.get('count'), int)
+                        and all(isinstance(day, str) and ISO_DATE_PATTERN.fullmatch(day)
+                                for day in item)
+                        and ('status' in value or 'from' in value or 'to' in value)):
+                    del value[key]
+                    removed += len(item)
+                else:
+                    compact(item)
+        elif isinstance(value, list):
+            for item in value:
+                compact(item)
+
+    compact(payload)
+    if stats is not None:
+        stats['coverage_dates_compacted'] = stats.get('coverage_dates_compacted', 0) + removed
+    if not removed:
+        return text
+    return prefix + VERIFIED_DATA_MARKER + json.dumps(
+        payload, ensure_ascii=False, separators=(',', ':')) + payload_text[end:]
 
 
 def encode(row, tokenizer, max_length, stats=None):
-    prefix = tokenizer.apply_chat_template(messages(row), tokenize=True,
+    prefix = tokenizer.apply_chat_template(messages(row, stats), tokenize=True,
                                            add_generation_prompt=True)
     target = tokenizer.encode(LABELS[row['metadata']['label']['future_direction_120']],
                               add_special_tokens=False) + [tokenizer.eos_token_id]
@@ -261,7 +304,8 @@ def encode(row, tokenizer, max_length, stats=None):
 
 def load_dataset(path, tokenizer, max_length, limit=0):
     from datasets import Dataset
-    stats = {'skipped': 0, 'longest_over_limit_tokens': 0, 'censored': 0, 'flat': 0}
+    stats = {'skipped': 0, 'longest_over_limit_tokens': 0, 'censored': 0, 'flat': 0,
+             'coverage_dates_compacted': 0}
 
     def generate():
         for row in rows(path, limit, stats):
@@ -272,6 +316,7 @@ def load_dataset(path, tokenizer, max_length, limit=0):
     data = Dataset.from_generator(generate)
     print(f"ENCODING_FILTER skipped={stats['skipped']} flat={stats['flat']} "
           f"censored={stats['censored']} "
+          f"coverage_dates_compacted={stats['coverage_dates_compacted']} "
           f"longest_over_limit_tokens={stats['longest_over_limit_tokens']} max_length={max_length}",
           flush=True)
     return data

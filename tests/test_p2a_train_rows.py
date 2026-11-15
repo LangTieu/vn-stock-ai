@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_train import (dataset_label_spec, dataset_label_version, make_training_manifest, rows,
-                       validate_resume_manifest)
+from p2a_train import (compact_input, dataset_label_spec, dataset_label_version,
+                       make_training_manifest, messages, rows, validate_resume_manifest)
 
 
 class TrainingRowFilterTests(unittest.TestCase):
@@ -55,6 +55,24 @@ class TrainingRowFilterTests(unittest.TestCase):
             (checkpoint / 'p2a_training_manifest.json').write_text(json.dumps(saved))
             with self.assertRaisesRegex(ValueError, 'train_sha256 mismatch'):
                 validate_resume_manifest(checkpoint, manifest)
+
+    def test_prompt_compacts_only_coverage_date_arrays_and_keeps_summary(self):
+        dates = [f'2023-01-{day:02d}' for day in range(1, 22)]
+        payload = {'ticker': 'AAA', 'flows': {'foreign': {
+            'last20_coverage': {'count': 21, 'dates': dates, 'from': dates[0],
+                                'to': dates[-1], 'status': 'partial_recent_rows'}},
+            'trading_days': dates}}
+        row = {'input': 'BRIEF: test\nVERIFIED_DATA\n' + json.dumps(payload)}
+        before = row['input']
+        compacted = compact_input(before)
+        self.assertLess(len(compacted), len(before))
+        parsed = json.loads(compacted.split('VERIFIED_DATA\n', 1)[1])
+        coverage = parsed['flows']['foreign']['last20_coverage']
+        self.assertNotIn('dates', coverage)
+        self.assertEqual((coverage['count'], coverage['from'], coverage['to'], coverage['status']),
+                         (21, dates[0], dates[-1], 'partial_recent_rows'))
+        self.assertEqual(parsed['flows']['trading_days'], dates)
+        self.assertEqual(messages(row)[1]['content'], compacted)
 
 
 if __name__ == '__main__':

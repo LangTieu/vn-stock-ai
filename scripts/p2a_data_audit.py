@@ -49,10 +49,9 @@ def audit(paths, tokenizer_name=None):
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         try:
-            from .p2a_train import LABELS, SYSTEM
+            from .p2a_train import LABELS, messages as train_messages
         except ImportError:
-            from p2a_train import LABELS, SYSTEM
-        system_prompt = SYSTEM
+            from p2a_train import LABELS, messages as train_messages
         target_lengths = {label: len(tokenizer.encode(value, add_special_tokens=False)) + 1
                           for label, value in LABELS.items()}
     reports = []
@@ -159,9 +158,7 @@ def audit(paths, tokenizer_name=None):
                 inspect_keys(verified)
                 prompt_hashes[_hash_text(text)] += 1
                 if tokenizer and direction in ('UP', 'DOWN'):
-                    messages = [{'role': 'system', 'content': system_prompt},
-                                {'role': 'user', 'content': text}]
-                    token_batch.append((messages, direction, exchange, ticker,
+                    token_batch.append((train_messages(row), direction, exchange, ticker,
                                         as_of[:4] if as_of else 'unknown'))
                     if len(token_batch) >= 128:
                         count_token_batch()
@@ -183,6 +180,8 @@ def audit(paths, tokenizer_name=None):
         report = {
             'file': path.name, 'bytes': path.stat().st_size,
             'sha256': sha256(path),
+            'tokenizer_transform': 'p2a_train.messages / ' +
+                                   ("compact-coverage-date-lists-v1" if tokenizer else 'not-run'),
             'rows': dict(stats), 'labels': dict(labels), 'tickers': len(tickers),
             'max_rows_per_ticker': max(tickers.values(), default=0),
             'ticker_rows_p50_p90': ([sorted(tickers.values())[int(.5 * (len(tickers) - 1))],

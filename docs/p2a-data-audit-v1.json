@@ -71,16 +71,39 @@
       "industry_sector_fields": [],
       "future_prompt_date_examples": [],
       "token_lengths": {
-        "eligible_rows": 83147,
+        "tokenizer": "Qwen/Qwen2.5-14B-Instruct",
         "max_length": 4096,
-        "over_limit": 515,
-        "over_limit_pct": 0.619,
-        "over_limit_by_direction": {
-          "UP": 301,
-          "DOWN": 214
+        "transform_version": "compact-coverage-date-lists-v1",
+        "before_transform": {
+          "eligible_rows": 83147,
+          "rows_over_4096": 515,
+          "rows_over_4096_pct": 0.619,
+          "rows_over_4000": 528,
+          "p50": 1489,
+          "p90": 1510,
+          "p95": 1514,
+          "p99": 3073,
+          "max": 7217,
+          "over_4096_by_direction": {
+            "UP": 301,
+            "DOWN": 214
+          }
         },
-        "max_tokens": 7217,
-        "method": "Qwen2.5-14B-Instruct tokenizer + p2a SYSTEM chat template + target tokens"
+        "after_transform": {
+          "eligible_rows": 83147,
+          "rows_compacted": 1439,
+          "rows_compacted_pct": 1.731,
+          "chars_saved": 3732820,
+          "max_input_chars": 3500,
+          "effective_token_lengths": {
+            "p50": 1489,
+            "p90": 1510,
+            "p99": 1552,
+            "max": 1669
+          },
+          "rows_over_4096": 0
+        },
+        "method": "Exact tokenizer + training chat template + supervised target tokens"
       }
     },
     {
@@ -152,16 +175,39 @@
       "industry_sector_fields": [],
       "future_prompt_date_examples": [],
       "token_lengths": {
-        "eligible_rows": 13641,
+        "tokenizer": "Qwen/Qwen2.5-14B-Instruct",
         "max_length": 4096,
-        "over_limit": 261,
-        "over_limit_pct": 1.913,
-        "over_limit_by_direction": {
-          "UP": 151,
-          "DOWN": 110
+        "transform_version": "compact-coverage-date-lists-v1",
+        "before_transform": {
+          "eligible_rows": 13641,
+          "rows_over_4096": 261,
+          "rows_over_4096_pct": 1.913,
+          "rows_over_4000": 272,
+          "p50": 1498,
+          "p90": 1515,
+          "p95": 1527,
+          "p99": 5533,
+          "max": 6906,
+          "over_4096_by_direction": {
+            "UP": 151,
+            "DOWN": 110
+          }
         },
-        "max_tokens": 6906,
-        "method": "Qwen2.5-14B-Instruct tokenizer + p2a SYSTEM chat template + target tokens"
+        "after_transform": {
+          "eligible_rows": 13641,
+          "rows_compacted": 621,
+          "rows_compacted_pct": 4.552,
+          "chars_saved": 1858958,
+          "max_input_chars": 3508,
+          "effective_token_lengths": {
+            "p50": 1498,
+            "p90": 1515,
+            "p99": 1645,
+            "max": 1676
+          },
+          "rows_over_4096": 0
+        },
+        "method": "Exact tokenizer + training chat template + supervised target tokens"
       }
     }
   ],

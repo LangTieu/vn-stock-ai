@@ -9,14 +9,26 @@
   series cannot be verified, do not publish a v2 dataset.
 - `UP` means return > +2%; `DOWN` means return < -2%; otherwise the target is
   `FLAT`. This is a deadband to avoid assigning a direction to near-zero moves.
-  The P2a binary direction task excludes FLAT from its UP/DOWN objective and
-  reports FLAT coverage separately.
+- The P2a binary direction task excludes FLAT from its UP/DOWN objective and
+  reports FLAT coverage separately. The ±2% band is the implementation's
+  default candidate and must be part of each dataset's explicit label manifest.
 - If 120 future exchange sessions or an adjusted close at either endpoint are
   unavailable, mark the row censored and exclude it from supervised training and
   directional scoring. Never substitute a later quote or silently discard a
   ticker. Keep censor counts by exchange and ticker.
 - Historical sector and exchange membership must be point-in-time. Current
   ticker lists are not an acceptable survivorship-bias correction.
+- To prevent thousands of redundant flow-coverage dates from causing silent
+  training-row loss, train and eval use the same deterministic prompt transform:
+  omit only nested `coverage.dates` arrays while retaining their count, bounds and
+  status. The transform version is stored in every training manifest.
+  On the audited P1 files, this shortened 1,439/83,147 eligible train prompts
+  (1.73%, 3,732,820 characters total) and 621/13,641 holdout prompts (4.55%,
+  1,858,958 characters). Exact Qwen2.5-14B tokenization with the training template
+  then measured zero eligible examples over 4,096 tokens; maximums were 1,669
+  train and 1,676 holdout tokens. The old untransformed audit found 515 and 261
+  overlength rows respectively. These measurements are saved in
+  `docs/p2a-data-audit-v1.json`.
 
 ## Rebuild inputs
 
