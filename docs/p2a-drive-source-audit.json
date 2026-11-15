@@ -1,0 +1,355 @@
+{
+  "audit_date": "2026-11-15",
+  "input_source": "https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/tree/main/raw-2014-2026",
+  "source_method": "OHLCV JSONs declare finfo-vndirect (2014-2016) plus finhay-fhsc (2017-2026); calendar includes only valid-close dates observed in those rows.",
+  "source_files": {
+    "HOSE": {
+      "file": "train_2014_2026_HOSE.json",
+      "sha256": "5126fc62f1210b0b4cc4bc5c4843e4f007a89376ea935ed387407c8950f09395",
+      "bytes": 130111601,
+      "source_description": "finfo-vndirect(2014-2016)+finhay-fhsc(2017-2026)",
+      "declared_range": [
+        "2014-01-01",
+        "2026-11-08"
+      ],
+      "tickers_in_source": 432,
+      "tickers_with_valid_ohlcv": 432,
+      "source_rows": 1132961,
+      "rows_by_year": {
+        "2014": 61531,
+        "2015": 64804,
+        "2016": 69574,
+        "2017": 77202,
+        "2018": 85085,
+        "2019": 90231,
+        "2020": 93572,
+        "2021": 96758,
+        "2022": 98521,
+        "2023": 100033,
+        "2024": 102426,
+        "2025": 104021,
+        "2026": 89203
+      },
+      "observed_sessions": 3204,
+      "observed_date_range": [
+        "2014-01-02",
+        "2026-11-06"
+      ],
+      "data_quality_counts": {
+        "ohlc_order_mismatch_rows": 1119,
+        "ohlcv_rows": 1132961
+      }
+    },
+    "HNX": {
+      "file": "train_2014_2026_HNX.json",
+      "sha256": "0ef3b7f06d5e2c60fc64b90504b8441da94e4121ea02734c3c5c943aad2c21d3",
+      "bytes": 85490376,
+      "source_description": "finfo-vndirect(2014-2016)+finhay-fhsc(2017-2026)",
+      "declared_range": [
+        "2014-01-01",
+        "2026-11-08"
+      ],
+      "tickers_in_source": 299,
+      "tickers_with_valid_ohlcv": 299,
+      "source_rows": 871616,
+      "rows_by_year": {
+        "2014": 51591,
+        "2015": 54881,
+        "2016": 60315,
+        "2017": 64262,
+        "2018": 67974,
+        "2019": 69436,
+        "2020": 71347,
+        "2021": 72662,
+        "2022": 73672,
+        "2023": 74172,
+        "2024": 74487,
+        "2025": 74326,
+        "2026": 62491
+      },
+      "observed_sessions": 3204,
+      "observed_date_range": [
+        "2014-01-02",
+        "2026-11-06"
+      ],
+      "data_quality_counts": {
+        "ohlc_order_mismatch_rows": 401,
+        "ohlcv_rows": 871616
+      }
+    },
+    "UPCOM": {
+      "file": "train_2014_2026_UPCOM.json",
+      "sha256": "3f018dab0f2a8ecbac0409bca307971b089c69c8abbaecf5e70f46b64ce8f219",
+      "bytes": 184797806,
+      "source_description": "finfo-vndirect(2014-2016)+finhay-fhsc(2017-2026)",
+      "declared_range": [
+        "2014-01-01",
+        "2026-11-08"
+      ],
+      "tickers_in_source": 809,
+      "tickers_with_valid_ohlcv": 809,
+      "source_rows": 1916394,
+      "rows_by_year": {
+        "2014": 52378,
+        "2015": 59507,
+        "2016": 77775,
+        "2017": 118666,
+        "2018": 151657,
+        "2019": 166977,
+        "2020": 177155,
+        "2021": 182257,
+        "2022": 186267,
+        "2023": 188793,
+        "2024": 191944,
+        "2025": 194617,
+        "2026": 167371
+      },
+      "observed_sessions": 3204,
+      "observed_date_range": [
+        "2014-01-02",
+        "2026-11-06"
+      ],
+      "data_quality_counts": {
+        "invalid_close_rows": 1030,
+        "ohlc_order_mismatch_rows": 4417,
+        "ohlcv_rows": 1916394
+      }
+    },
+    "OTC": {
+      "file": "train_2014_2026_OTC.json",
+      "sha256": "4d2a42e1e0c8156f0e3a509ec5188b1ab96945b3e308d26536600de44778902c",
+      "bytes": 5308,
+      "source_description": "finfo-vndirect(2014-2016)+finhay-fhsc(2017-2026)",
+      "declared_range": [
+        "2014-01-01",
+        "2026-11-08"
+      ],
+      "tickers_in_source": 24,
+      "tickers_with_valid_ohlcv": 0,
+      "source_rows": 0,
+      "rows_by_year": {},
+      "observed_sessions": 0,
+      "observed_date_range": null,
+      "data_quality_counts": {}
+    }
+  },
+  "normalized_outputs": {
+    "daily_prices_sha256": "ad4280ee69670a26e528d2e2f88b3ccb5ac2e777dbe63fa77b0cbaa1d9303d8a",
+    "exchange_sessions_sha256": "eb43751c92bdce88ef0213d280524a439d200ebe290529111b1c03df043cda10",
+    "observed_sessions_by_exchange": {
+      "HOSE": 3204,
+      "HNX": 3204,
+      "UPCOM": 3204,
+      "OTC": 0
+    },
+    "adjusted_total_return_rows": 0,
+    "normalization_rule": "all-zero placeholders removed; positive close kept; OHLC order mismatch flagged; no adjustment inferred"
+  },
+  "finhay_index_crosscheck": {
+    "HNX": {
+      "comparison_range": [
+        "2017-01-03",
+        "2026-11-06"
+      ],
+      "finhay_index_sessions_in_overlap": 2458,
+      "drive_observed_dates_in_overlap": 2458,
+      "drive_missing_vs_finhay_index_in_overlap": 0,
+      "drive_extra_vs_finhay_index_in_overlap": 0,
+      "drive_missing_examples": [],
+      "drive_extra_examples": [],
+      "drive_dates_after_index_coverage": 0,
+      "finhay_index_dates_after_drive_coverage": 5
+    },
+    "HOSE": {
+      "comparison_range": [
+        "2017-01-03",
+        "2026-11-06"
+      ],
+      "finhay_index_sessions_in_overlap": 2456,
+      "drive_observed_dates_in_overlap": 2458,
+      "drive_missing_vs_finhay_index_in_overlap": 0,
+      "drive_extra_vs_finhay_index_in_overlap": 2,
+      "drive_missing_examples": [],
+      "drive_extra_examples": [
+        "2018-01-23",
+        "2018-01-24"
+      ],
+      "drive_dates_after_index_coverage": 0,
+      "finhay_index_dates_after_drive_coverage": 5
+    },
+    "UPCOM": {
+      "comparison_range": [
+        "2017-01-03",
+        "2026-11-06"
+      ],
+      "finhay_index_sessions_in_overlap": 2458,
+      "drive_observed_dates_in_overlap": 2458,
+      "drive_missing_vs_finhay_index_in_overlap": 0,
+      "drive_extra_vs_finhay_index_in_overlap": 0,
+      "drive_missing_examples": [],
+      "drive_extra_examples": [],
+      "drive_dates_after_index_coverage": 0,
+      "finhay_index_dates_after_drive_coverage": 5
+    }
+  },
+  "p1_ticker_overlap_by_exchange": {
+    "HOSE": 414,
+    "HNX": 296,
+    "UPCOM": 612,
+    "OTC": 0
+  },
+  "p1_coverage": [
+    {
+      "file": "p1_train.jsonl",
+      "sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "counts": {
+        "endpoint_is_raw_unadjusted_only": 83832,
+        "missing_endpoint_price": 110,
+        "raw_price_endpoints_available": 83832
+      },
+      "raw_close_120_sessions_diagnostic_only": {
+        "DOWN": 40302,
+        "UP": 42472,
+        "ZERO": 1058,
+        "abs_return_le_0.5_pct": 1939,
+        "abs_return_le_1_pct": 3261,
+        "abs_return_le_2_pct": 6145,
+        "abs_return_le_5_pct": 14476
+      },
+      "rows_by_year": {
+        "2014:missing_endpoint_price": 10,
+        "2014:p1_rows": 1036,
+        "2014:raw_price_endpoints_available": 1026,
+        "2015:missing_endpoint_price": 25,
+        "2015:p1_rows": 5488,
+        "2015:raw_price_endpoints_available": 5463,
+        "2016:missing_endpoint_price": 3,
+        "2016:p1_rows": 6538,
+        "2016:raw_price_endpoints_available": 6535,
+        "2017:missing_endpoint_price": 25,
+        "2017:p1_rows": 7053,
+        "2017:raw_price_endpoints_available": 7028,
+        "2018:missing_endpoint_price": 12,
+        "2018:p1_rows": 7693,
+        "2018:raw_price_endpoints_available": 7681,
+        "2019:missing_endpoint_price": 7,
+        "2019:p1_rows": 8054,
+        "2019:raw_price_endpoints_available": 8047,
+        "2020:missing_endpoint_price": 8,
+        "2020:p1_rows": 9130,
+        "2020:raw_price_endpoints_available": 9122,
+        "2021:missing_endpoint_price": 4,
+        "2021:p1_rows": 11187,
+        "2021:raw_price_endpoints_available": 11183,
+        "2022:missing_endpoint_price": 9,
+        "2022:p1_rows": 11545,
+        "2022:raw_price_endpoints_available": 11536,
+        "2023:missing_endpoint_price": 5,
+        "2023:p1_rows": 11084,
+        "2023:raw_price_endpoints_available": 11079,
+        "2024:missing_endpoint_price": 2,
+        "2024:p1_rows": 5134,
+        "2024:raw_price_endpoints_available": 5132
+      },
+      "rows_by_exchange": {
+        "HNX:p1_rows": 20718,
+        "HNX:raw_price_endpoints_available": 20715,
+        "HOSE:p1_rows": 37719,
+        "HOSE:raw_price_endpoints_available": 37682,
+        "UPCOM:p1_rows": 25505,
+        "UPCOM:raw_price_endpoints_available": 25435
+      }
+    },
+    {
+      "file": "p1_holdout.jsonl",
+      "sha256": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d",
+      "counts": {
+        "endpoint_is_raw_unadjusted_only": 13816,
+        "missing_endpoint_price": 8,
+        "raw_price_endpoints_available": 13816
+      },
+      "raw_close_120_sessions_diagnostic_only": {
+        "DOWN": 7578,
+        "UP": 6033,
+        "ZERO": 205,
+        "abs_return_le_0.5_pct": 440,
+        "abs_return_le_1_pct": 745,
+        "abs_return_le_2_pct": 1497,
+        "abs_return_le_5_pct": 3541
+      },
+      "rows_by_year": {
+        "2025:missing_endpoint_price": 7,
+        "2025:p1_rows": 10820,
+        "2025:raw_price_endpoints_available": 10813,
+        "2026:missing_endpoint_price": 1,
+        "2026:p1_rows": 3004,
+        "2026:raw_price_endpoints_available": 3003
+      },
+      "rows_by_exchange": {
+        "HNX:p1_rows": 3110,
+        "HNX:raw_price_endpoints_available": 3110,
+        "HOSE:p1_rows": 6325,
+        "HOSE:raw_price_endpoints_available": 6318,
+        "UPCOM:p1_rows": 4389,
+        "UPCOM:raw_price_endpoints_available": 4388
+      }
+    }
+  ],
+  "corporate_action_snapshot": {
+    "BOND_INTEREST": {
+      "rows": 1,
+      "year_2024": 1
+    },
+    "BONUS_SHARE": {
+      "rows": 220,
+      "year_2025": 67,
+      "missing_ratio": 15,
+      "year_2026": 70,
+      "year_2024": 41,
+      "year_2023": 42
+    },
+    "CASH_DIVIDEND": {
+      "rows": 3182,
+      "year_2026": 733,
+      "missing_amount": 724,
+      "year_2025": 826,
+      "year_2024": 831,
+      "year_2023": 790,
+      "year_2022": 2
+    },
+    "RIGHTS_OFFERING": {
+      "rows": 160,
+      "year_2023": 26,
+      "missing_right_ratio_or_price": 23,
+      "year_2026": 36,
+      "year_2025": 64,
+      "year_2024": 34
+    },
+    "SHAREHOLDER_MEETING": {
+      "rows": 6934,
+      "year_2026": 1735,
+      "year_2025": 1934,
+      "year_2024": 1671,
+      "year_2023": 1593,
+      "year_2021": 1
+    },
+    "STOCK_DIVIDEND": {
+      "rows": 530,
+      "year_2023": 124,
+      "missing_ratio": 42,
+      "year_2026": 150,
+      "year_2025": 138,
+      "year_2024": 118
+    }
+  },
+  "gates": {
+    "all_p1_as_ofs_have_observed_session": true,
+    "documented_total_return_prices": false,
+    "historical_corporate_action_coverage_complete": false,
+    "full_historical_universe_point_in_time": false,
+    "point_in_time_sector_history": false,
+    "passes": false
+  },
+  "labels_generated": false,
+  "train_started": false
+}
