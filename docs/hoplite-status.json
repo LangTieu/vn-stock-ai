@@ -1,0 +1,18 @@
+{
+  "updated_at": "2026-11-15T07:28:02.339456Z",
+  "current_item": 1,
+  "done": [],
+  "in_progress": 1,
+  "blocked": "Mục 1: chưa có giá adjusted/total-return có coverage và semantics xác minh. VNDirect Finfo query đã timeout; cần Actions run có thể truy cập Finfo/API hoặc dữ liệu adjusted có giấy phép. Finhay Events cần X-FH-APIKEY; runtime chưa có key/secret phù hợp và truy cập không xác thực trả 401. Không tự tính labels từ nguồn thiếu.",
+  "questions": [
+    "Liaison: có thể dispatch workflow GitHub Actions nào (tên/inputs) để lấy VNDirect Finfo? Cần đảm bảo runner truy cập finfo-api.vndirect.com.vn và artifact gồm dữ liệu/coverage cho ticker, exchange, date, adClose cùng tài liệu semantics/license.",
+    "Liaison: nếu Finfo không đủ, có thể cấp X-FH-APIKEY qua secret được phép hoặc cung cấp dataset corporate-action/adjusted price lịch sử được cấp phép không?",
+    "Henrry: xác nhận cho phép GPU smoke/train ngắn để chẩn đoán NaN gradient ở mục 2? Trước đó có quy tắc không train mới cho đến khi có chốt rõ."
+  ],
+  "next_step": "Kiểm tra Actions workflows/runs và permission read/write cho Finfo extraction; song song audit code/tests mục 2 và validation/baseline mục 3 mà không khởi chạy training.",
+  "commits": [
+    "855cad8",
+    "baf7261",
+    "d3264a1"
+  ]
+}
