@@ -57,6 +57,17 @@ class ColabAblationTests(unittest.TestCase):
         self.assertEqual(failure_diagnostic('ValueError: invalid run', 1, False),
                          {'kind': 'colab_process_failed'})
 
+    def test_failure_diagnostic_uses_sanitized_notebook_error_metadata(self):
+        result = {'error': '', 'cells': [
+            {'i': 7, 'error': 'RuntimeError: CUDA out of memory while processing private data'}]}
+        self.assertEqual(
+            failure_diagnostic('', 1, False, result),
+            {'kind': 'cuda_out_of_memory', 'exception_type': 'RuntimeError', 'cell_index': 7})
+        self.assertEqual(
+            failure_diagnostic('', 1, False,
+                               {'error': 'ConnectionError: private endpoint detail'}),
+            {'kind': 'notebook_error', 'exception_type': 'ConnectionError'})
+
     def test_ablation_refuses_a_split_without_internal_temporal_separation(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

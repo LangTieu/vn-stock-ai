@@ -26,7 +26,8 @@ NONFINITE_GRADIENT = re.compile(
 NONFINITE_LOSS = re.compile(r'Non-finite P2a loss before backward: ([^\s]+)')
 
 
-def failure_diagnostic(text, return_code, result_ok):
+def failure_diagnostic(text, return_code, result_ok, result=None):
+    result = result or {}
     gradient = NONFINITE_GRADIENT.search(text)
     if gradient:
         return {'kind': 'nonfinite_gradient', 'optimizer_step': int(gradient.group(1)),
@@ -34,6 +35,29 @@ def failure_diagnostic(text, return_code, result_ok):
     loss = NONFINITE_LOSS.search(text)
     if loss:
         return {'kind': 'nonfinite_loss', 'loss': loss.group(1)}
+    evidence = []
+    if result.get('error'):
+        evidence.append((None, str(result['error'])))
+    evidence.extend((cell.get('i'), str(cell['error']))
+                    for cell in result.get('cells', []) if cell.get('error'))
+    for cell_index, error in evidence:
+        exception = re.search(r'\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception))\b', error)
+        lower = error.lower()
+        signature = next((name for phrase, name in (
+            ('non-finite p2a gradient', 'nonfinite_gradient'),
+            ('non-finite p2a loss', 'nonfinite_loss'),
+            ('cuda out of memory', 'cuda_out_of_memory'),
+            ('timed out', 'timeout'),
+            ('http 401', 'http_401'), ('http 403', 'http_403'),
+            ('http 503', 'http_503'), ('kernel died', 'kernel_died'),
+            ('no such file', 'missing_file'),
+        ) if phrase in lower), 'notebook_error')
+        diagnostic = {'kind': signature}
+        if exception:
+            diagnostic['exception_type'] = exception.group(1).rsplit('.', 1)[-1]
+        if cell_index is not None:
+            diagnostic['cell_index'] = cell_index
+        return diagnostic
     if return_code:
         return {'kind': 'colab_process_failed'}
     if not result_ok:
@@ -131,7 +155,7 @@ def run_trial(profile,trial,train_slice,validation_slice,max_steps,timeout,work_
             'training_slice_md5':train_md5,'validation_slice_md5':holdout_md5,
             'ok':ok,
             'failure_diagnostic':None if ok else failure_diagnostic(
-                text,proc.returncode,result.get('ok') is True),
+                text,proc.returncode,result.get('ok') is True,result),
             'assign_503':bool(ASSIGN_503.search(text)),
         }
     finally:

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T11:57:13.621682Z",
+  "updated_at": "2026-11-15T12:57:11.409314Z",
   "current_item": 4,
   "done": [
     1,
@@ -10,7 +10,7 @@
   "in_progress": 4,
   "blocked": null,
   "questions": [],
-  "next_step": "Numerical-stability retry 43711359409 is running from review/p2-async-evaluation at 12 steps/trial, with fp16 initial loss scale 1024, source run 43691791091, and internal 2024 validation. Verify all three trials and sanitized metrics. TK5 only on confirmed TK2 assignment HTTP 503; no merge/full training.",
+  "next_step": "Do not retry without diagnostics. Fix the ablation result summarizer to classify safe exception types/signatures from vncolab top-level/cell errors without exposing full Colab output. Dispatch one instrumented diagnostic ablation on review/p2-async-evaluation (source 43691791091, 12 steps, internal 2024 split, TK2-first/TK5 only on 503); use the preserved signature to make the runtime fix before another full ablation cycle. No merge/full training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -52,23 +52,24 @@
     "a9c7ab4",
     "25588fb",
     "7b137b2",
-    "025e6c6"
+    "025e6c6",
+    "ab87ec4"
   ],
   "last_ablation_attempt": {
-    "run_id": 43709776433,
+    "run_id": 43711359409,
     "conclusion": "failure",
-    "profile": "tk2",
+    "profile": "tk5",
     "trial": "baseline",
     "return_code": 1,
+    "finite_gradient_norm_observations": 48,
+    "nonfinite_guard_triggered": false,
     "failure_diagnostic": {
-      "kind": "nonfinite_gradient",
-      "optimizer_step": 1,
-      "parameter": "base_model.model.model.layers.0.self_attn.q_proj.lora_A.default.weight"
+      "kind": "colab_process_failed"
     },
-    "tk5_fallback": "not attempted; TK2 preflight was clear and no assign HTTP 503 was recorded",
+    "tk5_fallback": "TK2 preflight passed, then its Colab assignment returned HTTP 503; the approved TK5 fallback ran. TK5 attempt itself had no assignment 503.",
     "validation_metrics": null,
     "internal_split": "2024 validation; train target endpoint max 2023-12-26 before validation as-of min 2024-01-02; external holdout unused",
-    "diagnosis": "The first synchronized LoRA gradient is non-finite under fp16. The notebook enables fp16, and pinned Accelerate 1.6.0 defaults its GradScaler init_scale to 65536; the custom finite-gradient guard aborts before GradScaler can adapt. Retry lowers initial scale to 1024 while keeping the guard. The requested 12-step cap is now honored (previous smoke branch clamped it to 2)."
+    "diagnosis": "This run did not reproduce the step-1 non-finite gradient: it recorded 48 finite gradient-norm observations and no non-finite guard. It still exited 1 on the TK5 baseline, before validation metrics. The Actions log exposes only the wrapper summary; run_trial captures vncolab stdout/stderr and does not upload the Colab result JSON, while failure_diagnostic ignored vncolab top-level/cell error fields. Therefore the runtime root exception is not retained and cannot be established from this run. The fp16 loss-scale change is not shown to explain this second failure."
   },
   "latest_ablation_run_id": 43711359409
 }
