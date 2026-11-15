@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T10:01:59.111871Z",
+  "updated_at": "2026-11-15T10:06:18.938762Z",
   "current_item": 4,
   "done": [
     1,
@@ -8,9 +8,9 @@
     5
   ],
   "in_progress": 4,
-  "blocked": null,
+  "blocked": "Corrected ablation run 43702070325 stopped before GPU allocation: its assignment-preflight step was run with system python3 after dependencies were installed only in $HOME/vncolab-venv, causing ModuleNotFoundError: No module named google. No Colab runtime was allocated; no trial ran and no artifact was produced. The guard now invokes the venv Python.",
   "questions": [],
-  "next_step": "Leakage-safe ablation retry 43702070325 is queued on the latest branch. Verify data preparation uses internal 2024 validation and train target endpoint strictly before validation as_of, run TK2 trials (baseline, half LR, rank 4), and record metrics/best config. External holdout is not used; full training remains paused.",
+  "next_step": "Commit and test the assignment-guard interpreter fix, then rerun leakage-safe ablation with 12 steps/trial. The prior preflight did not query TK2 assignments; the corrected retry will perform the read-only query before allocation. Full training stays paused.",
   "commits": [
     "855cad8",
     "baf7261",

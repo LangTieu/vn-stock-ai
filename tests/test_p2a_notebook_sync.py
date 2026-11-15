@@ -55,6 +55,7 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn('p2a_ablation_steps', workflow)
         self.assertIn('max 50; default 12', workflow)
         self.assertIn('source_run_id', workflow)
+        self.assertIn('"$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2', workflow)
 
     def test_notebook_exposes_verified_dataset_hashes_and_ablation_settings(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
