@@ -89,13 +89,15 @@ def build(closures_path, index_sessions_path, output_path, manifest_path, price_
                 'source_index': index_source[(exchange, day)],
                 'source_reference': 'Finhay daily exchange-index history'}
 
-    price_session_rows = 0
+    price_rows_examined = 0
+    new_sessions_from_prices = 0
     if price_sessions_path:
         with gzip.open(price_sessions_path, 'rt', newline='', encoding='utf-8') as stream:
             reader = csv.DictReader(stream)
             if not {'exchange', 'date', 'open', 'high', 'low', 'close'} <= set(reader.fieldnames or ()):
                 raise ValueError('Finhay daily prices must contain exchange,date,OHLC columns')
             for row in reader:
+                price_rows_examined += 1
                 exchange = row['exchange'].strip().upper()
                 if exchange not in EXCHANGES:
                     continue
@@ -119,7 +121,7 @@ def build(closures_path, index_sessions_path, output_path, manifest_path, price_
                     row_map[key] = {'exchange': exchange, 'date': day.isoformat(),
                                     'source_index': 'Finhay stock OHLCV bar',
                                     'source_reference': 'Finhay daily stock OHLCV history'}
-                price_session_rows += 1
+                    new_sessions_from_prices += 1
 
     rows = list(row_map.values())
 
@@ -142,7 +144,8 @@ def build(closures_path, index_sessions_path, output_path, manifest_path, price_
         'output_sha256': sha256(output_path),
         'rows_by_exchange_year': {f'{ex}:{year}': count for (ex, year), count in sorted(years.items())},
         'derived_weekday_rows_2014_2016': early_counts,
-        'additional_stock_price_session_rows': price_session_rows,
+        'stock_price_rows_examined': price_rows_examined,
+        'new_sessions_added_from_stock_prices': new_sessions_from_prices,
         'official_session_status': 'early dates are derived from cited exchange holiday notices and weekdays; later dates are observed index bars',
     }
     manifest_path = Path(manifest_path)

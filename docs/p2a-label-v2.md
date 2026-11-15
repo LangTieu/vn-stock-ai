@@ -60,15 +60,15 @@ checkpoints without a manifest must start from the base model, not be resumed.
 
 ## Current gate
 
-The old P1 JSONLs are available. A sourced 2014–2016 holiday table and calendar
-builder now exist; the Finhay collector supplies observed exchange-index sessions
-from 2017 onward. However, raw P1 source OHLCV for 2014–2016, documented
-corporate-action-adjusted prices, complete historical ticker universe, and
-point-in-time sectors are not yet available. The old source fields identify
-`data/train_2014_2026_*.json`, which is not in this checkout. Thus the relabeler
-has only synthetic tests so far, and a production v2 dataset or
-survivorship-bias pass has not been completed. Do not train from old labels as if
-they were v2.
+The real Finhay snapshot has now been checked against P1. It contains 0
+documented adjusted total-return closes, starts stock-price history in 2017
+(while P1 starts in 2014), omits one P1 ticker, and has no point-in-time listing
+or sector history. The 2014–2016 session calendar is notice-derived rather than
+an official daily calendar. Raw-price-only endpoint coverage is diagnostic and
+not a valid substitute for total-return labels. The production v2 dataset and
+survivorship-bias pass are therefore still blocked; do not train from old labels
+or unadjusted closes as if they were v2. See the measured gate and checksums in
+`docs/p2a-label-v2-data-gate.md`.
 
 The reproducible v1 audit is saved at `docs/p2a-data-audit-v1.json`. It
 checks label counts, date gaps by exchange, ticker/date and prompt overlap,
