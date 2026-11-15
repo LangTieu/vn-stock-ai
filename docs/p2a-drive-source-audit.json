@@ -500,7 +500,8 @@
       "authenticated_collection_attempted": false,
       "current_runtime_fhsc_api_secret_present": false,
       "no_auth_probe_http_status": 401,
-      "probe_body_saved": false
+      "probe_body_saved": false,
+      "current_runtime_fhsc_api_key_present": false
     },
     "finhay_history_api": {
       "route": "GET /market/quotes/stocks/{symbol}/history",
@@ -521,6 +522,46 @@
         "used_to_calculate_prices": false
       }
     ],
-    "disposition": "No source currently provides a verified adjusted total-return history with complete historical event terms and coverage. No adjusted prices or v2 labels were computed; label gate remains blocked."
+    "disposition": "No source currently provides a verified adjusted total-return history with complete historical event terms and coverage. No adjusted prices or v2 labels were computed; label gate remains blocked.",
+    "vndirect_finfo_api": {
+      "base_url": "https://finfo-api.vndirect.com.vn/v4/stock_prices/",
+      "attempts": [
+        {
+          "symbol": "VCB",
+          "period": [
+            "2026-11-01",
+            "2026-11-15"
+          ],
+          "result": "timeout"
+        },
+        {
+          "symbol": "VCB",
+          "period": [
+            "2014-01-01",
+            "2014-12-31"
+          ],
+          "result": "timeout"
+        },
+        {
+          "symbol": "FPT",
+          "period": [
+            "2014-01-01",
+            "2014-12-31"
+          ],
+          "result": "timeout"
+        }
+      ],
+      "sandbox_dns_addresses": [
+        "10.210.100.8"
+      ],
+      "field_evidence": "Public third-party Finfo examples include adClose; this is not a direct current API response or a coverage/semantics guarantee.",
+      "data_collected": false,
+      "remaining_unknowns": [
+        "current endpoint access",
+        "2014-2026 coverage by P1 ticker/exchange",
+        "adjustment semantics and units",
+        "license/terms"
+      ]
+    }
   }
 }
