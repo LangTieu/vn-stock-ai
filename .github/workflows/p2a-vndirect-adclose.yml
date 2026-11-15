@@ -1,20 +1,20 @@
 name: Audit VNDirect Finfo adjusted-close coverage
 
 on:
-  push:
-    branches: [review/p2-async-evaluation]
-    paths:
-      - '.github/workflows/p2a-vndirect-adclose.yml'
-      - 'scripts/p2a_finfo_adclose_audit.py'
-      - 'scripts/p2a_normalize_drive_ohlcv.py'
-      - 'scripts/p2a_relabel.py'
   workflow_dispatch:
+    inputs:
+      source_use_approved:
+        description: "Confirm Liaison has documented permission for this Finfo data collection"
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   audit:
+    if: inputs.source_use_approved == true && vars.VNDIRECT_DATA_LICENSE_CONFIRMED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -39,6 +39,8 @@ jobs:
             --otc /tmp/p2a-finfo/raw/OTC.json \
             --output-dir /tmp/p2a-finfo/normalized
       - name: Fetch Finfo adClose at exact P1 endpoints
+        env:
+          VNDIRECT_DATA_LICENSE_CONFIRMED: ${{ vars.VNDIRECT_DATA_LICENSE_CONFIRMED }}
         run: |
           python3 scripts/p2a_finfo_adclose_audit.py \
             --p1 /tmp/p2a-finfo/p1/p1_train.jsonl.gz \

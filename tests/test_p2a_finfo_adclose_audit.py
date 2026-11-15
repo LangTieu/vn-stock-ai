@@ -8,7 +8,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_finfo_adclose_audit import audit, fetch_symbol, load_sessions
+from p2a_finfo_adclose_audit import (audit, fetch_symbol, load_sessions,
+                                     require_authorized_data_use)
 
 
 def p1_row(day):
@@ -22,6 +23,12 @@ def p1_row(day):
 
 
 class FinfoAdCloseAuditTests(unittest.TestCase):
+    def test_bulk_collection_requires_explicit_data_use_authorization(self):
+        for value in ('', 'false', None):
+            with self.assertRaisesRegex(PermissionError, 'permission is confirmed'):
+                require_authorized_data_use(value)
+        require_authorized_data_use('true')
+
     def test_loads_gzipped_observed_session_calendar(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / 'sessions.csv.gz'

@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-11-15T07:37:00.713951Z",
+  "updated_at": "2026-11-15T07:39:16.392212Z",
   "current_item": 1,
   "done": [],
   "in_progress": 1,
-  "blocked": "Mục 1: Actions run 43690604095 đang lấy adClose cho P1 endpoints sau khi sửa gzip-calendar parser; coverage và license chưa xác minh. Mục 2: không thể chạy smoke-train với P1 label v1 (trainer chặn) và sandbox không có torch/CUDA; chỉ thị plan yêu cầu không dùng nhãn sai. Mục 3: audit split/baseline v1 chạy xong nhưng v2 validation chưa thể pass trước gate.",
+  "blocked": "Mục 1: Finfo terms chính thức nói dữ liệu website chỉ cho mục đích cá nhân và tái phân phối cần chấp thuận bằng văn bản; chưa rõ phạm vi áp dụng cho API và model training. Actions run 43690604095 đã cancelled; GitHub xác nhận 0 artifacts. Workflow/script khóa bulk fetch tới khi có quyền bằng văn bản. Cần Liaison cung cấp xác nhận quyền sử dụng/license hoặc nguồn thay thế. Mục 2: không thể chạy smoke-train với P1 label v1 (trainer chặn) và sandbox không có torch/CUDA; chờ dataset v2 hợp lệ và đường smoke được phép. Mục 3: audit split/baseline v1 chạy xong nhưng v2 validation chưa thể pass trước gate.",
   "questions": [
-    "Liaison/Muse: xác nhận quyền/điều khoản dùng dữ liệu VNDirect Finfo `adClose` qua API `api-finfo.vndirect.com.vn` cho nhãn/dataset nội bộ. Trang VNDirect mô tả adjusted close là điều chỉnh tiền mặt cổ tức, split, bonus và quyền mua; cần xác nhận field API hiện tại và license.",
+    "Liaison/Muse: xin văn bản/điều khoản cho phép dùng dữ liệu giá VNDirect Finfo qua API `api-finfo.vndirect.com.vn` để tính nhãn và train model nội bộ. Website terms chỉ cho personal use, cấm redistribution nếu chưa được chấp thuận bằng văn bản; terms chưa nói rõ API/model training. Workflow bulk đã khóa cho tới khi có xác nhận.",
     "Liaison/Muse: nếu Finfo API không đủ coverage hoặc không được phép dùng, cung cấp nguồn adjusted total-return lịch sử 2014–2026 có license/terms hoặc API key X-FH-APIKEY trong secret được phép.",
     "Liaison/Muse: khi có dataset v2 đã qua gate, xác nhận đường chạy GPU smoke ngắn (Colab/T4 qua workflow) để chẩn đoán NaN gradients; không chạy model train/eval trước khi dataset đủ điều kiện."
   ],
-  "next_step": "Theo dõi Actions run 43690604095 và tải artifact khi xong; đối chiếu coverage adClose, gaps, exchange mismatch và nguồn license. Sau đó tiếp tục mục 2/3 bằng dữ liệu hợp lệ, không dừng chờ trả lời Liaison.",
+  "next_step": "Run 43690604095 đã dừng và GitHub báo 0 artifacts. Tiếp tục hoàn tất audit mục 2 và v1 validation/baseline mục 3; không chạy bulk fetch trước khi Liaison xác nhận quyền hoặc cung cấp nguồn thay thế được cấp phép.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -17,6 +17,7 @@
     "441bc8f",
     "bfa7a2e",
     "c37410f",
-    "e5de5da"
+    "e5de5da",
+    "f736d17"
   ]
 }

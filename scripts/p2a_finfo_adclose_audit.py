@@ -6,6 +6,7 @@ import gzip
 import hashlib
 import json
 import math
+import os
 import threading
 import time
 import urllib.error
@@ -41,6 +42,11 @@ def positive_finite(value):
     except (TypeError, ValueError):
         return None
     return number if math.isfinite(number) and number > 0 else None
+
+
+def require_authorized_data_use(value):
+    if str(value).lower() not in ('1', 'true'):
+        raise PermissionError('Finfo bulk fetch disabled until data-use permission is confirmed')
 
 
 def load_sessions(path):
@@ -262,6 +268,10 @@ def main():
     args = parser.parse_args()
     if args.workers < 1 or args.workers > 4:
         parser.error('--workers must be between 1 and 4')
+    try:
+        require_authorized_data_use(os.environ.get('VNDIRECT_DATA_LICENSE_CONFIRMED', ''))
+    except PermissionError as error:
+        raise SystemExit(str(error)) from None
     report = audit(args.p1, args.sessions, args.output_dir, workers=args.workers)
     print(json.dumps({
         'symbols_requested': report['symbols_requested'],
