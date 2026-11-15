@@ -72,9 +72,9 @@ def validate(root, expected_p1_tickers=None):
 
     ticker_dates = defaultdict(set)
     prices_by_exchange = Counter()
+    price_dates_by_exchange = defaultdict(list)
     adjusted_present = Counter()
     off_calendar = Counter()
-    ticker_price_dates = defaultdict(list)
     bad_prices = 0
     path = root / 'daily_prices.csv.gz'
     reader, stream = _reader(path)
@@ -93,8 +93,8 @@ def validate(root, expected_p1_tickers=None):
             if day in ticker_dates[key]:
                 report['errors'].append(f'{path.name}:{line_no} duplicate ticker-date')
             ticker_dates[key].add(day)
-            ticker_price_dates[key].append(day)
             prices_by_exchange[exchange] += 1
+            price_dates_by_exchange[exchange].append(day)
             if row['adjusted_total_return_close'].strip():
                 adjusted_present[exchange] += 1
             if sessions.get(exchange) and day not in sessions[exchange]:
@@ -115,7 +115,11 @@ def validate(root, expected_p1_tickers=None):
         'tickers': len(price_tickers), 'rows_by_exchange': dict(prices_by_exchange),
         'adjusted_total_return_rows_by_exchange': dict(adjusted_present),
         'prices_not_on_calendar_by_exchange': dict(off_calendar), 'invalid_numeric_values': bad_prices,
-        'date_range_by_exchange': {
+        'price_date_range_by_exchange': {
+            exchange: [min(days).isoformat(), max(days).isoformat()]
+            for exchange, days in sorted(price_dates_by_exchange.items()) if days
+        },
+        'session_date_range_by_exchange': {
             exchange: [min(days).isoformat(), max(days).isoformat()]
             for exchange, days in sorted(sessions.items()) if days
         },
