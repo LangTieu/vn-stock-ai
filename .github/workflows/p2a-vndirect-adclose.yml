@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: review/p2-async-evaluation
+          ref: main
       - name: Download real P1 and observed-price sources
         run: |
           set -euo pipefail

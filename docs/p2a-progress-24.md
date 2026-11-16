@@ -1,10 +1,22 @@
-# P2a checklist progress (current branch)
+# P2a checklist progress (main V2 line; reconciliation changes prepared on review branch)
 
-Updated 2026-11-15. The current conversation describes the 24 issues by five workstreams, but does not include the original 24 individually numbered items; this report records only verified progress and does not claim all items are complete.
+Updated 2026-11-16. The current conversation describes the 24 issues by five workstreams, but does not include the original 24 individually numbered items; this report records only verified progress and does not claim all items are complete.
 
-## Decided P2 merge-back plan (Henrry approval, 2026-11-16 10:53 ICT)
+## Main V2 reconciliation (Henrry order, 2026-11-16 12:58 ICT)
 
-Henrry approved this two-stage plan at 10:53 ICT on 2026-11-16; it is decided policy, not a proposal. **Stage 1:** evaluator infrastructure PR #1 (`review/p2-async-evaluation-infra` → `main`) remains review-only and may merge only after a separate explicit approval from Henrry. **Stage 2:** all remaining P2 training code, v2 labels, guards, and coordinator merge via PR(s) only after full training completes and per-checkpoint evaluation proves the model. Until Stage 2 evidence exists, `main` remains the clean proven line. Recording this plan does not authorize any merge, dispatch, or training.
+Henrry directly ordered the V2 campaign merged; Liaison fast-forward-clean merged `review/p2-async-evaluation` into `main` at `8488d1c` (merge base `5301343`, feature parent `e4ed66e`). Main now contains the V2 training code, verified dataset pins, and evaluator changes. PR #1 is closed as superseded, with its required content included in main; the former two-stage merge plan no longer applies. Campaign and coordinator event refs must be `main` and rejected if any other branch is configured. This reconciliation is documentation/configuration work only: no further merge, training, or dispatch is authorized in this turn.
+
+The campaign file on main contains Liaison's receipt pins for private dataset revision `4e00aefe775509fdd69fe1e70c6232468d4041d8`. The receipt reports Ed25519 verification, manifest byte identity, and a time-separated split (latest train target endpoint 2023-12-29, earliest validation as-of 2024-01-02). Repository-side CLI `verify`/`fetch` still cannot be confirmed without HF read credentials in this workspace.
+
+## Pipeline readiness and training recommendation
+
+1. **Pinned data:** Liaison authenticated `verify`/`fetch` on 2026-11-16 13:14 ICT. Private repo and Ed25519 signature verified; remote manifest matched the prepared manifest byte-for-byte. Train has 51,620 rows (25,810 UP / 25,810 DOWN), validation 4,332 (2,166 / 2,166); supplied hashes match the campaign pins. The train target endpoint max is 2023-12-29, before validation as-of min 2024-01-02. HF_TOKEN is not in this sandbox, so this evidence is Liaison-confirmed; do not repeat fetch here.
+2. **Evaluation path:** PR #1 is superseded and closed. Main contains the V2 evaluator path per the merge handoff; do not reopen PR #1.
+3. **Coordinator:** a paused schema-v2 ledger at [[file:docs/p2-campaign-ledger-v2.json]] and atomic event recorder are implemented on the review branch. The workflow stores completed-run ID/ref/SHA/conclusion/decision into the tracked ledger using a `contents:write` commit; it does not create dispatch intents or auto-chain. Two independent CLI event invocations survived reload (ledger revisions 0→1→2), and replay deduplicated. This code still must be reviewed/integrated before active on main. Liaison confirms legacy cron disabled since 2026-11-14; preserve cutoff `43580242658` and do not run the old poller.
+4. **Readiness and approval:** `training_workflow_ready` remains false and no explicit training approval reference is recorded. The new ledger is paused/unapproved. Confirm Actions write permission under main branch protection before relying on workflow persistence.
+5. **Model evidence:** the selected baseline's direction accuracy is 46.875% versus the 50% majority baseline on 64 validation rows; Brier is 0.27515 versus 0.25 constant-prevalence. This exploratory result does not justify training as a predictive-skill run. Before any such go-ahead, pre-register and freeze a wider untouched confirmation from V2 validation rows excluding the ablation rows; report against simple baselines. Any later training starts from the base model, not legacy checkpoint-150.
+
+**Ordered go/no-go:** integrate/review the ledger implementation → verify Actions can durably commit ledger updates and rehearse separate main workflow events without dispatch → complete wider untouched validation confirmation → certify workflow readiness and record a distinct approval reference → only then consider a bounded baseline-from-scratch run on `main`. No automatic chaining or training is enabled by this work.
 
 | Workstream | Progress | Evidence / remaining gate |
 | --- | --- | --- |
