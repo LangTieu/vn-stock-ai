@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T05:25:31Z",
+  "updated_at": "2026-11-16T05:27:43Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,9 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed. Private V2 dataset publication/pinning is also blocked pending Liaison data-use/retention approval and immutable dataset/signing-key pins; no publication workflow was dispatched.",
-  "questions": [
-    "Does Liaison approve private storage/retention of the V2 train and internal-validation files, and authorize provisioning the HF access/signing material? The campaign revision, hashes, and trusted signing key are currently null."
-  ],
-  "next_step": "The bounded 12-step V2 ablation is complete and recorded in docs/p2a-progress-24.md. Do not start full training without Henrry’s separate explicit approval. Private V2 dataset publication remains unapproved: docs/p2-campaign.json has null revision, file checksums, and trusted signing key. Pending local V2 pinning/publication edits pass 96 tests (one optional cryptography test skipped) but remain uncommitted; the publication workflow was not dispatched. Next: obtain Liaison data-use/retention approval and the immutable private dataset pins before any publication or training dispatch.",
+  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
+  "questions": [],
+  "next_step": "Liaison approved the private V2 dataset storage/retention and this pinning/publication implementation. Commit 4aae5ce is pushed on review/p2-async-evaluation for Liaison review. The publication workflow was not dispatched; Liaison will review the workflow diff and dispatch publication. Keep docs/p2-campaign.json revision, file hashes, and trusted signing key null until a successful publication receipt is verified. No training dispatch without Henrry's separate explicit approval.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -394,5 +392,12 @@
     "workflow_dispatched": false,
     "merged": false,
     "training_started": false
+  },
+  "private_v2_dataset_publication": {
+    "authorization": "Liaison approved private V2 storage/retention and committing pinning/publication edits on 2026-11-16",
+    "implementation_commit": "4aae5ce",
+    "publication_dispatched": false,
+    "campaign_pins_populated": false,
+    "next_action": "Liaison review of committed workflow diff, then Liaison dispatches publication"
   }
 }
