@@ -13,6 +13,13 @@ from p2_operator import gh_dispatch_args
 class CampaignPlannerTests(unittest.TestCase):
     def setUp(self):
         self.manifest = json.loads((ROOT / 'docs/p2-campaign.json').read_text())
+        self.manifest['dataset'].update({
+            'revision': 'a' * 40,
+            'signing_public_key_b64': 'dGVzdC1rZXk=',
+            'files': {'train-v2.jsonl': {'sha256': 'b' * 64},
+                      'validation-v2.jsonl': {'sha256': 'c' * 64}},
+            'file_md5': {'train-v2.jsonl': 'd' * 32, 'validation-v2.jsonl': 'e' * 32},
+        })
 
     def compatible_checkpoint(self):
         return {
@@ -23,11 +30,19 @@ class CampaignPlannerTests(unittest.TestCase):
             ],
             'training_manifest': {
                 'label_version': 2,
-                'train_sha256': self.manifest['dataset']['train_sha256'],
+                'train_sha256': self.manifest['dataset']['files']['train-v2.jsonl']['sha256'],
+                'dataset_revision': self.manifest['dataset']['revision'],
                 'label_method': self.manifest['dataset']['label_method'],
                 'flat_band_pct': self.manifest['dataset']['flat_band_pct'],
             },
         }
+
+    def test_campaign_blocks_training_and_evaluation_until_dataset_is_pinned(self):
+        unpinned = json.loads((ROOT / 'docs/p2-campaign.json').read_text())
+        for operation in ('train', 'evaluate'):
+            plan = plan_operation(unpinned, operation)
+            self.assertEqual(plan['decision'], 'blocked')
+            self.assertTrue(any('pinned' in reason for reason in plan['blocked_reasons']))
 
     def test_train_plan_fails_closed_without_approval_and_v2_workflow(self):
         plan = plan_operation(self.manifest, 'train')

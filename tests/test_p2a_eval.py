@@ -16,8 +16,12 @@ def record(truth, prediction='DOWN', p_up=0.5):
 class EvaluationBaselineTests(unittest.TestCase):
     def test_train_and_holdout_label_versions_must_match(self):
         validate_eval_label_versions({'label_version': 2}, {'label_version': 2})
-        with self.assertRaisesRegex(ValueError, 'version mismatch'):
+        with self.assertRaisesRegex(ValueError, 'version 2'):
             validate_eval_label_versions({'label_version': 2}, {'label_version': 1})
+        with self.assertRaisesRegex(ValueError, 'manifest is required'):
+            validate_eval_label_versions(None, {'label_version': 2})
+        with self.assertRaisesRegex(ValueError, 'version 2'):
+            validate_eval_label_versions({'label_version': 1}, {'label_version': 1})
 
     def test_balanced_validation_slice_has_explicit_simple_baselines(self):
         result = calibration([record('UP'), record('UP'), record('DOWN'), record('DOWN')])

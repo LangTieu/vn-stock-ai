@@ -99,7 +99,11 @@ class TrainingRowFilterTests(unittest.TestCase):
     def test_training_refuses_legacy_labels(self):
         with self.assertRaisesRegex(ValueError, 'blocked for P2a label v1'):
             require_v2_training({'label_version': 1})
-        require_v2_training({'label_version': 2})
+        require_v2_training({'label_version': 2,
+                             'label_method': 'adjusted_total_return_close; 120 exchange sessions after as_of',
+                             'flat_band_pct': 2.0})
+        with self.assertRaisesRegex(ValueError, 'label contract'):
+            require_v2_training({'label_version': 2, 'label_method': 'legacy rows', 'flat_band_pct': 0})
 
     def test_prompt_compacts_only_coverage_date_arrays_and_keeps_summary(self):
         dates = [f'2023-01-{day:02d}' for day in range(1, 22)]

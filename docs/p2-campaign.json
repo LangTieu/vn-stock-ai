@@ -13,7 +13,26 @@
     "train_sha256": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
     "label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
     "flat_band_pct": 2.0,
-    "training_policy": "exclude FLAT and censored rows from binary supervised training"
+    "training_policy": "exclude FLAT and censored rows from binary supervised training",
+    "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+    "revision": null,
+    "signing_public_key_b64": null,
+    "files": {
+      "train-v2.jsonl": null,
+      "validation-v2.jsonl": null
+    },
+    "full_validation": {
+      "status": "pending",
+      "approval_reference": null,
+      "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+      "revision": null,
+      "file": "validation-v2.jsonl",
+      "sha256": null
+    },
+    "file_md5": {
+      "train-v2.jsonl": null,
+      "validation-v2.jsonl": null
+    }
   },
   "limits": {
     "max_sessions": 1,
@@ -21,9 +40,16 @@
     "max_total_steps": 50
   },
   "profiles": {
-    "training_order": ["train_tk4", "train_tk5", "train_tk1"],
+    "training_order": [
+      "train_tk4",
+      "train_tk5",
+      "train_tk1"
+    ],
     "training_fallback_only_on": "confirmed /tun/m/assign HTTP 503",
-    "evaluation_order": ["eval_tk2", "eval_tk5"],
+    "evaluation_order": [
+      "eval_tk2",
+      "eval_tk5"
+    ],
     "evaluation_fallback_only_on": "confirmed /tun/m/assign HTTP 503"
   },
   "state": {

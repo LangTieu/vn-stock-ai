@@ -40,6 +40,10 @@ on:
         description: "Full checkpoint directory to resume from"
         required: false
         default: ""
+      p2a_v2_dataset_revision:
+        description: "Immutable 40-character revision of the private V2 train/validation dataset; required for notebooks/p2a_train.ipynb"
+        required: false
+        default: ""
       save_steps:
         description: "Checkpoint interval for this session"
         required: true
@@ -191,6 +195,40 @@ jobs:
             echo "Full training is blocked: explicit matching Henrry approval reference is required." >&2
             exit 2
           fi
+      - name: Verify pinned private V2 dataset before Colab assignment
+        if: ${{ inputs.notebook == 'notebooks/p2a_train.ipynb' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          P2A_V2_DATASET_REVISION_INPUT: ${{ inputs.p2a_v2_dataset_revision }}
+        run: |
+          set -euo pipefail
+          test -n "$P2A_V2_DATASET_REVISION_INPUT" || { echo "P2a requires an immutable V2 dataset revision" >&2; exit 2; }
+          if [ ! -x "$HOME/vncolab-venv/bin/python" ]; then
+            python3 -m venv "$HOME/vncolab-venv"
+            "$HOME/vncolab-venv/bin/pip" install -q "huggingface_hub==0.30.2" "cryptography>=44,<47"
+          fi
+          "$HOME/vncolab-venv/bin/python" scripts/p2a_v2_dataset.py verify \
+            --campaign-manifest docs/p2-campaign.json \
+            --revision "$P2A_V2_DATASET_REVISION_INPUT"
+          dataset_sha=$(jq -r '.dataset.files["train-v2.jsonl"] | if type == "object" then .sha256 else . end' docs/p2-campaign.json)
+          validation_sha=$(jq -r '.dataset.files["validation-v2.jsonl"] | if type == "object" then .sha256 else . end' docs/p2-campaign.json)
+          train_md5=$(jq -r '.dataset.file_md5["train-v2.jsonl"]' docs/p2-campaign.json)
+          validation_md5=$(jq -r '.dataset.file_md5["validation-v2.jsonl"]' docs/p2-campaign.json)
+          for value in "$dataset_sha" "$validation_sha" "$train_md5" "$validation_md5"; do
+            test -n "$value" && test "$value" != null || { echo "Pinned V2 checksums are incomplete" >&2; exit 2; }
+          done
+          {
+            echo "P2A_LABEL_VERSION=2"
+            echo "P2A_V2_DATASET_REPO=Jerlob/vn-stock-ai-p2a-v2"
+            echo "P2A_V2_DATASET_REVISION=$P2A_V2_DATASET_REVISION_INPUT"
+            echo "TRAIN_URL=hf://Jerlob/vn-stock-ai-p2a-v2@$P2A_V2_DATASET_REVISION_INPUT/train-v2.jsonl"
+            echo "HOLDOUT_URL=hf://Jerlob/vn-stock-ai-p2a-v2@$P2A_V2_DATASET_REVISION_INPUT/validation-v2.jsonl"
+            echo "TRAIN_MD5=$train_md5"
+            echo "HOLDOUT_MD5=$validation_md5"
+            echo "P2A_TRAIN_SHA256=$dataset_sha"
+            echo "P2A_HOLDOUT_SHA256=$validation_sha"
+            echo "SKIP_EVAL=1"
+          } >> "$GITHUB_ENV"
       - name: Configure Colab credentials
         if: ${{ inputs.executor == 'github' }}
         env:

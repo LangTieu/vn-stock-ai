@@ -17,7 +17,8 @@ import urllib.request
 from pathlib import Path
 
 REPO_ID = 'Jerlob/vn-stock-ai-p2a-checkpoints'
-HOLDOUT_URL = 'https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/resolve/main/p1_holdout.jsonl'
+V2_DATASET_REPO = 'Jerlob/vn-stock-ai-p2a-v2'
+V2_CAMPAIGN_MANIFEST = Path(__file__).resolve().parents[1] / 'docs/p2-campaign.json'
 LOCK_ROOT = Path.home() / '.cache/vn-stock-ai/p2-eval'
 QUEUE_ROOT = LOCK_ROOT / 'queue'
 RESULT_ROOT = Path(os.environ.get('P2_EVAL_OUTPUT_DIR', str(Path.home() / 'p2-evaluations')))
@@ -84,15 +85,30 @@ def hf_repo_files(token):
     return files
 
 
-def checkpoint_complete(token, step):
+def checkpoint_complete(token, step, dataset):
     prefix = f'checkpoints/checkpoint-{step}/'
     files = {p[len(prefix):] for p in hf_repo_files(token) if p.startswith(prefix)}
     required = {'optimizer.pt', 'scheduler.pt', 'trainer_state.json', 'rng_state.pth',
-                'adapter_config.json'}
-    return required <= files and bool({'adapter_model.safetensors', 'adapter_model.bin'} & files)
+                'adapter_config.json', 'p2a_training_manifest.json'}
+    if not required <= files or not ({'adapter_model.safetensors', 'adapter_model.bin'} & files):
+        return False
+    from huggingface_hub import hf_hub_download
+    path = hf_hub_download(repo_id=REPO_ID, repo_type='model',
+                           filename=f'{prefix}p2a_training_manifest.json', token=token)
+    training = json.loads(Path(path).read_text(encoding='utf-8'))
+    pinned_train = dataset['files']['train-v2.jsonl']
+    if isinstance(pinned_train, dict):
+        pinned_train = pinned_train.get('sha256')
+    return (training.get('label_version') == 2
+            and training.get('train_sha256') == pinned_train
+            and training.get('dataset_validation_sha256') == dataset['files']['validation-v2.jsonl']['sha256']
+            and training.get('dataset_repo') == dataset['repo_id']
+            and training.get('dataset_revision') == dataset['revision']
+            and training.get('label_method') == dataset['label_method']
+            and training.get('flat_band_pct') == dataset['flat_band_pct'])
 
 
-def latest_complete_step(token):
+def latest_complete_step(token, dataset):
     complete = []
     for path in hf_repo_files(token):
         match = re.fullmatch(r'checkpoints/checkpoint-(\d+)/(.+)', path)
@@ -101,16 +117,15 @@ def latest_complete_step(token):
     grouped = {}
     for step, name in complete:
         grouped.setdefault(step, set()).add(name)
-    required = {'optimizer.pt', 'scheduler.pt', 'trainer_state.json', 'rng_state.pth',
-                'adapter_config.json'}
-    valid = [step for step, names in grouped.items()
-             if required <= names and {'adapter_model.safetensors', 'adapter_model.bin'} & names]
+    valid = [step for step in grouped
+             if checkpoint_complete(token, step, dataset)]
     if not valid:
         raise RuntimeError(f'No complete checkpoint found in {REPO_ID}')
     return max(valid)
 
 
-def build_remote_job(step, full_holdout, out_dir):
+def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha256, train_sha256,
+                     full_validation_approval_ref=''):
     train_src = Path(__file__).with_name('p2a_train.py').read_text(encoding='utf-8')
     numerics_src = Path(__file__).with_name('p2a_numerics.py').read_text(encoding='utf-8')
     eval_src = Path(__file__).with_name('p2a_eval.py').read_text(encoding='utf-8')
@@ -129,13 +144,20 @@ def build_remote_job(step, full_holdout, out_dir):
         f"Path('/content/p2a_eval.py').write_text({eval_src!r}, encoding='utf-8')",
         f"Path('/content/p2a_validation.py').write_text({validation_src!r}, encoding='utf-8')",
         "sys.path.insert(0, '/content')",
-        'from huggingface_hub import HfApi, snapshot_download',
-        'from p2a_train import HOLDOUT_MD5, dataset_path',
+        'from huggingface_hub import HfApi, hf_hub_download, snapshot_download',
+        'from p2a_train import dataset_label_spec, require_v2_training',
         'from p2a_validation import create_slice, file_hash',
         f"step={int(step)}",
         f"full_holdout={bool(full_holdout)!r}",
         f"repo={REPO_ID!r}",
-        "token=os.environ['HF_TOKEN']",
+        f"dataset_repo={V2_DATASET_REPO!r}",
+        f"train_sha256={train_sha256!r}",
+        f"dataset_revision={os.environ.get('P2A_V2_DATASET_REVISION', '')!r}",
+        f"validation_sha256={validation_sha256!r}",
+        f"validation_md5={validation_md5!r}",
+        f"full_validation_approval_ref={full_validation_approval_ref!r}",
+        "token=os.environ.get('HF_TOKEN')",
+        "if not token: raise RuntimeError('HF_TOKEN required to download pinned private V2 validation')",
         "api=HfApi(token=token)",
         "if not any(p.startswith(f'checkpoints/checkpoint-{step}/') for p in api.list_repo_files(repo_id=repo, repo_type='model')): raise RuntimeError(f'checkpoint-{step} is absent from HF')",
         "remote=f'checkpoints/checkpoint-{step}'",
@@ -143,27 +165,38 @@ def build_remote_job(step, full_holdout, out_dir):
         "adapter=str(Path(snapshot)/remote)",
         "out=Path('/content/p2-eval')/f'step-{step}'/('full' if full_holdout else 'slice')",
         "out.mkdir(parents=True, exist_ok=True)",
-        f"holdout=dataset_path({HOLDOUT_URL!r}, '/content/p2-eval/holdout.jsonl', HOLDOUT_MD5)",
+        "validation_path=hf_hub_download(repo_id=dataset_repo, repo_type='dataset', filename='validation-v2.jsonl', revision=dataset_revision, token=token)",
+        "if file_hash(validation_path) != validation_sha256: raise ValueError('pinned V2 validation SHA-256 mismatch')",
+        "if __import__('hashlib').md5(Path(validation_path).read_bytes()).hexdigest() != validation_md5: raise ValueError('pinned V2 validation MD5 mismatch')",
+        "validation_spec=dataset_label_spec(validation_path)",
+        "require_v2_training(validation_spec)",
+        "if validation_spec.get('label_method') != 'adjusted_total_return_close; 120 exchange sessions after as_of' or validation_spec.get('flat_band_pct') != 2.0: raise ValueError('V2 validation label semantics mismatch')",
+        "if full_holdout and not full_validation_approval_ref: raise ValueError('full V2 validation requires separate approval reference')",
     ]
     if full_holdout:
-        lines += ["eval_holdout=holdout", "eval_md5=HOLDOUT_MD5", "manifest_path=''", "dataset_sha=file_hash(holdout)"]
+        lines += [
+            "eval_holdout=validation_path",
+            "eval_md5=__import__('hashlib').md5(Path(eval_holdout).read_bytes()).hexdigest()",
+            "manifest_path=''",
+            "dataset_sha=file_hash(eval_holdout)",
+        ]
     else:
         lines += [
-            "eval_holdout=str(out/'validation.jsonl')",
+            "eval_holdout=str(out/'validation-v2-slice.jsonl')",
             "manifest_path=str(out/'validation.manifest.json')",
-            "manifest=create_slice(holdout, eval_holdout, manifest_path, per_class=32, seed=42)",
+            "manifest=create_slice(validation_path, eval_holdout, manifest_path, per_class=32, seed=42)",
             "eval_md5=manifest['slice_md5']",
             "dataset_sha=manifest['slice_sha256']",
         ]
     lines += [
         "metrics_path=str(out/'metrics.json')",
         "predictions_path=str(out/'predictions.jsonl')",
-        "cmd=[sys.executable, '-u', '/content/p2a_eval.py', '--holdout', eval_holdout, '--holdout-md5', eval_md5, '--adapter', adapter, '--output', predictions_path, '--checkpoint-step', str(step)]",
+        "cmd=[sys.executable, '-u', '/content/p2a_eval.py', '--holdout', eval_holdout, '--holdout-md5', eval_md5, '--holdout-sha256', dataset_sha, '--adapter', adapter, '--output', predictions_path, '--checkpoint-step', str(step), '--expected-dataset-repo', dataset_repo, '--expected-dataset-revision', dataset_revision, '--expected-train-sha256', train_sha256]",
         "if manifest_path: cmd += ['--slice-manifest', manifest_path]",
-        "if full_holdout: cmd += ['--full-holdout']",
+        "if full_holdout: cmd += ['--full-holdout', '--full-validation-approval-ref', full_validation_approval_ref]",
         'subprocess.run(cmd, check=True)',
         "metrics=__import__('json').load(open(predictions_path+'.metrics.json'))",
-        "metrics.update({'checkpoint_step':step,'checkpoint_path':remote,'full_holdout':full_holdout,'dataset_sha256':dataset_sha})",
+        "metrics.update({'checkpoint_step':step,'checkpoint_path':remote,'full_holdout':full_holdout,'dataset_sha256':dataset_sha,'validation_source_sha256':validation_sha256})",
         "Path(metrics_path).write_text(json.dumps(metrics, ensure_ascii=False, indent=2)+'\\n', encoding='utf-8')",
         '''def save_eval_to_hf():
     try:
@@ -219,19 +252,31 @@ save_eval_to_hf()''',
     ]
     return '\n'.join(lines) + '\n'
 
-
-def run_colab_eval_staged(step, full_holdout, profile, home):
+def run_colab_eval_staged(step, full_holdout, profile, home, validation, full_validation_approval_ref=''):
     env = os.environ.copy()
     env['VNCOLAB_HOME'] = str(home)
     if not env.get('HF_TOKEN'):
         raise RuntimeError('HF_TOKEN absent on LV1 runner; cannot download private checkpoints')
-    if not checkpoint_complete(env['HF_TOKEN'], step):
-        raise RuntimeError(f'checkpoint-{step} is not complete on HF')
+    dataset = validation['dataset']
+    if not checkpoint_complete(env['HF_TOKEN'], step, dataset):
+        raise RuntimeError(f'checkpoint-{step} is incomplete or not V2-compatible with the pinned dataset')
+    if full_holdout:
+        full = dataset.get('full_validation') or {}
+        if (full.get('status') != 'approved' or not full.get('approval_reference')
+                or full.get('repo_id') != dataset['repo_id']
+                or full.get('revision') != dataset['revision']
+                or full.get('sha256') != validation['validation_sha256']):
+            raise RuntimeError('full validation requires a separately approved matching pinned V2 artifact')
+        full_validation_approval_ref = full['approval_reference']
     out_dir = RESULT_ROOT / f'step-{step}' / ('full' if full_holdout else 'slice')
     out_dir.mkdir(parents=True, exist_ok=True)
     remote_dir = f"/content/p2-eval/step-{step}/{'full' if full_holdout else 'slice'}"
     job_file = out_dir / 'colab_eval_job.py'
-    job_file.write_text(build_remote_job(step, full_holdout, str(out_dir)), encoding='utf-8')
+    job_file.write_text(build_remote_job(step, full_holdout, str(out_dir),
+                                        validation['validation_md5'],
+                                        validation['validation_sha256'],
+                                        validation['dataset']['files']['train-v2.jsonl'],
+                                        full_validation_approval_ref), encoding='utf-8')
     archive = out_dir / 'colab-eval.zip'
     result_json = out_dir / 'vncolab-result.json'
     log_path = out_dir / 'eval.log'
@@ -241,12 +286,11 @@ def run_colab_eval_staged(step, full_holdout, profile, home):
                str(job_file), '--gpu', 'T4', '--timeout', '21600', '--out', str(result_json),
                '--download', remote_dir, str(archive)]
     with log_path.open('a', encoding='utf-8') as log:
-        log.write(f'EVAL_START step={step} account={profile} mode={"full" if full_holdout else "slice"}\n')
+        log.write(f'EVAL_START step={step} account={profile} mode={"full" if full_holdout else "slice"} '
+                  f"v2_revision={dataset['revision']}\n")
         proc = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT,
                               text=True, check=False)
-    result = {}
-    if result_json.is_file():
-        result = json.loads(result_json.read_text(encoding='utf-8'))
+    result = json.loads(result_json.read_text(encoding='utf-8')) if result_json.is_file() else {}
     if proc.returncode:
         error = str(result.get('error') or '') + '\n' + log_path.read_text(errors='replace')[-5000:]
         raise RuntimeError(f'Colab eval failed (exit={proc.returncode}): {error}')
@@ -273,16 +317,32 @@ def run_colab_eval_staged(step, full_holdout, profile, home):
     manifest = list(extract.rglob('validation.manifest.json'))
     if manifest:
         shutil.copy2(manifest[0], out_dir / 'validation.manifest.json')
-    return json.loads(metrics_path.read_text(encoding='utf-8'))
+    metrics = json.loads(metrics_path.read_text(encoding='utf-8'))
+    if (metrics.get('holdout_label_version') != 2
+            or metrics.get('validation_source_sha256') != validation['validation_sha256']):
+        raise RuntimeError('remote evaluation metrics do not certify the pinned V2 validation source')
+    return metrics
 
 
-def run_colab_eval(step, full_holdout, profile):
+def run_colab_eval(step, full_holdout, profile, validation, full_validation_approval_ref=''):
     home = stage_profile(profile)
     try:
-        return run_colab_eval_staged(step, full_holdout, profile, home)
+        return run_colab_eval_staged(step, full_holdout, profile, home,
+                                     validation, full_validation_approval_ref)
     finally:
         shutil.rmtree(home, ignore_errors=True)
 
+
+def load_v2_validation():
+    from p2a_v2_dataset import download_pinned_file, load_pinned_manifest
+    campaign, dataset, manifest, token = load_pinned_manifest(V2_CAMPAIGN_MANIFEST,
+        (json.loads(V2_CAMPAIGN_MANIFEST.read_text())['dataset'] or {}).get('revision'))
+    with tempfile.TemporaryDirectory(prefix='p2a-v2-eval-') as temporary:
+        source = download_pinned_file(V2_CAMPAIGN_MANIFEST, dataset['revision'],
+                                     'validation-v2.jsonl', temporary, token)
+        return {**source, 'dataset': dataset, 'validation_sha256': source['sha256'],
+                'validation_md5': source['md5'],
+                'manifest': manifest}
 
 def write_trend():
     RESULT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -316,10 +376,23 @@ def run_one(request):
     mode = 'full' if full else 'slice'
     target = RESULT_ROOT / f'step-{step}' / mode / 'metrics.json'
     target.parent.mkdir(parents=True, exist_ok=True)
+    validation = load_v2_validation()
+    full_approval_ref = ''
+    if full:
+        full_cfg = validation['dataset'].get('full_validation') or {}
+        if (full_cfg.get('status') != 'approved' or not full_cfg.get('approval_reference')
+                or full_cfg.get('repo_id') != validation['dataset']['repo_id']
+                or full_cfg.get('revision') != validation['dataset']['revision']
+                or full_cfg.get('sha256') != validation['validation_sha256']
+                or full_cfg.get('file') != 'validation-v2.jsonl'):
+            raise ValueError('full validation needs a separate approved, matching pinned V2 artifact')
+        full_approval_ref = full_cfg['approval_reference']
     if target.is_file():
         try:
             saved = json.loads(target.read_text(encoding='utf-8'))
-            if int(saved['checkpoint_step']) == step and bool(saved.get('full_holdout')) == full:
+            if (int(saved['checkpoint_step']) == step and bool(saved.get('full_holdout')) == full
+                    and saved.get('dataset_sha256') == validation['validation_sha256']
+                    and saved.get('holdout_label_version') == 2):
                 print(f'EVAL_ALREADY_DONE step={step} mode={mode}', flush=True)
                 return True
         except (OSError, ValueError, KeyError, TypeError):
@@ -330,7 +403,7 @@ def run_one(request):
         raise ValueError(f'P2_EVAL_ACCOUNT_ORDER must be {",".join(ACCOUNT_ORDER)}')
     for profile in configured_order:
         try:
-            metrics = run_colab_eval(step, full, profile)
+            metrics = run_colab_eval(step, full, profile, validation, full_approval_ref)
             metrics['source_run'] = request.get('source_run', '')
             metrics['eval_account_profile'] = profile
             temp_target = target.with_suffix(f'.tmp-{os.getpid()}')
@@ -409,7 +482,11 @@ def main():
     parser.add_argument('--source-run', default=os.environ.get('GITHUB_RUN_ID', 'unknown'))
     parser.add_argument('--idle-timeout', type=int, default=60)
     args = parser.parse_args()
-    step = latest_complete_step(os.environ['HF_TOKEN']) if args.latest else args.step
+    if args.latest:
+        validation = load_v2_validation()
+        step = latest_complete_step(os.environ['HF_TOKEN'], validation['dataset'])
+    else:
+        step = args.step
     print(f'P2_EVAL_SELECTED_CHECKPOINT step={step}', flush=True)
     enqueue_and_drain(step, args.full_holdout, args.source_run, args.idle_timeout)
 

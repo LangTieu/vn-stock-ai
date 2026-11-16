@@ -21,9 +21,7 @@ except ImportError:
 
 os.environ.setdefault('PYTORCH_CUDA_ALLOC_CONF', 'expandable_segments:True')
 
-TRAIN_MD5 = 'f6273e8a12e35fe1027f29ca2127b9c0'
-HOLDOUT_MD5 = '5f48d9b13d2f2cce0a730067b2f3094c'
-SMOKE_MD5 = 'eeb4faeb32a23d97f474813bac659797'
+TRAIN_MD5 = ''
 CHECKPOINT_REQUIRED_FILES = ('optimizer.pt', 'scheduler.pt', 'trainer_state.json', 'rng_state.pth')
 
 
@@ -69,7 +67,21 @@ def upload_full_checkpoint(api, repo_id, checkpoint):
 
 def dataset_path(source, destination, expected_md5):
     parsed = urlparse(source)
-    if parsed.scheme:
+    if parsed.scheme == 'hf':
+        reference = parsed.netloc + parsed.path
+        repo_id, separator, remainder = reference.partition('@')
+        revision, slash, filename = remainder.partition('/')
+        if not separator or not repo_id or not revision or not slash or not filename:
+            raise ValueError('HF dataset URL must be hf://<repo>@<immutable-revision>/<file>')
+        if repo_id != os.environ.get('P2A_V2_DATASET_REPO') or revision != os.environ.get('P2A_V2_DATASET_REVISION'):
+            raise ValueError('HF dataset URL repo/revision does not match the pinned campaign manifest')
+        token = os.environ.get('HF_TOKEN')
+        if not token:
+            raise ValueError('HF_TOKEN is required for a private V2 dataset')
+        from huggingface_hub import hf_hub_download
+        path = Path(hf_hub_download(repo_id=repo_id, repo_type='dataset', filename=filename,
+                                    revision=revision, token=token))
+    elif parsed.scheme:
         if parsed.scheme not in ('http', 'https') or not parsed.netloc:
             raise ValueError('Dataset download requires a direct HTTP(S) URL')
         path = Path(destination)
@@ -224,6 +236,9 @@ def require_v2_training(label_spec):
     if label_spec.get('label_version') != 2:
         raise ValueError('Training is blocked for P2a label v1. Use a verified, gated v2 dataset; '
                          'do not train on legacy or raw-price labels.')
+    if (label_spec.get('label_method') != 'adjusted_total_return_close; 120 exchange sessions after as_of'
+            or label_spec.get('flat_band_pct') != 2.0):
+        raise ValueError('Training requires the pinned V2 120-exchange-session/2.0%-FLAT label contract')
 
 
 def sha256_file(path):
@@ -245,10 +260,13 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
     return {
         'label_version': label_version,
         'train_sha256': sha256_file(train_path),
+        'dataset_repo': os.environ.get('P2A_V2_DATASET_REPO', ''),
+        'dataset_revision': os.environ.get('P2A_V2_DATASET_REVISION', ''),
+        'dataset_validation_sha256': os.environ.get('P2A_HOLDOUT_SHA256', ''),
         'max_length': max_length,
         'model_id': MODEL_ID,
         'system_prompt_sha256': hashlib.sha256(SYSTEM.encode('utf-8')).hexdigest(),
-        'input_transform_version': (INPUT_TRANSFORM_VERSION if label_version == 1 else
+            'input_transform_version': (INPUT_TRANSFORM_VERSION if label_version == 1 else
                                     INPUT_TRANSFORM_VERSION + '+' + V2_FEATURE_SCOPE_VERSION),
         'population_scope': ('P1-observed ticker/as-of sample; sector/universe features excluded; '
                              'not a claim of complete point-in-time market coverage'),
@@ -271,7 +289,9 @@ def validate_resume_manifest(checkpoint, current):
         raise ValueError('Cannot verify this legacy checkpoint against the current dataset and '
                          'training configuration; start from the base model')
     saved = json.loads(manifest_path.read_text(encoding='utf-8'))
-    for key in ('label_version', 'train_sha256', 'max_length', 'model_id', 'system_prompt_sha256',
+    for key in ('label_version', 'train_sha256', 'dataset_repo', 'dataset_revision',
+                'dataset_validation_sha256',
+                'max_length', 'model_id', 'system_prompt_sha256',
                 'input_transform_version',
                 'population_scope', 'flat_band_pct', 'lora', 'target_modules', 'training',
                 'epochs', 'seed', 'trainer_code_sha256', 'numerics_code_sha256'):
@@ -435,7 +455,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--train', required=True)
     p.add_argument('--output-dir', default='/content/p2a-checkpoints/full')
-    p.add_argument('--train-md5', default=TRAIN_MD5)
+    p.add_argument('--train-md5', required=True)
+    p.add_argument('--train-sha256', default='')
     p.add_argument('--upload-hf', action='store_true', default=os.environ.get('UPLOAD_HF') == '1')
     p.add_argument('--limit', type=int, default=0)
     p.add_argument('--max-length', type=int, default=4096)
@@ -479,6 +500,18 @@ def main():
     label_version = label_spec['label_version']
     if not a.dry_run:
         require_v2_training(label_spec)
+        expected_sha256 = a.train_sha256 or os.environ.get('P2A_TRAIN_SHA256', '')
+        if not expected_sha256:
+            raise ValueError('A pinned V2 train SHA-256 is required before model initialization')
+        if sha256_file(train) != expected_sha256:
+            raise ValueError('V2 train SHA-256 does not match the pinned dataset manifest')
+        if os.environ.get('MODE') == 'full':
+            if not os.environ.get('P2A_V2_DATASET_REVISION') or not os.environ.get('P2A_V2_DATASET_REPO'):
+                raise ValueError('Pinned immutable private V2 dataset repo/revision is required for full training')
+            if not os.environ.get('P2A_HOLDOUT_SHA256'):
+                raise ValueError('Pinned V2 validation SHA-256 is required for full training')
+        if not os.environ.get('P2A_V2_DATASET_REVISION'):
+            raise ValueError('Pinned immutable V2 dataset revision is required before training')
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(MODEL_ID)
     tok.pad_token = tok.eos_token

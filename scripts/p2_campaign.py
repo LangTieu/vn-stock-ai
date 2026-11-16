@@ -21,8 +21,8 @@ def validate_manifest(manifest):
     if not manifest.get('campaign_id') or not manifest.get('ref'):
         raise ValueError('campaign_id and ref are required')
     dataset = manifest.get('dataset') or {}
-    if dataset.get('label_version') != 2 or not dataset.get('train_sha256'):
-        raise ValueError('campaign must pin label-v2 and train_sha256')
+    if dataset.get('label_version') != 2 or dataset.get('repo_id') != 'Jerlob/vn-stock-ai-p2a-v2':
+        raise ValueError('campaign must target the private P2a V2 dataset repository and label-version 2')
     limits = manifest.get('limits') or {}
     if not all(isinstance(limits.get(key), int) and limits[key] > 0
                for key in ('max_sessions', 'steps_per_session', 'max_total_steps')):
@@ -44,9 +44,12 @@ def checkpoint_is_v2_compatible(checkpoint, dataset):
     if not REQUIRED_CHECKPOINT_FILES <= files or not (ADAPTER_FILES & files):
         return False, 'checkpoint artifact set is incomplete'
     manifest = checkpoint.get('training_manifest') or {}
+    train_pin = (dataset.get('files') or {}).get('train-v2.jsonl')
+    if isinstance(train_pin, dict): train_pin = train_pin.get('sha256')
     checks = {
         'label_version': dataset.get('label_version'),
-        'train_sha256': dataset.get('train_sha256'),
+        'train_sha256': train_pin,
+        'dataset_revision': dataset.get('revision'),
         'label_method': dataset.get('label_method'),
         'flat_band_pct': dataset.get('flat_band_pct'),
     }
@@ -73,6 +76,15 @@ def plan_operation(manifest, operation, checkpoint_step=None):
     plan = _base_decision(operation, manifest)
     if operation == 'evaluate':
         checkpoint_step = str(checkpoint_step or 'latest')
+        dataset = manifest['dataset']
+        validation_pin = (dataset.get('files') or {}).get('validation-v2.jsonl')
+        validation_sha = validation_pin.get('sha256') if isinstance(validation_pin, dict) else validation_pin
+        if (not dataset.get('revision') or not dataset.get('signing_public_key_b64') or not validation_sha
+                or not (dataset.get('file_md5') or {}).get('validation-v2.jsonl')):
+            plan.update({'decision': 'blocked', 'blocked_reasons': [
+                'private V2 dataset immutable revision, validation SHA-256, and trusted signing key are not pinned'
+            ]})
+            return plan
         plan.update({
             'decision': 'ready_for_operator_approval',
             'workflow': 'p2-eval.yml',
@@ -90,6 +102,16 @@ def plan_operation(manifest, operation, checkpoint_step=None):
         reasons.append('Henrry training approval is pending or has no recorded reference')
     if not manifest.get('training_workflow_ready'):
         reasons.append('v2 full-training workflow is not yet certified ready')
+    dataset = manifest['dataset']
+    train_pin = (dataset.get('files') or {}).get('train-v2.jsonl')
+    validation_pin = (dataset.get('files') or {}).get('validation-v2.jsonl')
+    train_sha = train_pin.get('sha256') if isinstance(train_pin, dict) else train_pin
+    validation_sha = validation_pin.get('sha256') if isinstance(validation_pin, dict) else validation_pin
+    if (not dataset.get('revision') or not dataset.get('signing_public_key_b64')
+            or not train_sha or not validation_sha
+            or not (dataset.get('file_md5') or {}).get('train-v2.jsonl')
+            or not (dataset.get('file_md5') or {}).get('validation-v2.jsonl')):
+        reasons.append('private V2 dataset immutable revision, train/validation SHA-256+MD5, and trusted signing key are not pinned')
     state = manifest.get('state') or {}
     sessions = state.get('sessions') or []
     limits = manifest['limits']

@@ -667,7 +667,9 @@ def cmd_run(args):
             bootstrap_values["SAVE_STEPS"] = str(args.save_steps)
         if args.resume_checkpoint:
             bootstrap_values["RESUME_CHECKPOINT"] = args.resume_checkpoint
-        for key in ("TRAIN_URL", "TRAIN_MD5", "HOLDOUT_URL", "HOLDOUT_MD5",
+        for key in ("TRAIN_URL", "TRAIN_MD5", "P2A_TRAIN_SHA256", "HOLDOUT_URL", "HOLDOUT_MD5",
+                    "P2A_HOLDOUT_SHA256", "P2A_LABEL_VERSION", "P2A_V2_DATASET_REPO",
+                    "P2A_V2_DATASET_REVISION", "P2A_FULL_VALIDATION_APPROVAL_REF",
                     "P2A_LOCAL_TRAIN", "P2A_EVAL_LIMIT", "SKIP_EVAL", "UPLOAD_HF",
                     "LORA_R", "LORA_ALPHA", "LORA_DROPOUT", "LEARNING_RATE",
                     "GRADIENT_ACCUMULATION_STEPS", "TARGET_MODULES", "SEED", "OUTPUT_DIR"):

@@ -38,10 +38,11 @@ class TrainingNotebookSyncTests(unittest.TestCase):
             with self.subTest(target=target):
                 self.assertEqual(embedded.get(target), (ROOT / path).read_text())
 
-    def test_full_mode_marks_evaluation_as_full_holdout(self):
+    def test_full_mode_requires_separate_validation_approval(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         eval_cell = ''.join(notebook['cells'][9]['source'])
-        self.assertIn("['--full-holdout'] if MODE == 'full'", eval_cell)
+        self.assertIn("P2A_FULL_VALIDATION_APPROVAL_REF", eval_cell)
+        self.assertIn("'--full-validation-approval-ref'", eval_cell)
 
     def test_smoke_eval_limit_is_shared_and_emits_compact_ablation_metrics(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
@@ -80,6 +81,25 @@ class TrainingNotebookSyncTests(unittest.TestCase):
                      '--gradient-accumulation-steps', '--target-modules', '--seed'):
             self.assertIn(name, train)
         self.assertIn('SEED = os.environ.get("SEED", "42")', settings)
+
+    def test_training_notebook_has_no_legacy_dataset_defaults(self):
+        notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
+        settings = ''.join(notebook['cells'][1]['source'])
+        setup = ''.join(notebook['cells'][3]['source'])
+        self.assertIn('TRAIN_URL = os.environ.get("TRAIN_URL", "")', settings)
+        self.assertIn('HOLDOUT_URL = os.environ.get("HOLDOUT_URL", "")', settings)
+        self.assertNotIn('Jerlob/vn-stock-ai-p1', settings)
+        self.assertIn('P2A_LABEL_VERSION != "2"', setup)
+        self.assertIn('legacy P1 defaults are disabled', setup)
+        self.assertIn("'--train-sha256', P2A_TRAIN_SHA256", ''.join(notebook['cells'][7]['source']))
+        self.assertIn("'--holdout-sha256', P2A_HOLDOUT_SHA256", ''.join(notebook['cells'][9]['source']))
+
+    def test_full_colab_job_verifies_pinned_private_v2_revision_before_runtime(self):
+        workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()
+        self.assertIn('Verify pinned private V2 dataset before Colab assignment', workflow)
+        self.assertIn('p2a_v2_dataset.py verify', workflow)
+        self.assertIn('hf://Jerlob/vn-stock-ai-p2a-v2@', workflow)
+        self.assertIn('SKIP_EVAL=1', workflow)
 
 
 if __name__ == '__main__':

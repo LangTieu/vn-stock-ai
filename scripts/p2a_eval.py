@@ -3,16 +3,18 @@ import argparse
 import json
 import math
 from pathlib import Path
-from p2a_train import (MODEL_ID, LABELS, HOLDOUT_MD5, dataset_label_spec, dataset_path,
+from p2a_train import (MODEL_ID, LABELS, dataset_label_spec, dataset_path,
                        messages, rows)
 from p2a_validation import row_strata
 
 
 def validate_eval_label_versions(train_manifest, holdout_spec):
     if train_manifest is None:
-        return
+        raise ValueError('V2 training manifest is required for evaluation')
     train_version = train_manifest.get('label_version')
     holdout_version = holdout_spec.get('label_version')
+    if train_version != 2 or holdout_version != 2:
+        raise ValueError(f'P2 V2 evaluation requires label version 2; got {train_version!r} / {holdout_version!r}')
     if train_version != holdout_version:
         raise ValueError(f'Train/holdout label version mismatch: {train_version!r} != '
                          f'{holdout_version!r}')
@@ -80,17 +82,36 @@ def main():
     p.add_argument('--adapter', required=True)
     p.add_argument('--output', required=True)
     p.add_argument('--limit', type=int, default=0)
-    p.add_argument('--holdout-md5', default=HOLDOUT_MD5)
+    p.add_argument('--holdout-md5', required=True)
+    p.add_argument('--holdout-sha256', required=True)
     p.add_argument('--checkpoint-step', type=int)
     p.add_argument('--slice-manifest')
     p.add_argument('--full-holdout', action='store_true')
+    p.add_argument('--full-validation-approval-ref')
+    p.add_argument('--expected-dataset-repo')
+    p.add_argument('--expected-dataset-revision')
+    p.add_argument('--expected-train-sha256')
     a = p.parse_args()
+    if a.full_holdout and not a.full_validation_approval_ref:
+        p.error('--full-holdout requires a separately approved matching V2 validation artifact reference')
     holdout = dataset_path(a.holdout, Path(a.output).parent / 'holdout.jsonl', a.holdout_md5)
+    from p2a_train import sha256_file, require_v2_training
+    if sha256_file(holdout) != a.holdout_sha256:
+        raise ValueError('V2 validation SHA-256 does not match its pinned manifest')
     holdout_spec = dataset_label_spec(holdout)
+    require_v2_training(holdout_spec)
     manifest_path = Path(a.adapter) / 'p2a_training_manifest.json'
-    train_manifest = (json.loads(manifest_path.read_text(encoding='utf-8'))
-                      if manifest_path.is_file() else None)
+    if not manifest_path.is_file():
+        raise ValueError('V2 adapter training manifest is required for evaluation')
+    train_manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     validate_eval_label_versions(train_manifest, holdout_spec)
+    for key, expected in (
+        ('dataset_repo', a.expected_dataset_repo),
+        ('dataset_revision', a.expected_dataset_revision),
+        ('train_sha256', a.expected_train_sha256),
+    ):
+        if expected and train_manifest.get(key) != expected:
+            raise ValueError(f'checkpoint {key} does not match the pinned V2 dataset')
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, set_seed
     from peft import PeftModel

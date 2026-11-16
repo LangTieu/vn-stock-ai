@@ -65,12 +65,11 @@ def _candidate_paths(paths, symbols):
 
 
 def _p1_inputs(directory):
-    from p2a_train import dataset_path, HOLDOUT_MD5 as EXPECTED_HOLDOUT_MD5
-    from p2a_train import TRAIN_MD5 as EXPECTED_TRAIN_MD5
+    from p2a_train import dataset_path
 
     root = Path(directory)
-    train = dataset_path(TRAIN_URL, root / 'p1_train.jsonl', EXPECTED_TRAIN_MD5)
-    holdout = dataset_path(HOLDOUT_URL, root / 'p1_holdout.jsonl', EXPECTED_HOLDOUT_MD5)
+    train = dataset_path(TRAIN_URL, root / 'p1_train.jsonl', TRAIN_MD5)
+    holdout = dataset_path(HOLDOUT_URL, root / 'p1_holdout.jsonl', HOLDOUT_MD5)
     rows = []
     for path in (train, holdout):
         with open(path, encoding='utf-8') as stream:
