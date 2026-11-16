@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T07:21:51Z",
+  "updated_at": "2026-11-16T07:53:45Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,9 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Training remains paused by design: the campaign ledger remains status=paused, approved=false, dispatch_intents=[], training_workflow_ready=false, and no approval reference is set. The requested non-training GitHub Actions ledger persistence and replay test passed. Main is deliberately unprotected per Liaison; if branch protection is added later, coordinator ledger commits must be explicitly allowed or the ledger writer will fail closed.",
-  "questions": [],
-  "next_step": "Persistence verification passed using two read-only Drive-inventory source runs (43822902254, 43823006285) and their main workflow_run coordinator runs (43822934506, 43823045554). GITHUB_TOKEN commits 688da89 and 2e1cb26 advanced ledger revision 0→1→2; rerunning coordinator 43822934506 attempt 2 returned duplicate=true, recorded=false, ledger_revision=2 and created no ledger commit. Main remains unprotected by Liaison decision; do not add protection. If protection is enabled in future, allow the coordinator ledger GITHUB_TOKEN commits or the writer fails closed. No training, evaluation, smoke, ablation, or training_workflow_ready change occurred. Continue to keep training paused pending readiness and Henrry’s distinct explicit order.",
+  "blocked": "The Henrry approval is recorded on the review branch, but the attempted run 43826284280 failed before Colab: P2_TRAIN_APPROVAL_REF was empty. The coordinator has no auto-chain/checkpoint continuation implementation; campaign caps also currently stop at one 50-step session. training_workflow_ready remains false. No retry or training dispatch was made.",
+  "questions": [
+    "Liaison: the run log shows P2_TRAIN_APPROVAL_REF empty and gh secret list returns HTTP 403 to this installation. Please provision the matching configured approval value. Also confirm the intended coordinator continuation design; current p2-campaign workflow records events but does not chain training."
+  ],
+  "next_step": "Henrry approval is recorded on review/p2-async-evaluation in the manifest and schema-v2 ledger as approved=true with reference henrry-train-approval-2026-11-16-1446-ict; ledger is still paused, training_workflow_ready=false, no dispatch intents. Run 43826284280 failed before Colab assignment because the supplied approval input was matched against an empty P2_TRAIN_APPROVAL_REF. No training, checkpoint, or evaluation occurred; no retry/resume dispatch was made. The coordinator does not auto-chain; manifest caps still allow only one 50-step session. Before a subsequent run/continuation, Liaison must provision the matching approval setting, certify readiness, implement/review explicit continuation/checkpoint handling and update caps if a second session is intended. Do not re-enable legacy cron.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -74,7 +76,8 @@
     "9f5d86d",
     "f38f81b",
     "688da89",
-    "2e1cb26"
+    "2e1cb26",
+    "5ec3521"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -648,7 +651,64 @@
       "source_workflow_events_generated": true,
       "workflow_persistence_verified": true
     },
-    "merge_base_for_ledger_integration": "e4ed66ee63838f678228f116804885c6231c242d"
+    "merge_base_for_ledger_integration": "e4ed66ee63838f678228f116804885c6231c242d",
+    "approval_record": {
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "approved_by": "Henrry",
+      "approved_at": "2026-11-16 14:46 ICT",
+      "campaign": "p2a-v2-full",
+      "ledger_approved_on_review_branch": true,
+      "ledger_status": "paused",
+      "training_workflow_ready": false,
+      "dispatch_intents": []
+    },
+    "training_run_43826284280": {
+      "ref": "main",
+      "head_sha": "2e1cb261f5a2ea3ae0459663d2c392e38e388a47",
+      "conclusion": "failure",
+      "failure_step": "Require explicit training approval for full mode",
+      "evidence": {
+        "approval_ref_input": "henrry-train-approval-2026-11-16-1446-ict",
+        "approval_ref_configured": "empty",
+        "exit_code": 2
+      },
+      "verify_dataset_step": "skipped",
+      "colab_configure_step": "skipped",
+      "colab_run_step": "skipped",
+      "colab_assignment_started": false,
+      "training_started": false,
+      "checkpoints_uploaded": [],
+      "evaluation_started": false,
+      "resume_required": false,
+      "training_dispatch_by_this_agent": false,
+      "why_no_retry": "Run failed in pre-assignment approval preflight; no training state/checkpoint exists to resume. User instruction limited further dispatch to a needed resume; none was needed.",
+      "secret_read_limit": "gh secret list returned HTTP 403 Resource not accessible by integration; exact secret value was never read.",
+      "approval_recorded_commit_pending": "Approval/state/test changes committed to review branch only; main remains unchanged pending integration."
+    },
+    "coordinator_autochain": {
+      "will_chain_next_50_step_session": false,
+      "reason": "The workflow_run job only plans and persists completed-event records; it has no checkpoint retrieval, session/cap update, or training-dispatch step. Current ledger is paused and training_workflow_ready is false.",
+      "legacy_cron_reenabled": false,
+      "current_limits": {
+        "max_sessions": 1,
+        "max_total_steps": 50
+      },
+      "required_before_second_session": "implement/review checkpoint retrieval and compatibility validation, update durable session/cap state, raise caps to at least 2 sessions/100 steps, and verify continuation remains behind the approved gate."
+    },
+    "training_approval_recorded_on_review_branch": {
+      "campaign": "p2a-v2-full",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "approved_by": "Henrry",
+      "approved_at": "2026-11-16 14:46 ICT",
+      "ledger_approved": true,
+      "ledger_status": "paused",
+      "training_workflow_ready": false,
+      "dispatch_intents": [],
+      "not_on_main_until_integrated": true,
+      "branch": "review/p2-async-evaluation",
+      "training_run_started": false,
+      "full_training_gate_secret": "P2_TRAIN_APPROVAL_REF was empty in run 43826284280 log; secret-list API read was denied to this installation (HTTP 403)."
+    }
   },
   "training_workflow_ready": false,
   "branch_protection_constraint": "Main remains unprotected by Liaison decision. Do not change branch protection in this task. Any future protection must explicitly permit workflow GITHUB_TOKEN ledger commits; otherwise the recorder fails closed and campaign events need manual reconciliation.",
@@ -659,5 +719,14 @@
     "smoke_or_ablation_jobs_executed": false,
     "branch_protection_changed": false,
     "training_workflow_ready_changed": false
+  },
+  "training_approval": {
+    "status": "approved",
+    "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+    "approved_by": "Henrry",
+    "approved_at": "2026-11-16 14:46 ICT",
+    "recorded_in_review_branch_ledger": true,
+    "recorded_in_review_branch_campaign_manifest": true,
+    "not_yet_on_main": true
   }
 }

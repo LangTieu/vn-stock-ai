@@ -2,14 +2,51 @@
   "schema_version": 2,
   "campaign_id": "p2a-v2-full",
   "status": "paused",
-  "approved": false,
+  "approved": true,
   "campaign_ref": "main",
   "legacy_cutoff_run_id": 43580242658,
   "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
-  "ledger_revision": 0,
-  "seen_source_run_ids": [],
-  "events": [],
+  "ledger_revision": 3,
+  "seen_source_run_ids": [
+    43822902254,
+    43823006285,
+    43826284280
+  ],
+  "events": [
+    {
+      "source_run_id": 43822902254,
+      "source_ref": "main",
+      "source_sha": "31b4eb3e5a5a856732b9616e51936e7ea3c20c5b",
+      "status": "completed",
+      "conclusion": "success",
+      "decision": "approval_or_preflight_required",
+      "recorded_at": "2026-11-16T07:18:53Z"
+    },
+    {
+      "source_run_id": 43823006285,
+      "source_ref": "main",
+      "source_sha": "688da89e97566884d5d8e5f4e0433ecf134791a9",
+      "status": "completed",
+      "conclusion": "success",
+      "decision": "approval_or_preflight_required",
+      "recorded_at": "2026-11-16T07:19:46Z"
+    },
+    {
+      "source_run_id": 43826284280,
+      "source_ref": "main",
+      "source_sha": "2e1cb261f5a2ea3ae0459663d2c392e38e388a47",
+      "status": "completed",
+      "conclusion": "failure",
+      "decision": "manual_recovery_review",
+      "recorded_at": "2026-11-16T07:48:07Z"
+    }
+  ],
   "dispatch_intents": [],
   "sessions": [],
-  "latest_v2_compatible_checkpoint": null
+  "latest_v2_compatible_checkpoint": null,
+  "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+  "approved_by": "Henrry",
+  "approved_at": "2026-11-16 14:46 ICT",
+  "approval_recorded_at": "2026-11-16T07:52:39Z",
+  "training_workflow_ready": false
 }

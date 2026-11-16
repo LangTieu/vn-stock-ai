@@ -13,6 +13,7 @@ from p2_operator import gh_dispatch_args
 class CampaignPlannerTests(unittest.TestCase):
     def setUp(self):
         self.manifest = json.loads((ROOT / 'docs/p2-campaign.json').read_text())
+        self.manifest['training_approval'] = {'status': 'pending', 'approval_reference': None}
         self.manifest['dataset'].update({
             'revision': 'a' * 40,
             'signing_public_key_b64': 'dGVzdC1rZXk=',
@@ -143,6 +144,13 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertIn('git push origin HEAD:main', workflow)
         self.assertIn('docs/p2-campaign-ledger-v2.json', workflow)
         self.assertIn('queue: max', workflow)
+
+    def test_workflow_run_ledger_recorder_does_not_auto_dispatch_training(self):
+        workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        event_job = workflow.split('  operator-evaluate:', 1)[0]
+        self.assertIn('p2_campaign_ledger.py record', event_job)
+        self.assertNotIn('gh workflow run', event_job)
+        self.assertNotIn('p2_operator.py train --dispatch', event_job)
 
     def test_dispatch_argv_is_all_strings_and_uses_main_ref(self):
         plan = plan_operation(self.manifest, 'evaluate', 50)

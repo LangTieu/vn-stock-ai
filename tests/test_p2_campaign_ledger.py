@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'scripts/p2_campaign_ledger.py'
 sys.path.insert(0, str(ROOT / 'scripts'))
 from p2_campaign_ledger import (LEGACY_CUTOFF_RUN_ID, initial_ledger,
-                                record_event, validate_ledger)
+                                record_approval, record_event, validate_ledger)
 
 
 class CampaignLedgerTests(unittest.TestCase):
@@ -71,12 +71,55 @@ class CampaignLedgerTests(unittest.TestCase):
     def test_ledger_validation_refuses_unpaused_state_or_dispatch_intent(self):
         ledger = initial_ledger()
         ledger['status'] = 'active'
-        with self.assertRaisesRegex(ValueError, 'paused and unapproved'):
+        with self.assertRaisesRegex(ValueError, 'must remain paused'):
             validate_ledger(ledger)
         ledger = initial_ledger()
         ledger['dispatch_intents'].append({'source_run_id': 43730000001})
         with self.assertRaisesRegex(ValueError, 'dispatch intents are disabled'):
             validate_ledger(ledger)
+
+    def test_record_approval_does_not_unpause_or_enable_dispatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'ledger.json'
+            ledger = initial_ledger()
+            ledger['training_workflow_ready'] = False
+            path.write_text(json.dumps(ledger))
+            result = record_approval(path, 'henrry-train-approval-2026-11-16-1446-ict',
+                                     '2026-11-16 14:46 ICT')
+            recorded = json.loads(path.read_text())
+            self.assertTrue(result['approved'])
+            self.assertEqual(recorded['approval_reference'],
+                             'henrry-train-approval-2026-11-16-1446-ict')
+            self.assertEqual(recorded['approved_by'], 'Henrry')
+            self.assertEqual(recorded['approved_at'], '2026-11-16 14:46 ICT')
+            self.assertEqual(recorded['status'], 'paused')
+            self.assertTrue(recorded['approved'])
+            self.assertFalse(recorded['training_workflow_ready'])
+            self.assertEqual(recorded['dispatch_intents'], [])
+            self.assertTrue(validate_ledger(recorded))
+            event = {'run_id': LEGACY_CUTOFF_RUN_ID + 100,
+                     'status': 'completed', 'conclusion': 'failure',
+                     'head_branch': 'main', 'head_sha': 'c' * 40}
+            record_event(path, event, 'manual_recovery_review')
+            after_event = json.loads(path.read_text())
+            self.assertEqual(after_event['approval_reference'],
+                             'henrry-train-approval-2026-11-16-1446-ict')
+            self.assertTrue(after_event['approved'])
+            self.assertEqual(after_event['status'], 'paused')
+            self.assertFalse(after_event['training_workflow_ready'])
+            self.assertEqual(after_event['dispatch_intents'], [])
+
+    def test_record_approval_rejects_wrong_format_and_conflicting_replacement(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'ledger.json'
+            path.write_text(json.dumps(initial_ledger()))
+            with self.assertRaisesRegex(ValueError, 'invalid format'):
+                record_approval(path, 'not-an-approval', '2026-11-16 14:46 ICT')
+            record_approval(path, 'henrry-train-approval-2026-11-16-1446-ict',
+                            '2026-11-16 14:46 ICT')
+            with self.assertRaisesRegex(ValueError, 'different approval'):
+                record_approval(path, 'henrry-train-approval-2026-11-17-0900-ict',
+                                '2026-11-16 14:46 ICT')
 
 
 if __name__ == '__main__':
