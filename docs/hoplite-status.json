@@ -576,13 +576,13 @@
       "profile_verification": "PROFILE_VERIFIED kind=train profile=train_tk4",
       "colab_assignment_started": true,
       "notebook_setup_started": true,
-      "root_cause": "Notebook cell 3 references undefined P2A_TRAIN_SHA256/P2A_HOLDOUT_SHA256 rather than cell-1 TRAIN_SHA256/HOLDOUT_SHA256; cell 7 imports nonexistent p2a_train.HOLDOUT_MD5; cell 8 run_dir NameError cascades after cell 3 abort.",
+      "root_cause": "Notebook cells introduced in V2 cleanup commit 4aae5ce contain the name mismatch: cell 3 references undefined P2A_TRAIN_SHA256/P2A_HOLDOUT_SHA256 rather than cell-1 TRAIN_SHA256/HOLDOUT_SHA256; cell 7 imports nonexistent p2a_train.HOLDOUT_MD5; cell 8 run_dir NameError cascades after cell 3 abort.",
       "training_started": false,
       "optimizer_steps": 0,
       "checkpoint_uploaded": false,
       "resume_checkpoint_available": false,
       "repair": "Review branch changes cell 3 to use TRAIN_SHA256/HOLDOUT_SHA256, cell 7 imports dataset_path only and relies on cell-1 TRAIN_MD5/HOLDOUT_MD5, cell 7 passes TRAIN_SHA256; cell 9 passes HOLDOUT_SHA256.",
-      "verification": "Local V2 environment executes notebook cells 1, 3, and 7 with mocked dataset resolver and subprocess. Embedded script parity is checked against canonical scripts.",
+      "verification": "Notebook regression executes cells 1, 3 and 7 locally using the exact V2 repo/revision/hash variable names, a fake p2a_train exposing only dataset_path, and mocked dataset/subprocess; embedded p2a_train.py, numerics, validation and evaluator scripts match canonical sources byte-for-byte.",
       "redispatch": "not performed; main still contains the defective notebook and campaign changes are review-only. Integrate fix first, then run a fresh session 1; do not resume this failed run."
     },
     "training_started": false

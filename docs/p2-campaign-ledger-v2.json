@@ -82,5 +82,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 6
+  "state_revision": 8
 }
