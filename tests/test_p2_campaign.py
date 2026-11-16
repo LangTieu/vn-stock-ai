@@ -65,6 +65,8 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertEqual(plan_event(self.manifest, event)['decision'], 'already_seen')
 
     def test_training_profile_advances_only_on_confirmed_assign_503(self):
+        self.manifest['training_approval'] = {'status': 'approved', 'approval_reference': 'HENRRY-OK'}
+        self.manifest['training_workflow_ready'] = True
         event = {'run_id': 3, 'status': 'completed', 'conclusion': 'failure',
                  'head_branch': self.manifest['ref'], 'training_profile': 'train_tk4',
                  'failure_kind': 'colab_assignment', 'http_status': 503,

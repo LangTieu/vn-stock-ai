@@ -157,6 +157,17 @@ def plan_event(manifest, event, checkpoint=None):
                       and event.get('endpoint') == '/tun/m/assign')
         order = manifest['profiles']['training_order']
         if assign_503 and profile in order and order.index(profile) + 1 < len(order):
+            blocked = []
+            approval = manifest.get('training_approval') or {}
+            if approval.get('status') != 'approved' or not approval.get('approval_reference'):
+                blocked.append('Henrry training approval is pending or has no recorded reference')
+            if not manifest.get('training_workflow_ready'):
+                blocked.append('v2 full-training workflow is not yet certified ready')
+            if len((manifest.get('state') or {}).get('sessions') or []) >= manifest['limits']['max_sessions']:
+                blocked.append('max_sessions cap reached')
+            if blocked:
+                base.update({'decision': 'approval_or_preflight_required', 'blocked_reasons': blocked})
+                return base
             base.update({
                 'decision': 'profile_fallback_plan_only',
                 'blocked_reasons': ['confirmed Colab assignment HTTP 503; explicit next profile only'],

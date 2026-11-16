@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T03:05:33.285870Z",
+  "updated_at": "2026-11-16T03:08:35.135636Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Full training is not approved and the v2 full-training workflow is not certified ready. No training dispatch or merge is authorized by the current work.",
   "questions": [],
-  "next_step": "Item 2 is implemented: a unified CLI plans train/evaluate, named credential profiles are identity-checked without storing token values, and eval errors are visible/non-fatal to training. Training remains fail-closed because the v2 full-session data transfer/workflow is not yet certified and Henrry approval is pending. Finish item 3 by rehearsing the manifest-backed event coordinator with fixtures, keep cron disabled and untouched, and record any activation gaps. No training dispatch or merge.",
+  "next_step": "Items 1-2 are committed; evaluator infrastructure PR #1 is open and unmerged. Item 3 has a manifest-backed fail-closed planner, event-plan workflow, named profile interface, and local dry-run fixture rehearsal. It is not an active auto-chain: durable state/checkpoint handoff and a safe full-V2 training data-transfer/resume workflow are still missing, so training readiness stays false. Keep the 20-minute liaison cron disabled but intact. Do not dispatch training or merge; Henrry approval remains required.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -65,7 +65,8 @@
     "2a11bea",
     "cf27ab2",
     "448dbfe",
-    "ca439a5"
+    "ca439a5",
+    "a4bc534"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -281,21 +282,30 @@
       "verification": "90 tests pass; compileall, YAML/JSON parsing, diff check pass"
     },
     "item_3_event_coordinator": {
-      "state": "implemented_and_fixture_dry_run_rehearsed",
+      "state": "dry_run_planner_implemented; automatic_continuation_not_activated",
       "manifest": "docs/p2-campaign.json",
       "planner": "scripts/p2_campaign.py",
-      "event_workflow": ".github/workflows/p2-campaign.yml",
-      "approval_gate": "pending in sample; planner requires approval status/reference and v2 full-training workflow readiness",
+      "single_operator": "scripts/p2_operator.py train|evaluate and .github/workflows/p2-campaign.yml",
+      "approval_gate": "sample state pending; training requires a recorded approval reference and certified V2 full-training workflow",
       "caps": {
         "max_sessions": 1,
         "steps_per_session": 50,
         "max_total_steps": 50
       },
-      "checkpoint_guard": "structural optimizer/scheduler/trainer/RNG/adapter files plus p2a_training_manifest.json; exact label-v2, SHA-256, label method and flat-band compatibility",
-      "dedup_and_recovery": "source run IDs and dispatch intents are recognized; failed/cancelled runs block for manual review; profile advances only for explicit /tun/m/assign HTTP 503",
-      "dry_run": "train/eval and successful/running/failed event fixtures exercised locally; zero dispatch and no credentials accessed",
-      "cron": "liaison chain reference untouched; 20-minute polling remains disabled; remove only after event workflow is reviewed/activated and a non-training rehearsal proves parity",
-      "activation_limit": "workflow_run coordinator is staged on feature ref and is not live until separately reviewed/merged to default branch; no merge performed"
+      "checkpoint_guard": "requires optimizer/scheduler/trainer_state/RNG/adapter config+weights+p2a_training_manifest.json and exact V2 data SHA/label method/FLAT band match",
+      "idempotency": "planner blocks run IDs present in manifest seen_source_run_ids/dispatch_intents and handles failed/running/duplicate/ref-mismatch states; persistent cross-run ledger integration is not wired yet",
+      "fallback": "training next profile is only planned for confirmed /tun/m/assign HTTP 503 and only after approval/workflow/cap gates; evaluator remains TK2 then TK5 only on confirmed 503",
+      "dry_run": "local train/eval plans and success/running/failure fixture events rehearsed; plan paths made no GitHub, Colab, or credential calls; training plan returned blocked; evaluation plan showed isolated p2-eval route",
+      "event_activation": "p2-campaign.yml on workflow_run is staged on feature branch and only emits a decision artifact. GitHub event activation requires default-branch availability; no merge performed.",
+      "cron": "liaison 20-minute cron remains disabled and unmodified; do not remove until persistent campaign state, checkpoint artifact handoff, alerts, and event path are proven",
+      "remaining_blockers": [
+        "current run-colab does not implement private full-V2 artifact transfer/resume; structural checkpoint+manifest checks alone do not make a training workflow ready",
+        "workflow_run decision artifacts are not yet fed back as durable campaign state/checkpoint inventory for exactly-once continuation",
+        "Liaison must provision named credential profiles/identity vars outside repo",
+        "Henrry training approval is still pending"
+      ],
+      "training_dispatched": false,
+      "merge_performed": false
     },
     "chain_reference_audit_commit": "cf27ab2"
   }
