@@ -85,6 +85,17 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn('p2-campaign-run-completed', coordinator)
         self.assertIn('gh run view "$WORKFLOW_RUN_ID"', coordinator)
 
+    def test_coordinator_replay_installs_checkpoint_dependency_and_sets_git_identity(self):
+        workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        identity = 'git config user.name "github-actions[bot]"'
+        source_record = 'record_result=$(python3 scripts/p2_campaign_ledger.py record'
+        self.assertLess(workflow.index(identity), workflow.index(source_record))
+        self.assertIn("source_conclusion=$(jq -r '.conclusion // \"\"' /tmp/p2-campaign-event.json)",
+                      workflow)
+        self.assertIn('[ "$source_conclusion" = success ]', workflow)
+        self.assertIn('python3 -m pip install --quiet "huggingface_hub==0.30.2"', workflow)
+        self.assertIn("(.run_id|tostring) == $run_id and .head_sha == $head_sha", workflow)
+
     def test_notebook_exposes_verified_dataset_hashes_and_ablation_settings(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         settings = ''.join(notebook['cells'][1]['source'])

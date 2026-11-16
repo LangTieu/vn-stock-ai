@@ -83,6 +83,27 @@ def make_checkpoint(step):
 
 
 class CampaignChainTests(unittest.TestCase):
+    def test_replayed_success_event_can_resume_chain_plan_when_first_planner_died(self):
+        run_id = 43830000001
+        ledger = approved_ledger()
+        ledger['seen_source_run_ids'] = [run_id]
+        ledger['events'] = [{
+            'source_run_id': run_id, 'source_ref': 'main',
+            'source_sha': f'{run_id:040x}', 'status': 'completed',
+            'conclusion': 'success', 'decision': 'approval_or_preflight_required',
+            'recorded_at': '2026-11-16T00:00:00Z',
+        }]
+        ledger['ledger_revision'] = ledger['state_revision'] = 1
+
+        plan = prepare_continuation(ledger, make_event(run_id), make_context(run_id),
+                                    make_checkpoint(50))
+
+        self.assertEqual(plan['decision'], 'dispatch_prepared')
+        self.assertTrue(plan['ledger_changed'])
+        self.assertEqual(len(ledger['sessions']), 1)
+        self.assertEqual(ledger['dispatch_intents'][0]['status'], 'prepared')
+        self.assertTrue(validate_ledger(ledger))
+
     def test_failed_assignment_can_only_retry_from_committed_checkpoint_with_new_intent(self):
         parent_id, failed_id = 43830000001, 43830000002
         ledger = approved_ledger()
