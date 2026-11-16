@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T05:27:43Z",
+  "updated_at": "2026-11-16T05:34:29Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
   "questions": [],
-  "next_step": "Liaison approved the private V2 dataset storage/retention and this pinning/publication implementation. Commit 4aae5ce is pushed on review/p2-async-evaluation for Liaison review. The publication workflow was not dispatched; Liaison will review the workflow diff and dispatch publication. Keep docs/p2-campaign.json revision, file hashes, and trusted signing key null until a successful publication receipt is verified. No training dispatch without Henrry's separate explicit approval.",
+  "next_step": "Fetch path bug fixed and pushed as commit 791a141; full suite passes (97 tests, one optional cryptography test skipped). Liaison is handling publication dispatch in parallel; this agent did not dispatch it. Campaign revision, hashes, and trusted signing key remain null until a verified publication receipt is available. Do not start training without Henrry's separate explicit approval.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -398,6 +398,10 @@
     "implementation_commit": "4aae5ce",
     "publication_dispatched": false,
     "campaign_pins_populated": false,
-    "next_action": "Liaison review of committed workflow diff, then Liaison dispatches publication"
+    "next_action": "Liaison owns publication dispatch; verify its result/receipt before filling campaign pins.",
+    "fetch_copy_fix_commit": "791a141",
+    "fetch_copy_fix": "Imported shutil and added regression test for copying cache download into a distinct output directory.",
+    "publication_dispatched_by_this_agent": false,
+    "liaison_dispatch_status": "reported as dispatching in parallel; not independently verified"
   }
 }
