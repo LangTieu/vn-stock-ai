@@ -6,9 +6,21 @@
   "campaign_ref": "main",
   "legacy_cutoff_run_id": 43580242658,
   "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
-  "ledger_revision": 0,
-  "seen_source_run_ids": [],
-  "events": [],
+  "ledger_revision": 1,
+  "seen_source_run_ids": [
+    43822902254
+  ],
+  "events": [
+    {
+      "source_run_id": 43822902254,
+      "source_ref": "main",
+      "source_sha": "31b4eb3e5a5a856732b9616e51936e7ea3c20c5b",
+      "status": "completed",
+      "conclusion": "success",
+      "decision": "approval_or_preflight_required",
+      "recorded_at": "2026-11-16T07:18:53Z"
+    }
+  ],
   "dispatch_intents": [],
   "sessions": [],
   "latest_v2_compatible_checkpoint": null
