@@ -3,8 +3,10 @@
   "campaign_id": "p2a-v2-full",
   "ref": "main",
   "training_approval": {
-    "status": "pending",
-    "approval_reference": null
+    "status": "approved",
+    "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+    "approved_by": "Henrry",
+    "approved_at": "2026-11-16 14:46 ICT"
   },
   "training_workflow_ready": false,
   "dataset": {
@@ -39,9 +41,9 @@
     }
   },
   "limits": {
-    "max_sessions": 1,
+    "max_sessions": 104,
     "steps_per_session": 50,
-    "max_total_steps": 50
+    "max_total_steps": 5198
   },
   "profiles": {
     "training_order": [

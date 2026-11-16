@@ -44,6 +44,14 @@ on:
         description: "Immutable 40-character revision of the private V2 train/validation dataset; required for notebooks/p2a_train.ipynb"
         required: false
         default: ""
+      campaign_id:
+        description: "P2 campaign identifier used for audited checkpoint continuation"
+        required: false
+        default: "p2a-v2-full"
+      campaign_chain_source_run_id:
+        description: "Coordinator source run that created this continuation"
+        required: false
+        default: ""
       save_steps:
         description: "Checkpoint interval for this session"
         required: true
@@ -184,6 +192,55 @@ jobs:
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Write non-secret campaign run context
+        if: always()
+        env:
+          CAMPAIGN_ID: ${{ inputs.campaign_id }}
+          NOTEBOOK_INPUT: ${{ inputs.notebook }}
+          MODE_INPUT: ${{ inputs.mode }}
+          APPROVAL_REF_INPUT: ${{ inputs.training_approval_ref }}
+          DATASET_REVISION_INPUT: ${{ inputs.p2a_v2_dataset_revision }}
+          CHAIN_SOURCE_RUN_ID: ${{ inputs.campaign_chain_source_run_id }}
+          MAX_STEPS_INPUT: ${{ inputs.max_steps }}
+          SAVE_STEPS_INPUT: ${{ inputs.save_steps }}
+          RESUME_CHECKPOINT_INPUT: ${{ inputs.resume_checkpoint }}
+          EXECUTOR_INPUT: ${{ inputs.executor }}
+          TRAIN_PROFILE_INPUT: ${{ inputs.train_profile }}
+          GPU_INPUT: ${{ inputs.gpu }}
+          TIMEOUT_INPUT: ${{ inputs.timeout }}
+          DRIVE_INVENTORY_INPUT: ${{ inputs.drive_inventory }}
+          HF_SOURCE_AUDIT_INPUT: ${{ inputs.hf_source_audit }}
+          V2_SMOKE_INPUT: ${{ inputs.p2a_v2_smoke }}
+          V2_ABLATION_INPUT: ${{ inputs.p2a_v2_ablation }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          context = {
+              'campaign_id': os.environ.get('CAMPAIGN_ID', ''),
+              'run_id': int(os.environ['GITHUB_RUN_ID']),
+              'head_sha': os.environ['GITHUB_SHA'],
+              'workflow_ref': 'main' if os.environ.get('GITHUB_REF', '').endswith('/main') else os.environ.get('GITHUB_REF', ''),
+              'notebook': os.environ.get('NOTEBOOK_INPUT', ''),
+              'mode': os.environ.get('MODE_INPUT', ''),
+              'training_approval_ref': os.environ.get('APPROVAL_REF_INPUT', ''),
+              'p2a_v2_dataset_revision': os.environ.get('DATASET_REVISION_INPUT', ''),
+              'campaign_chain_source_run_id': os.environ.get('CHAIN_SOURCE_RUN_ID', ''),
+              'max_steps': os.environ.get('MAX_STEPS_INPUT', ''),
+              'save_steps': os.environ.get('SAVE_STEPS_INPUT', ''),
+              'resume_checkpoint': os.environ.get('RESUME_CHECKPOINT_INPUT', ''),
+              'executor': os.environ.get('EXECUTOR_INPUT', ''),
+              'train_profile': os.environ.get('TRAIN_PROFILE_INPUT', ''),
+              'gpu': os.environ.get('GPU_INPUT', ''),
+              'timeout': os.environ.get('TIMEOUT_INPUT', ''),
+              'drive_inventory': os.environ.get('DRIVE_INVENTORY_INPUT', ''),
+              'hf_source_audit': os.environ.get('HF_SOURCE_AUDIT_INPUT', ''),
+              'p2a_v2_smoke': os.environ.get('V2_SMOKE_INPUT', ''),
+              'p2a_v2_ablation': os.environ.get('V2_ABLATION_INPUT', ''),
+          }
+          with open('p2-campaign-run-context.json', 'w', encoding='utf-8') as out:
+              json.dump(context, out, sort_keys=True)
+              out.write('\n')
+          PY
       - name: Require explicit training approval for full mode
         if: ${{ inputs.mode == 'full' && !inputs.p2a_v2_smoke && !inputs.p2a_v2_ablation && !inputs.drive_inventory && !inputs.hf_source_audit }}
         env:
@@ -195,6 +252,45 @@ jobs:
             echo "Full training is blocked: explicit matching Henrry approval reference is required." >&2
             exit 2
           fi
+      - name: Validate bounded P2a campaign session and continuation intent
+        if: ${{ inputs.notebook == 'notebooks/p2a_train.ipynb' && inputs.mode == 'full' }}
+        env:
+          CAMPAIGN_ID_INPUT: ${{ inputs.campaign_id }}
+          APPROVAL_REF_INPUT: ${{ inputs.training_approval_ref }}
+          DATASET_REVISION_INPUT: ${{ inputs.p2a_v2_dataset_revision }}
+          MAX_STEPS_INPUT: ${{ inputs.max_steps }}
+          SAVE_STEPS_INPUT: ${{ inputs.save_steps }}
+          RESUME_CHECKPOINT_INPUT: ${{ inputs.resume_checkpoint }}
+          CHAIN_SOURCE_RUN_ID: ${{ inputs.campaign_chain_source_run_id }}
+          NOTEBOOK_INPUT: ${{ inputs.notebook }}
+          MODE_INPUT: ${{ inputs.mode }}
+          EXECUTOR_INPUT: ${{ inputs.executor }}
+          GPU_INPUT: ${{ inputs.gpu }}
+          TRAIN_PROFILE_INPUT: ${{ inputs.train_profile }}
+          TIMEOUT_INPUT: ${{ inputs.timeout }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/p2a-campaign-dispatch-inputs.json
+          import json, os
+          print(json.dumps({
+              'campaign_id': os.environ['CAMPAIGN_ID_INPUT'],
+              'notebook': os.environ['NOTEBOOK_INPUT'],
+              'mode': os.environ['MODE_INPUT'],
+              'executor': os.environ['EXECUTOR_INPUT'],
+              'gpu': os.environ['GPU_INPUT'],
+              'train_profile': os.environ['TRAIN_PROFILE_INPUT'],
+              'save_steps': os.environ['SAVE_STEPS_INPUT'],
+              'timeout': os.environ['TIMEOUT_INPUT'],
+              'training_approval_ref': os.environ['APPROVAL_REF_INPUT'],
+              'p2a_v2_dataset_revision': os.environ['DATASET_REVISION_INPUT'],
+              'max_steps': os.environ['MAX_STEPS_INPUT'],
+              'resume_checkpoint': os.environ['RESUME_CHECKPOINT_INPUT'],
+              'campaign_chain_source_run_id': os.environ['CHAIN_SOURCE_RUN_ID'],
+          }))
+          PY
+          python3 scripts/p2_campaign_ledger.py validate-dispatch \
+            --ledger docs/p2-campaign-ledger-v2.json \
+            --inputs /tmp/p2a-campaign-dispatch-inputs.json
       - name: Verify pinned private V2 dataset before Colab assignment
         if: ${{ inputs.notebook == 'notebooks/p2a_train.ipynb' }}
         env:
@@ -205,8 +301,11 @@ jobs:
           test -n "$P2A_V2_DATASET_REVISION_INPUT" || { echo "P2a requires an immutable V2 dataset revision" >&2; exit 2; }
           if [ ! -x "$HOME/vncolab-venv/bin/python" ]; then
             python3 -m venv "$HOME/vncolab-venv"
-            "$HOME/vncolab-venv/bin/pip" install -q "huggingface_hub==0.30.2" "cryptography>=44,<47"
           fi
+          "$HOME/vncolab-venv/bin/python" -m pip install -q \
+            "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" \
+            "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6" \
+            "huggingface_hub==0.30.2" "cryptography>=44,<47"
           "$HOME/vncolab-venv/bin/python" scripts/p2a_v2_dataset.py verify \
             --campaign-manifest docs/p2-campaign.json \
             --revision "$P2A_V2_DATASET_REVISION_INPUT"
@@ -248,6 +347,9 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_CHECKPOINT_REPO: Jerlob/vn-stock-ai-p2a-checkpoints
           P2_EVAL_ENABLED: "1"
+          P2_TRAIN_APPROVAL_REF: ${{ inputs.training_approval_ref }}
+          P2_CAMPAIGN_ID: ${{ inputs.campaign_id }}
+          P2_CAMPAIGN_CHAIN_SOURCE_RUN_ID: ${{ inputs.campaign_chain_source_run_id }}
           TRAIN_PROFILE: ${{ inputs.train_profile }}
           EXECUTOR: ${{ inputs.executor }}
           P2_TRAIN_TK4_EMAIL: ${{ vars.P2_TRAIN_TK4_EMAIL }}
@@ -267,6 +369,7 @@ jobs:
             .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
             PY=".vncolab-venv/bin/python"
           fi
+          "$PY" -m pip install -q "huggingface_hub==0.30.2" "cryptography>=44,<47"
           if [ "$EXECUTOR" = "lv1" ]; then
             case "$TRAIN_PROFILE" in
               train_tk4|train_tk5|train_tk1) ;;
@@ -283,11 +386,23 @@ jobs:
           # source code qua execute_code), nen phai truyen tuong minh; vncolab
           # se set os.environ["MODE"] tren kernel truoc cell dau tien.
           "$PY" scripts/vncolab.py run "${{ inputs.notebook }}" --gpu "${{ inputs.gpu }}" --timeout "${{ inputs.timeout }}" --mode "$MODE" --max-steps "$MAX_STEPS" --resume-checkpoint "$RESUME_CHECKPOINT" --save-steps "$SAVE_STEPS" --out colab_result.json "${download_args[@]}"
+      - name: Upload non-secret campaign run context
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-campaign-run-context
+          path: p2-campaign-run-context.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Show result
         if: always()
         run: |
           echo "--- COLAB RESULT ---"
-          cat colab_result.json
+          if [ -f colab_result.json ]; then
+            cat colab_result.json
+          else
+            echo "No Colab result was produced because a pre-assignment gate failed."
+          fi
       - name: Upload result
         if: always()
         uses: actions/upload-artifact@v4

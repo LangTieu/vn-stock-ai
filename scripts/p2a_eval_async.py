@@ -105,7 +105,10 @@ def checkpoint_complete(token, step, dataset):
             and training.get('dataset_repo') == dataset['repo_id']
             and training.get('dataset_revision') == dataset['revision']
             and training.get('label_method') == dataset['label_method']
-            and training.get('flat_band_pct') == dataset['flat_band_pct'])
+            and training.get('flat_band_pct') == dataset['flat_band_pct']
+            and training.get('campaign_id') == 'p2a-v2-full'
+            and training.get('training_approval_ref') == (json.loads(
+                V2_CAMPAIGN_MANIFEST.read_text(encoding='utf-8')).get('training_approval') or {}).get('approval_reference'))
 
 
 def latest_complete_step(token, dataset):

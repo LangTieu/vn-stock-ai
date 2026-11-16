@@ -1,7 +1,9 @@
 import json
+import os
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -65,6 +67,18 @@ class TrainingRowFilterTests(unittest.TestCase):
             old_checkpoint = root / 'checkpoint-150'; old_checkpoint.mkdir()
             with self.assertRaisesRegex(ValueError, 'Cannot verify this legacy checkpoint'):
                 validate_resume_manifest(old_checkpoint, manifest)
+
+    def test_training_manifest_binds_campaign_and_approval_reference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data = Path(directory) / 'train.jsonl'
+            data.write_text('{}\n')
+            with patch.dict(os.environ, {
+                    'P2_CAMPAIGN_ID': 'p2a-v2-full',
+                    'P2_TRAIN_APPROVAL_REF': 'henrry-train-approval-2026-11-16-1446-ict'}):
+                manifest = make_training_manifest(data, 2, 4096, 2)
+            self.assertEqual(manifest['campaign_id'], 'p2a-v2-full')
+            self.assertEqual(manifest['training_approval_ref'],
+                             'henrry-train-approval-2026-11-16-1446-ict')
 
     def test_resume_requires_matching_dataset_fingerprint(self):
         with tempfile.TemporaryDirectory() as directory:

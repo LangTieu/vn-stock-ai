@@ -263,6 +263,8 @@ def make_training_manifest(train_path, label_version, max_length, epochs, flat_b
         'dataset_repo': os.environ.get('P2A_V2_DATASET_REPO', ''),
         'dataset_revision': os.environ.get('P2A_V2_DATASET_REVISION', ''),
         'dataset_validation_sha256': os.environ.get('P2A_HOLDOUT_SHA256', ''),
+        'campaign_id': os.environ.get('P2_CAMPAIGN_ID', ''),
+        'training_approval_ref': os.environ.get('P2_TRAIN_APPROVAL_REF', ''),
         'max_length': max_length,
         'model_id': MODEL_ID,
         'system_prompt_sha256': hashlib.sha256(SYSTEM.encode('utf-8')).hexdigest(),
@@ -290,7 +292,7 @@ def validate_resume_manifest(checkpoint, current):
                          'training configuration; start from the base model')
     saved = json.loads(manifest_path.read_text(encoding='utf-8'))
     for key in ('label_version', 'train_sha256', 'dataset_repo', 'dataset_revision',
-                'dataset_validation_sha256',
+                'dataset_validation_sha256', 'campaign_id', 'training_approval_ref',
                 'max_length', 'model_id', 'system_prompt_sha256',
                 'input_transform_version',
                 'population_scope', 'flat_band_pct', 'lora', 'target_modules', 'training',
