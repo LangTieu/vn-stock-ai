@@ -127,6 +127,28 @@ class CampaignChainTests(unittest.TestCase):
                          'continuation')
         self.assertTrue(validate_ledger(ledger))
 
+        completed_id = 43830000003
+        completed_event = make_event(completed_id)
+        ledger['seen_source_run_ids'].append(completed_id)
+        ledger['events'].append({
+            'source_run_id': completed_id, 'source_ref': 'main',
+            'source_sha': completed_event['head_sha'], 'status': 'completed',
+            'conclusion': 'success', 'decision': 'eligible',
+            'recorded_at': '2026-11-16T00:10:00Z',
+        })
+        ledger['ledger_revision'] += 1
+        ledger['state_revision'] += 1
+        completed_context = make_context(completed_id, max_steps=100,
+                                         parent=str(parent_id), resume='checkpoint-50')
+        result = prepare_continuation(ledger, completed_event, completed_context,
+                                      make_checkpoint(100))
+        self.assertEqual(result['decision'], 'dispatch_prepared')
+        self.assertEqual(ledger['dispatch_intents'][0]['status'], 'failed')
+        self.assertEqual(ledger['dispatch_intents'][1]['status'], 'completed')
+        self.assertEqual(ledger['dispatch_intents'][1]['child_run_id'], completed_id)
+        self.assertEqual(ledger['sessions'][-1]['end_step'], 100)
+        self.assertTrue(validate_ledger(ledger))
+
     def test_prepared_intent_survives_process_restart_and_duplicate_replay(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

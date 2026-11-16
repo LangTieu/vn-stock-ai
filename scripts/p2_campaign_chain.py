@@ -226,9 +226,10 @@ def prepare_continuation(ledger, event, context, checkpoint):
         if context.get('resume_checkpoint') != sessions[-1]['checkpoint_name']:
             return {'decision': 'no_chain_resume_mismatch', 'dispatch': False,
                     'ledger_changed': False}
-        parent_intent = next((intent for intent in ledger['dispatch_intents']
-                              if intent['source_run_id'] == parent_run_id), None)
-        if not parent_intent or parent_intent['status'] not in {'dispatching', 'submitted'}:
+        parent_intent = next((intent for intent in reversed(ledger['dispatch_intents'])
+                              if intent['source_run_id'] == parent_run_id
+                              and intent['status'] in {'dispatching', 'submitted'}), None)
+        if not parent_intent:
             return {'decision': 'no_chain_parent_intent_unconfirmed', 'dispatch': False,
                     'ledger_changed': False}
         parent_intent['status'] = 'completed'
