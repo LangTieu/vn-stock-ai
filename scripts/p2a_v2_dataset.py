@@ -183,6 +183,14 @@ def _validate_publish_staging(root):
     return manifest
 
 
+def validate_remote_file_allowlist(remote_files):
+    remote_files = set(remote_files)
+    missing = ALLOWED_PUBLISHED_FILES - remote_files
+    extra = remote_files - ALLOWED_PUBLISHED_FILES - {'.gitattributes'}
+    if missing or extra:
+        raise ValueError(f'published repo file allowlist mismatch: missing={sorted(missing)} extra={sorted(extra)}')
+
+
 def publish_dataset(prepared_dir, repo_id, source_run_id, private_key_b64, public_key_b64):
     from huggingface_hub import HfApi
     from huggingface_hub.errors import RepositoryNotFoundError
@@ -219,8 +227,7 @@ def publish_dataset(prepared_dir, repo_id, source_run_id, private_key_b64, publi
     if not getattr(info, 'private', False):
         raise RuntimeError('published V2 dataset revision is not private')
     remote = set(api.list_repo_files(repo_id=repo_id, repo_type='dataset', revision=revision))
-    if remote != ALLOWED_PUBLISHED_FILES:
-        raise RuntimeError(f'published repo file allowlist mismatch: missing={sorted(ALLOWED_PUBLISHED_FILES-remote)} extra={sorted(remote-ALLOWED_PUBLISHED_FILES)}')
+    validate_remote_file_allowlist(remote)
     return {'repo_id': repo_id, 'private': True, 'revision': revision,
             'source_label_run_id': int(source_run_id), 'files': manifest['files'],
             'manifest_file': MANIFEST_FILE, 'signature_file': SIGNATURE_FILE,

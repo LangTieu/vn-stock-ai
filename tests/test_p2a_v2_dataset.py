@@ -13,7 +13,7 @@ from p2a_v2_dataset import (ALLOWED_PUBLISHED_FILES, APPROVED_SOURCE_RUN_ID,
                             DATASET_REPO_ID, MANIFEST_FILE,
                             TRAIN_FILE, VALIDATION_FILE, prepare_dataset,
                             sha256_file, sign_manifest, verify_manifest_signature,
-                            _validate_publish_staging)
+                            _validate_publish_staging, validate_remote_file_allowlist)
 
 
 def make_row(ticker, day, direction, endpoint, version=2, status='labeled'):
@@ -88,6 +88,14 @@ class V2DatasetTests(unittest.TestCase):
         self.assertEqual(ALLOWED_PUBLISHED_FILES,
                          {TRAIN_FILE, VALIDATION_FILE, MANIFEST_FILE, 'v2-dataset-manifest.sig'})
         self.assertIn("'raw_adjusted_price_table_included': False",text)
+
+    def test_publish_accepts_only_hugging_face_auto_added_gitattributes(self):
+        self.assertIsNone(validate_remote_file_allowlist(ALLOWED_PUBLISHED_FILES))
+        self.assertIsNone(validate_remote_file_allowlist(ALLOWED_PUBLISHED_FILES | {'.gitattributes'}))
+        with self.assertRaisesRegex(ValueError, 'allowlist mismatch'):
+            validate_remote_file_allowlist(ALLOWED_PUBLISHED_FILES | {'.gitattributes', 'raw_prices.csv'})
+        with self.assertRaisesRegex(ValueError, 'allowlist mismatch'):
+            validate_remote_file_allowlist(ALLOWED_PUBLISHED_FILES - {MANIFEST_FILE})
 
     def test_fetch_copies_downloaded_file_to_a_different_output_directory(self):
         from p2a_v2_dataset import download_pinned_file
