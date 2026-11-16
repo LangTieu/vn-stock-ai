@@ -36,17 +36,45 @@ Simplify the operator surface, not the GPU boundary: one campaign/train workflow
 
 ## 3. Preparation, coordination, chain state, and credentials
 
-### Options
+### Current liaison chain behavior (read-only audit)
 
-- **Replace `chain_next.py` + mutable `chain_state` + watch cron with one durable campaign record and event-driven Actions orchestration (recommended target).** The current repo does not contain `chain_next.py` or `chain_state`; these controls appear external to the tracked checkout. If the external coordinator can be simplified, store a small campaign manifest (approved ref/SHA, dataset/version/hash, target step budget, latest verified checkpoint, run IDs, approval state) as a run artifact or workflow output. A bounded `workflow_run`/reusable-workflow continuation can start the next session only after the prior session completes and its checkpoint is verified. Keep a required approval gate before the first training session and an explicit max-session/step cap.
-  - Pros: one source of truth, fewer stale-state resets, event-driven rather than polling cron, recoverable/auditable continuation.
-  - Cons: cross-run state/artifact handling and workflow permissions need review; GitHub event delivery is not a substitute for a checkpoint-integrity check.
-- **Keep manual chain, cron, and token rotation.** Simple to understand in an incident, but repeated resets, missed watches, and copy/paste errors remain likely.
-- **Fully automatic retry/rotation.** Not recommended without limits: arbitrary failures must not trigger repeated spend or silent account changes.
+Read `docs/p2-chain-reference/README.md`, `chain_next.py`, and `chain_state.json` at commit `cf27ab2`. The script was not executed and the reference files were not modified.
 
-### Recommendation
+- `chain_next.py` polls only the newest `run-colab.yml` workflow run. If it is not completed, it prints a message and returns; that is the documented silent-when-running behavior (cron stdout is the only signal).
+- It deduplicates only when `chain_state.json.chained_from` equals that run ID. After a successful 201/204 dispatch it updates `chained_from` and appends `dispatched`; it has no persisted pre-dispatch intent/reconciliation key, so a crash between API acceptance and ledger save can permit a duplicate on the next poll.
+- It does not gate continuation on the previous run conclusion: any completed latest run can trigger continuation if a complete HF checkpoint exists.
+- It selects the newest checkpoint with `optimizer.pt`, `scheduler.pt`, `trainer_state.json`, `rng_state.pth`, `adapter_config.json`, and either adapter weight file. It does not check the v2 training manifest, label version, dataset hash, or whether the checkpoint is compatible with the current label/data contract. Consequently, “complete” currently means structurally resumable, not semantically safe for v2.
+- It dispatches the next run with hardcoded `ref: main`, 50 additional steps (`checkpoint step + 50`), `resume_checkpoint` at that newest checkpoint, and an LV1/T4 full session. There is no campaign approval check, max-session/total-step cap, or active-run/conflict check in this chain code.
+- The ledger is a local JSON file with one `chained_from` value and a dispatch history. Its path, HF token, and custom GitHub API helper are liaison-machine local. The README says cron is every 20 minutes but currently disabled.
+- The ledger records eight past dispatches (several source runs concluded `failure` or `cancelled`), illustrating why a completed status alone is not sufficient authorization to continue.
 
-Move toward one manifest-driven, event-based coordinator and remove cron polling only after the coordinator is proven in a non-training rehearsal. In the short term, reduce operator steps with one guarded command that (a) inspects the last run, (b) verifies a complete v2-compatible checkpoint/manifest, (c) checks no other train/eval job is active, and (d) prints the exact proposed ref/checkpoint/account before requiring approval. Do not let it dispatch until Henrry approves the campaign. For a confirmed Colab assignment 503, keep the explicit ordered fallback; prefer separately named, pre-verified credential profiles over overwriting a single token by hand, but keep credentials outside the repo/logs and never rotate on an unrelated error. A 401/expired token should request authorized credential refresh, not be treated as capacity 503.
+### Recommended coordinator design
+
+Replace the poll-and-immediately-dispatch behavior only after a safe dry-run rehearsal. The coordinator should be event-driven from a completed training workflow, but initially emit a continuation plan/artifact rather than launching training. Later, after Henrry's separate approval, it may dispatch exactly one bounded next session if every gate below passes.
+
+1. **Manifest-backed campaign ledger:** one versioned manifest stores campaign ID, approved source ref/SHA, label version and train SHA-256, model/config fingerprint, explicit Henrry approval record/reference, maximum session count, maximum cumulative optimizer steps, session size, latest accepted run ID, latest semantically compatible complete checkpoint, and idempotency keys for both observed and dispatched workflow runs. Do not store credentials in it.
+2. **Preflight gates:** require approved campaign state; the completed source run must be on the approved ref/SHA and have an allowlisted conclusion (`success` by default; permit failed/cancelled continuation only under an explicit recovery action and documented checkpoint review); no competing active training run; checkpoint must contain the full structural set above *and* a matching P2a training manifest with label version 2, dataset hash, label method/horizon, FLAT/censor policy, and training config; enforce both per-session and cumulative caps.
+3. **Exactly-once intent/reconciliation:** persist a continuation intent keyed by campaign + source run before sending dispatch. On a timeout/uncertain API result, reconcile against Actions runs for the same branch/ref and source marker before retrying. Record the resulting run ID and state before accepting another event. This is at-least-once event delivery made idempotent, not a claim of transactional exactly-once behavior across GitHub API and state storage.
+4. **Operator-visible states:** every event writes a structured decision (`ignored_running`, `already_seen`, `blocked_reason`, `plan_ready`, `dispatch_accepted`, `dispatch_reconciled`, or `session_complete`) to a workflow artifact and campaign ledger. Missing credentials, invalid checkpoint, failure conclusion, cap reached, or approval missing must be explicit non-dispatch outcomes, not silent success.
+5. **First-session approval:** use a repository/environment protection with a named human reviewer for the first training dispatch; then persist the approval reference into the campaign manifest. A boolean supplied by a caller or a repository file alone must not stand in for the human approval. Keep the campaign paused if the environment protection is not configured.
+6. **Dry-run first:** `plan --dry-run` validates the manifest/schema, last run, candidate checkpoint, branch/SHA, profile names, caps, and approval state, then prints a redacted planned action without writing tokens, invoking dispatch, touching external cron/state, or allocating Colab. Test no-run, already-seen, invalid/missing v2 manifest, incompatible hash, failed/cancelled run, active run, missing approval, cap reached, and eligible-next-session cases. Only after a Liaison-reviewed dry-run artifact demonstrates all gates should an approved implementation replace cron polling.
+
+### Named credential profile interface (design only)
+
+The coordinator may refer to profile *names*, but credentials remain entirely in Liaison-managed environment/secrets or external permission-controlled files and are never committed, emitted in logs, or copied into campaign artifacts. Proposed names:
+
+- Training order: `train_tk4`, `train_tk5`, `train_tk1` (the profile resolver maps names to Liaison-installed credentials; rotation policy must be explicitly approved and must not be triggered by arbitrary errors).
+- Evaluation order: `eval_tk2`, then `eval_tk5` only on a confirmed `/tun/m/assign` HTTP 503.
+
+The interface resolves a profile name to an already-installed credential and expected account identity, verifies identity before use, and fails closed if missing/mismatched. It must never accept a raw token value as a CLI argument or serialize token contents. Training and evaluation remain separate Colab assignments/runtimes: evaluation failure is recorded and visible but must not terminate or invalidate training. `401`/expired credentials are operator-action conditions, not capacity fallback signals.
+
+### Rollout recommendation and trade-offs
+
+- **Now:** preserve the current chain helper only as a disabled read-only reference; do not run it from the repo. Implement a manifest/schema validator and dry-run planner, and rehearse against fixture inputs only.
+- **After a successful reviewed dry-run:** deploy an event-triggered coordinator in a non-training mode that only produces plans/status artifacts. Compare those decisions with the liaison's disabled 20-minute cron output; do not remove the cron before the event path is proven and its alerts/ledger are visible.
+- **Only after Henrry's separate training approval:** enable the protected dispatch action with bounded session/total-step caps and named profile resolution. Remove cron polling only after a documented parity/recovery rehearsal and a rollback path.
+
+Pros: no 20-minute polling, explicit provenance/idempotency, fewer manual state resets, clear errors, and an audit trail. Cons: state persistence and event redelivery are distributed-systems concerns; GitHub Actions/API permissions and environment protection require careful setup; the new coordinator adds code that itself needs rehearsal. Keep the existing disabled cron until dry-run/event rehearsal and alerting are proven; never auto-rotate credentials or retry arbitrary failures.
 
 ## Decision requested from Liaison/Henrry
 

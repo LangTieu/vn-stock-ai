@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:40:36.732748Z",
+  "updated_at": "2026-11-16T02:49:38.120604Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
   "questions": [],
-  "next_step": "Preparation-only proposals are documented in docs/p2-simplification-proposal.md: keep one reviewed feature branch until the experiment is accepted, then consider a separate infrastructure-only PR; retain separate Colab GPU assignments for async eval to protect 16-GB T4 training and isolate eval errors; replace external chain_state/cron with a gated, artifact-backed event coordinator and explicit credential profiles. Pros/cons and Liaison/Henrry decisions requested are in the proposal. No code changed, no run dispatched, no merge; full training remains blocked pending Henrry's explicit approval.",
+  "next_step": "Coordinator design revised after reading read-only liaison chain reference at cf27ab2 (not executed/edited): current cron polls latest run, dispatches from hardcoded main on any completed outcome, accepts structurally complete checkpoints without v2 manifest/hash validation, has only post-dispatch chained_from dedup, and silently returns while runs are active. The revised proposal requires manifest-backed approval/caps/checkpoint-label compatibility, pre-dispatch intent + idempotency/reconciliation, visible decision artifacts, and fixture-only dry-run before touching cron. Training/eval profile names are interface-only; credentials stay with Liaison. No training dispatch/merge; keep training paused.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -62,7 +62,8 @@
     "8c49896",
     "f6b60cc",
     "ef200f2",
-    "2a11bea"
+    "2a11bea",
+    "cf27ab2"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -221,6 +222,30 @@
     ],
     "training_dispatched": false,
     "merge_performed": false,
-    "code_changed": false
+    "code_changed": false,
+    "orchestration": "Read-only audit at commit cf27ab2 found cron-driven polling, hardcoded ref=main, resume from newest structurally complete but label-unverified checkpoint, no conclusion/approval/cap gate, post-success-only dedup, and silent-running behavior. Propose event-driven manifest-backed coordinator with v2 compatibility checks, approval/session/total-step caps, pre-dispatch intent and reconciliation, visible dry-run decision artifacts, plus named profile interfaces; leave cron disabled but in place until rehearsal proves parity. Do not run the liaison script or modify reference files.",
+    "chain_reference_review": {
+      "commit": "cf27ab2",
+      "files_read": [
+        "docs/p2-chain-reference/README.md",
+        "docs/p2-chain-reference/chain_next.py",
+        "docs/p2-chain-reference/chain_state.json"
+      ],
+      "executed": false,
+      "reference_files_modified": false,
+      "findings": [
+        "polls newest run-colab run",
+        "dispatch ref is hardcoded main",
+        "any completed conclusion can chain",
+        "newest checkpoint checks optimizer/scheduler/trainer_state/rng/adapter_config plus an adapter weight but not the v2 manifest/data hash",
+        "50-step continuation with no campaign/session cap or approval gate",
+        "dedup keyed only by chained_from and ledger updated after dispatch acceptance",
+        "silent return when run active or already chained",
+        "disabled 20-minute cron context; state is Liaison-machine local"
+      ],
+      "recommendation": "Manifest-backed event-driven coordinator with v2 checkpoint compatibility, explicit approval/caps, pre-dispatch intent and reconciliation, visible decision artifacts; fixture-only dry-run and non-training rehearsal before cron removal.",
+      "training_dispatched": false,
+      "merge_performed": false
+    }
   }
 }
