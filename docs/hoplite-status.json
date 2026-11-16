@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T21:59:14Z",
+  "updated_at": "2026-11-16T22:17:03Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Session 4 run 43963242543 is actively training on main in its Colab notebook step; this task has not touched it. Session-2 eval artifact proves only the wrapper failure (CalledProcessError from p2a_eval.py); the remote child stdout/stderr were not captured or packaged, so the underlying evaluator error cannot be diagnosed retroactively. New stderr-preservation fix and tests are on review/p2-async-evaluation, pending Liaison integration before any later evaluation run.",
+  "blocked": "Checkpoint-150 isolated eval run 43968499583 has been dispatched with full_holdout=false and is pending in the shared Colab concurrency queue behind active session-4 run 43963242543. The evaluation stderr-preservation fix is integrated on main 172c0f3. No metrics are available until the queued eval runs. Session 4 remains active in its notebook step and was not modified.",
   "questions": [
-    "Liaison: review/merge the evaluator diagnostics patch on review/p2-async-evaluation. It leaves training/evaluation behavior and data unchanged, writes remote child stdout/stderr to a sibling diagnostics directory included in the downloaded eval archive and runner artifact, and avoids uploading diagnostics into the HF evaluation folder. Session 4 run 43963242543 remains active and was not touched."
+    "Monitor eval run 43968499583 until completion. On success report direction_accuracy, macro_f1 and brier from metrics.json. On failure inspect p2a_eval.stderr.log preserved in p2-evaluation-trend artifact and report the exact root error. Do not dispatch another eval/training automatically."
   ],
-  "next_step": "Session 3 run 43940798695 succeeded on TK5 through step 150; auto-chain worked. Session 4 run 43963242543 was auto-dispatched and at 2026-11-16T21:59:14Z its Run notebook on Colab T4 (vncolab) step was still in progress. This task did not interfere with the active run. Session-2 eval run 43920577717 remote evaluator executed generated p2a_eval.py via subprocess.run(cmd, check=True), but child output/stderr were inherited by the notebook process rather than captured as files. Jupyter result recorded CalledProcessError only, and the download path archived /content/p2-eval step output without any child stderr. Thus the original p2a_eval root exception cannot be determined from existing logs/artifacts; do not claim a specific cause. Fix on review: execute child with capture_output=True,text=True, persist p2a_eval.stdout.log and p2a_eval.stderr.log under /content/p2-eval/diagnostics/step-N/mode (outside the uploaded-to-HF evaluation output directory), raise CalledProcessError carrying stdout/stderr, and download /content/p2-eval root so diagnostics are included in the private Actions artifact. Runner extracts the named diagnostics files for convenient artifact inspection on remote evaluation failure. Regression tests verify capture/persistence and safe extraction. Verification: 128 tests pass (one optional cryptography test skipped); compileall, workflow YAML, JSON/notebook parsing and git diff checks pass. Change is on review/p2-async-evaluation; no evaluation retried and no training dispatched. Liaison must merge before subsequent evaluation runs can include stderr diagnostics.",
+  "next_step": "Dispatched isolated slice evaluation for checkpoint_step=150 on main 172c0f386289334a92af050982b78722156c5ddb; run ID 43968499583, full_holdout=false, status pending at 22:17:03Z with zero jobs, expected queued behind session-4 training run 43963242543 due shared concurrency group. Do not re-dispatch. When run starts, verify assignment/runtime/kernel. If success, read metrics.json direction_accuracy/macro_f1/brier; if p2a_eval fails, inspect preserved p2a_eval.stderr.log from p2-evaluation-trend artifact. Session-4 run 43963242543 remains in progress at Colab notebook step; no changes/interruption from this eval dispatch. Evaluator stderr-preservation code is now integrated in main commit 172c0f3. Prior session-2 failure cannot be diagnosed further because its child stderr was not recorded; this future run will retain it. No training dispatch by this agent.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "3d508aee9cb49c55fcfc650bf7e09196039446b1",
+    "verified_remote_main": "172c0f386289334a92af050982b78722156c5ddb",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main 3d508ae recorded successful session 3 and auto-dispatched session 4 run 43963242543. Session-4 Colab notebook step was active at last check; evaluator stderr-capture changes remain on review only.",
+    "main_current_coordinator": "Main 172c0f3 includes the remote eval stdout/stderr preservation fix. Session 4 run 43963242543 remains active; isolated checkpoint-150 eval run 43968499583 is pending behind shared Colab concurrency.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -806,9 +806,24 @@
       "profile": "train_tk5",
       "resume_checkpoint": "checkpoint-150",
       "max_steps": 200,
-      "last_observed_at": "2026-11-16T21:59:14Z",
+      "last_observed_at": "2026-11-16T22:17:03Z",
       "last_observed_step": "Run notebook on Colab T4 (vncolab) in_progress",
       "interference_by_this_task": false
+    },
+    "checkpoint_150_eval_run_43968499583": {
+      "ref": "main",
+      "head_sha": "172c0f386289334a92af050982b78722156c5ddb",
+      "workflow": "p2-eval.yml",
+      "checkpoint_step": 150,
+      "full_holdout": false,
+      "status": "pending",
+      "conclusion": null,
+      "last_observed_at": "2026-11-16T22:17:03Z",
+      "queue_reason": "shared concurrency group held by active session-4 run 43963242543",
+      "artifact": "p2-evaluation-trend",
+      "metrics": null,
+      "stderr_capture_fix": "merged on main 172c0f3; failed remote evaluator stderr will be included as p2a_eval.stderr.log",
+      "dispatched_by_this_task": true
     }
   },
   "training_workflow_ready": false,
