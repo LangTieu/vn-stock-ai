@@ -189,6 +189,9 @@ jobs:
 
   run-colab:
     if: ${{ !inputs.drive_inventory && !inputs.hf_source_audit && !inputs.p2a_v2_smoke && !inputs.p2a_v2_ablation }}
+    permissions:
+      contents: write
+      actions: read
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
@@ -440,6 +443,17 @@ jobs:
           name: p2a-output
           path: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
           if-no-files-found: ignore
+      - name: Signal P2 coordinator after run completion
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'p2-campaign-run-completed',
+              client_payload: { run_id: context.runId }
+            })
 
   p2a-v2-smoke:
     if: ${{ inputs.p2a_v2_smoke && !inputs.drive_inventory && !inputs.hf_source_audit }}

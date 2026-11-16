@@ -308,9 +308,10 @@ def validate_training_dispatch(ledger, inputs):
         source_run_id = int(chain_source)
     except (TypeError, ValueError) as error:
         raise ValueError('continuation requires campaign_chain_source_run_id') from error
-    intent = next((item for item in ledger['dispatch_intents']
-                   if item.get('source_run_id') == source_run_id), None)
-    if not intent or intent.get('status') not in {'dispatching', 'submitted'}:
+    intent = next((item for item in reversed(ledger['dispatch_intents'])
+                   if item.get('source_run_id') == source_run_id
+                   and item.get('status') in {'dispatching', 'submitted'}), None)
+    if not intent:
         raise ValueError('continuation does not match a submitted ledger dispatch intent')
     expected_save_steps = str(MAX_TOTAL_STEPS if max_steps == MAX_TOTAL_STEPS else MAX_SESSION_STEPS // 2)
     if save_steps != expected_save_steps:
