@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:50:42.548471Z",
+  "updated_at": "2026-11-16T02:53:35.414217Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
   "questions": [],
-  "next_step": "Item 1: standing single-feature-branch policy recorded. Prepare a narrowly scoped evaluator-hook/guard PR for review only; do not merge. Then implement the single operator interface while preserving separate train/eval Colab runtimes, and a manifest-backed event coordinator with explicit approval/caps plus fixture-only dry-run. Keep cron disabled but do not remove it until dry-run/event rehearsal is proven. No training dispatch; Henrry approval is still required.",
+  "next_step": "Item 1 complete: the standing one-campaign-feature-branch rule is recorded and the isolated evaluator infrastructure PR #1 is open for review with auto-merge disabled; it has not been merged. Continue item 2 by adding one train/eval operator interface while keeping training and evaluation Colab runtimes separate and evaluator failures non-fatal. Continue item 3 with an event-driven, manifest-backed coordinator and fixture-only dry-run; keep cron disabled/in place until proven. Never dispatch training; Henrry approval remains required.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -63,7 +63,8 @@
     "f6b60cc",
     "ef200f2",
     "2a11bea",
-    "cf27ab2"
+    "cf27ab2",
+    "448dbfe"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -253,10 +254,20 @@
     "merge_performed": false,
     "training_paused_pending_henrry_approval": true,
     "item_1_single_branch_policy": {
-      "state": "implemented",
+      "state": "implemented_and_pr_open",
       "standing_rule": "P2 campaign uses one active feature branch; every run records ref/SHA; no parallel campaign branches; one narrowly scoped infra review branch is allowed; main remains unchanged until review; merge needs separate approval.",
       "file": "docs/hoplite-directives.md",
-      "infrastructure_pr": "preparing focused review only; not merged"
+      "infrastructure_pr": {
+        "number": 1,
+        "url": "https://github.com/LangTieu/vn-stock-ai/pull/1",
+        "head": "review/p2-async-evaluation-infra",
+        "base": "main",
+        "state": "open_for_review",
+        "auto_merge": false,
+        "merged": false,
+        "scope": "async P2 evaluation hook and guards only; based on main, excludes experiment/data/ablation history"
+      },
+      "verification": "6 focused tests, compileall, and diff check passed on the PR branch"
     },
     "item_2_operator_entrypoint": {
       "state": "in_progress",
