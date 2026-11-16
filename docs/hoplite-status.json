@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T04:23:00Z",
+  "updated_at": "2026-11-16T05:25:31Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,9 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
-  "questions": [],
-  "next_step": "Full static P2 v1-contamination audit is recorded in docs/p2-v1-audit.md for Liaison verification. Summary: notebook embedded scripts byte-match standalone files; current trainer blocks V1 before model loading and resume guard rejects missing/V1 manifests, but legacy P1 notebook defaults, async evaluator P1 holdout plus missing-manifest bypass, generic full workflow not wired to V2 artifacts, and Modal P1 tar smoke remain RISK. V2 smoke/ablation jobs consume private V2 artifacts. Repo data/docs correctly identify V1 provenance and V2 outputs; P3 LiteLLM configs have no P1 dataset refs. Audit is static only; private remote artifacts/Modal volume were not inspected. No code changes, dispatch, merge, or training.",
+  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed. Private V2 dataset publication/pinning is also blocked pending Liaison data-use/retention approval and immutable dataset/signing-key pins; no publication workflow was dispatched.",
+  "questions": [
+    "Does Liaison approve private storage/retention of the V2 train and internal-validation files, and authorize provisioning the HF access/signing material? The campaign revision, hashes, and trusted signing key are currently null."
+  ],
+  "next_step": "The bounded 12-step V2 ablation is complete and recorded in docs/p2a-progress-24.md. Do not start full training without Henrry’s separate explicit approval. Private V2 dataset publication remains unapproved: docs/p2-campaign.json has null revision, file checksums, and trusted signing key. Pending local V2 pinning/publication edits pass 96 tests (one optional cryptography test skipped) but remain uncommitted; the publication workflow was not dispatched. Next: obtain Liaison data-use/retention approval and the immutable private dataset pins before any publication or training dispatch.",
   "commits": [
     "855cad8",
     "baf7261",
