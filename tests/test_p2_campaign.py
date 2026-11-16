@@ -182,7 +182,8 @@ class CampaignPlannerTests(unittest.TestCase):
         dispatch = workflow.index('p2_campaign_chain.py dispatch', plan)
         self.assertLess(intent_push, dispatch)
         self.assertIn('p2_campaign_chain.py mark-submitted', workflow)
-        self.assertIn("[ \"$WORKFLOW_RUN_CONCLUSION\" = success ]", workflow)
+        self.assertIn("source_conclusion=$(jq -r '.conclusion // \"\"' /tmp/p2-campaign-event.json)", workflow)
+        self.assertIn('[ "$source_conclusion" = success ]', workflow)
         self.assertIn('dispatch_intents', (ROOT / 'scripts/p2_campaign_chain.py').read_text())
 
     def test_dispatch_argv_is_all_strings_and_uses_main_ref(self):

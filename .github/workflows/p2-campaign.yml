@@ -93,6 +93,8 @@ jobs:
                       head_branch: .headBranch, head_sha: .headSha}' > /tmp/p2-campaign-event.json
             fi
           if [ "$EVENT_NAME" = "workflow_run" ] || [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             run_planner python3 scripts/p2_campaign.py event --manifest docs/p2-campaign.json \
               --event /tmp/p2-campaign-event.json --output p2-campaign-plan.json
             record_result=$(python3 scripts/p2_campaign_ledger.py record \
@@ -101,17 +103,18 @@ jobs:
               --decision "$(jq -r '.decision' p2-campaign-plan.json)")
             echo "LEDGER_RECORD_RESULT=$record_result"
             if jq -e '.recorded == true' <<<"$record_result" >/dev/null; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
               git add docs/p2-campaign-ledger-v2.json
               git commit -m "Record P2 campaign source run ${WORKFLOW_RUN_ID}"
               git push origin HEAD:main
             fi
             if [ -f /tmp/p2-campaign-source-context/p2-campaign-run-context.json ]; then
               context_file=/tmp/p2-campaign-source-context/p2-campaign-run-context.json
+              source_conclusion=$(jq -r '.conclusion // ""' /tmp/p2-campaign-event.json)
               if jq -e --arg approval "$(jq -r '.training_approval.approval_reference // ""' docs/p2-campaign.json)" \
-                  '.campaign_id == "p2a-v2-full" and .notebook == "notebooks/p2a_train.ipynb" and .mode == "full" and .training_approval_ref == $approval and .p2a_v2_dataset_revision == "4e00aefe775509fdd69fe1e70c6232468d4041d8"' \
-                  "$context_file" >/dev/null && [ "$WORKFLOW_RUN_CONCLUSION" = success ]; then
+                  --arg run_id "$WORKFLOW_RUN_ID" \
+                  --arg head_sha "$(jq -r '.head_sha // ""' /tmp/p2-campaign-event.json)" \
+                  '(.run_id|tostring) == $run_id and .head_sha == $head_sha and .campaign_id == "p2a-v2-full" and .notebook == "notebooks/p2a_train.ipynb" and .mode == "full" and .training_approval_ref == $approval and .p2a_v2_dataset_revision == "4e00aefe775509fdd69fe1e70c6232468d4041d8"' \
+                  "$context_file" >/dev/null && [ "$source_conclusion" = success ]; then
                 python3 -m pip install --quiet "huggingface_hub==0.30.2"
               fi
               python3 scripts/p2_campaign_chain.py plan \
