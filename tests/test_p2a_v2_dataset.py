@@ -1,9 +1,12 @@
 import json
+import hashlib
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from datetime import date, timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from p2a_v2_dataset import (ALLOWED_PUBLISHED_FILES, APPROVED_SOURCE_RUN_ID,
@@ -85,6 +88,41 @@ class V2DatasetTests(unittest.TestCase):
         self.assertEqual(ALLOWED_PUBLISHED_FILES,
                          {TRAIN_FILE, VALIDATION_FILE, MANIFEST_FILE, 'v2-dataset-manifest.sig'})
         self.assertIn("'raw_adjusted_price_table_included': False",text)
+
+    def test_fetch_copies_downloaded_file_to_a_different_output_directory(self):
+        from p2a_v2_dataset import download_pinned_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cached = root / 'cache' / TRAIN_FILE
+            cached.parent.mkdir()
+            payload = b'{"metadata":{"kind":"bulk","p2a_label_version":2}}\n'
+            cached.write_bytes(payload)
+            output = root / 'colab-input'
+            revision = 'a' * 40
+            digest = hashlib.sha256(payload).hexdigest()
+            dataset = {'files': {TRAIN_FILE: {'sha256': digest}}}
+            manifest = {'files': {TRAIN_FILE: {'sha256': digest}}}
+            hf_module = SimpleNamespace(
+                hf_hub_download=lambda **kwargs: str(cached))
+            with patch.dict(sys.modules, {'huggingface_hub': hf_module}), \
+                    patch('p2a_v2_dataset.Path.home', return_value=root / 'home'), \
+                    patch('p2a_v2_dataset.load_pinned_manifest',
+                          return_value=({}, dataset, manifest, 'test-token')), \
+                    patch('p2a_v2_dataset.dataset_label_spec', return_value={
+                        'label_version': 2,
+                        'label_method': 'adjusted_total_return_close; 120 exchange sessions after as_of',
+                        'flat_band_pct': 2.0,
+                    }), \
+                    patch('p2a_v2_dataset.require_v2_training'):
+                result = download_pinned_file('campaign.json', revision, TRAIN_FILE, output)
+
+            target = output / TRAIN_FILE
+            self.assertNotEqual(cached.resolve(), target.resolve())
+            self.assertEqual(target.read_bytes(), payload)
+            self.assertEqual(result['path'], str(target))
+            self.assertEqual(result['sha256'], digest)
+            self.assertEqual(result['manifest'], manifest)
 
 
 if __name__=='__main__': unittest.main()

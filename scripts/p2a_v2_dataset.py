@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 
 from p2a_ablation_slices import make_slices
