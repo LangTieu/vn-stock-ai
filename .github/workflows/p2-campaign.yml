@@ -24,13 +24,17 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 jobs:
   event-plan:
     if: ${{ github.event_name == 'workflow_run' || inputs.dry_run }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: p2-campaign-ledger-main
+      cancel-in-progress: false
+      queue: max
     steps:
       - uses: actions/checkout@v4
       - name: Build redacted event or operator plan without credentials or dispatch
@@ -42,6 +46,7 @@ jobs:
           WORKFLOW_RUN_STATUS: ${{ github.event.workflow_run.status }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           run_planner() {
@@ -62,10 +67,23 @@ jobs:
               'status': os.environ['WORKFLOW_RUN_STATUS'],
               'conclusion': os.environ['WORKFLOW_RUN_CONCLUSION'],
               'head_branch': os.environ['WORKFLOW_RUN_BRANCH'],
+              'head_sha': os.environ['WORKFLOW_RUN_SHA'],
           }))
           PY
             run_planner python3 scripts/p2_campaign.py event --manifest docs/p2-campaign.json \
               --event /tmp/p2-campaign-event.json --output p2-campaign-plan.json
+            record_result=$(python3 scripts/p2_campaign_ledger.py record \
+              --ledger docs/p2-campaign-ledger-v2.json \
+              --event /tmp/p2-campaign-event.json \
+              --decision "$(jq -r '.decision' p2-campaign-plan.json)")
+            echo "LEDGER_RECORD_RESULT=$record_result"
+            if jq -e '.recorded == true' <<<"$record_result" >/dev/null; then
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add docs/p2-campaign-ledger-v2.json
+              git commit -m "Record P2 campaign source run ${WORKFLOW_RUN_ID}"
+              git push origin HEAD:main
+            fi
           else
             run_planner python3 scripts/p2_operator.py "$OPERATION" \
               --manifest docs/p2-campaign.json --checkpoint-step "${CHECKPOINT_STEP:-latest}" \
@@ -77,7 +95,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: p2-campaign-plan
-          path: p2-campaign-plan.json
+          path: |
+            p2-campaign-plan.json
+            docs/p2-campaign-ledger-v2.json
           if-no-files-found: ignore
           retention-days: 14
 

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T06:05:35Z",
+  "updated_at": "2026-11-16T06:19:54Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,12 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "No training in this turn. Coordinator end-to-end automation remains blocked on durable schema-v2 ledger/state migration, legacy cutoff protection, and dry-run reconciliation. The campaign manifest still has no explicit training approval reference and training_workflow_ready is false. The 12-step ablation is below simple baselines; do not use it to justify a predictive-skill run.",
+  "blocked": "No training in this turn. Coordinator remains paused/unapproved; durable event-state implementation is on the review branch and not yet active on main. training_workflow_ready is false and no training approval reference is recorded. The 12-step ablation underperformed simple baselines; a predictive-skill training run is not justified.",
   "questions": [
-    "Liaison: retain an authenticated verify/fetch result for the pinned private revision (manifest signature, both files and hashes, label/split checks); HF_TOKEN is absent in this workspace.",
-    "Liaison: confirm the external legacy poller/cron is disabled and the schema-v2 coordinator ledger is durable, with legacy cutoff 43580242658 and campaign_ref=main, before any automatic continuation."
+    "After review-branch integration, confirm GitHub Actions contents:write can persist docs/p2-campaign-ledger-v2.json under the main-branch protection policy; the ledger job fails closed if commit/push is rejected."
   ],
-  "next_step": "Main V2 was verified at 8488d1c (merge parent e4ed66e, merge base 5301343); PR #1 is closed superseded. Campaign ref, workflow_run filter, and fail-closed planner are being reconciled to main on review/p2-async-evaluation. Pinned revision and hashes match Liaison receipt, but script verify/fetch has not passed here: HF_TOKEN is absent. Next in order: authenticated verify/fetch on an authorized runner; schema-v2 durable coordinator migration with legacy cutoff 43580242658 and campaign_ref=main plus fixture-only no-dispatch rehearsal; freeze/use an untouched wider V2 validation subset to confirm against simple baselines; then record training workflow readiness and the distinct approval reference before even considering a bounded from-scratch run. Current ablation does not support predictive-skill training. No dispatch, merge, or training in this turn.",
+  "next_step": "Liaison authenticated verify/fetch and confirmed private V2 revision 4e00aefe775509fdd69fe1e70c6232468d4041d8, valid signature, matching manifest, file hashes, label semantics and temporal split; no repeat fetch is needed from this sandbox. Liaison also confirms the legacy cron disabled since 2026-11-14. Schema-v2 paused ledger migration is implemented/rehearsed on review/p2-async-evaluation; it persists completed-run ID/ref/SHA/conclusion/decision to a tracked file with atomic writes and serialized workflow commits, but is not active on main until reviewed/integrated. After integration, confirm Actions contents:write can persist ledger commits under branch protection and run the workflow-level two-event rehearsal without dispatch. The FIFO queue holds up to 100 pending runs; overflow cancellation requires manual reconciliation. Then complete untouched broader validation and workflow readiness evidence; training still requires a distinct explicit Henrry order. No training dispatched.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -353,11 +352,14 @@
     },
     "campaign_state": {
       "recommendation": "Per-campaign serialized workflow, append-only state artifact with retention beyond campaign, source run/ref/SHA/dataset revision/checkpoint hashes/approval/caps/decision, source-run idempotency, pre-dispatch intent and API acceptance reconciliation; expired/missing state fails closed.",
-      "repo_work": "Implement schema/migration, artifact read/write, concurrency, dedup/reconcile, fixture tests.",
-      "liaison_work": "Choose/provision durable retention/state store and Actions permissions; main V2 code is active, but cross-run ledger migration/rehearsal remains outstanding.",
+      "repo_work": "Implemented on review/p2-async-evaluation: paused schema-v2 ledger, atomic append-only event records, source-run deduplication, main-ref enforcement, legacy cutoff, and cross-process rehearsal. Workflow persists ledger-only updates to main using contents:write with serialized FIFO concurrency (queue max 100); this reconciliation must first be integrated.",
+      "liaison_work": "Liaison confirms legacy p2-overnight-chain cron disabled since 2026-11-14. Confirm main branch protection permits the workflow GITHUB_TOKEN contents:write ledger commit; do not re-enable legacy cron.",
       "not_exactly_once": "Treat event delivery as at-least-once and reconcile; do not claim cross-service transactional exactly-once.",
       "event_workflow_activation": "Workflow is on main; verify branch filter and durable schema-v2 state before any non-dry automation.",
-      "required_campaign_ref": "main; active planner rejects any other ref."
+      "required_campaign_ref": "main; active planner rejects any other ref.",
+      "dry_run_rehearsal": "Passed locally across two independent CLI processes and a replay: revision 0->1->2, both source IDs/SHA persisted, duplicate rejected, no dispatch intents.",
+      "remaining_blocker": "training_workflow_ready remains false; no explicit training approval reference; confirmatory validation required for any predictive-skill claim.",
+      "auto_chain": "Disabled. The workflow records completed source events only; it never dispatches training or creates dispatch intents."
     },
     "pr_1_readiness": {
       "current_state": "closed as superseded after Henrry direct order; evaluator content included in main V2 line per supplied handoff",
@@ -371,7 +373,9 @@
       "training_workflow_dispatched": false,
       "training_started": false,
       "additional_merge_performed": false,
-      "reconciliation_changes_recorded_on_review_branch": true
+      "reconciliation_changes_recorded_on_review_branch": true,
+      "legacy_cron_reenabled": false,
+      "cross_process_ledger_rehearsal": true
     }
   },
   "p2_v1_contamination_audit": {
@@ -441,7 +445,30 @@
     "allowlist_fix_commit": "1bc1509",
     "allowlist_behavior": "Permits required files with optional .gitattributes only; regression rejects any other extra file and missing required files.",
     "live_verify_fetch_by_this_agent": "blocked: HF_TOKEN is not configured in this workspace; uv run with huggingface_hub==0.30.2 reached RuntimeError: HF_TOKEN is required to read the private V2 dataset.",
-    "training_dispatched": false
+    "training_dispatched": false,
+    "authenticated_verification": "Liaison confirmed with HF_TOKEN on 2026-11-16 13:14 ICT; private repo, Ed25519 signature verified, remote manifest byte-identical to prepared manifest.",
+    "authenticated_train_file": {
+      "rows": 51620,
+      "UP": 25810,
+      "DOWN": 25810,
+      "sha256": "aaa239c33f7d6891bdc0dc5dd8cace00ff72075cf230bfeaa35aafac6a4978fe",
+      "md5": "1217076cfb92e5100ef83369abc9ae46"
+    },
+    "authenticated_validation_file": {
+      "rows": 4332,
+      "UP": 2166,
+      "DOWN": 2166,
+      "sha256": "5ab54b64d5576eeeea2ffe849baaa1f494028916f1bac209a00ec38638e3f175",
+      "md5": "8e23f329deeed26fdf031bed17ff0632"
+    },
+    "authenticated_split": {
+      "train_target_endpoint_max": "2023-12-29",
+      "validation_as_of_min": "2024-01-02",
+      "external_holdout_included": false,
+      "label_version": 2,
+      "flat_band_pct": 2.0
+    },
+    "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
     "verified_remote_main": "8488d1cd1de5d0b15d51f3be19d8dbd5694cea37",
@@ -450,12 +477,15 @@
     "campaign_ref": "main",
     "dataset_pins_present_on_main": true,
     "pin_values_match_liaison_receipt": true,
-    "live_private_hf_verify_fetch": "not verified: HF_TOKEN absent in this workspace; CLI stopped at HF_TOKEN-required guard",
+    "live_private_hf_verify_fetch": "Liaison-authenticated verification confirmed on 2026-11-16 13:14 ICT: private repo, Ed25519 signature valid, manifest byte-identical to prepared manifest, both file SHA-256 values/row counts and label/split checks match pins; this sandbox lacks HF_TOKEN.",
     "pr_1": "closed as superseded; evaluator V2 code included in main per supplied handoff",
     "no_merge_or_training_this_turn": true,
     "coordinator_ref_enforced_in_review_changes": "main",
-    "coordinator_durable_state": "not implemented; schema-v2 ledger and state-artifact/state-store migration remains a blocker",
+    "coordinator_durable_state": "Schema-v2 ledger and atomic event recorder implemented on review/p2-async-evaluation; two separate CLI event invocations persist and deduplicate in rehearsal. Main workflow serializes ledger writes with a FIFO queue (up to 100 pending), commits ledger-only updates using contents:write, and never auto-dispatches. Not active on main until this review change is integrated; branch protection must permit the workflow commit.",
     "training_recommendation": "not justified as a predictive-skill run by n=64 ablation below majority/Brier baselines; confirm on untouched broader V2 validation first",
-    "training_dispatched": false
+    "training_dispatched": false,
+    "legacy_poller_cron": "Liaison confirms p2-overnight-chain cron disabled since 2026-11-14; legacy cutoff 43580242658 is preserved in new schema-v2 ledger.",
+    "coordinator_ledger_path": "docs/p2-campaign-ledger-v2.json",
+    "coordinator_dry_run": "Two completed events recorded across separate CLI processes, ledger revision advanced 0->1->2, restart read preserved IDs/SHA, replay was deduplicated, dispatch_intents remained empty."
   }
 }

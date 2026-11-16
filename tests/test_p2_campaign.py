@@ -137,6 +137,11 @@ class CampaignPlannerTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
         self.assertIn('branches: [main]', workflow)
         self.assertNotIn('branches: [review/p2-async-evaluation]', workflow)
+        self.assertIn('contents: write', workflow)
+        self.assertIn('p2_campaign_ledger.py record', workflow)
+        self.assertIn('git push origin HEAD:main', workflow)
+        self.assertIn('docs/p2-campaign-ledger-v2.json', workflow)
+        self.assertIn('queue: max', workflow)
 
     def test_dispatch_argv_is_all_strings_and_uses_main_ref(self):
         plan = plan_operation(self.manifest, 'evaluate', 50)
