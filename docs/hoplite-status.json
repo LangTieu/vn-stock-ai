@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T01:51:12.092707Z",
+  "updated_at": "2026-11-16T02:40:36.732748Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
   "questions": [],
-  "next_step": "Preparation complete only. If Henrry approves training, dispatch run-colab.yml with ref=review/p2-async-evaluation, resume_checkpoint empty (start from base model), and verified v2 train/validation inputs so integrated asynchronous checkpoint evaluation is active (TK2 first, TK5 only on assignment HTTP 503). No merge is needed for this ref-based run-colab dispatch. Do not dispatch until explicit approval.",
+  "next_step": "Preparation-only proposals are documented in docs/p2-simplification-proposal.md: keep one reviewed feature branch until the experiment is accepted, then consider a separate infrastructure-only PR; retain separate Colab GPU assignments for async eval to protect 16-GB T4 training and isolate eval errors; replace external chain_state/cron with a gated, artifact-backed event coordinator and explicit credential profiles. Pros/cons and Liaison/Henrry decisions requested are in the proposal. No code changed, no run dispatched, no merge; full training remains blocked pending Henrry's explicit approval.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -204,5 +204,23 @@
     },
     "training_dispatch": "not dispatched; training remains paused pending Henrry approval",
     "recommendation": "Do not resume from checkpoint-150: its provenance is legacy v1 and it has no verified v2 manifest; current resume guard rejects missing manifests and mismatched label version/data hashes. If approved later, restart from base model, not checkpoint-150."
+  },
+  "p2_simplification_proposals": {
+    "document": "docs/p2-simplification-proposal.md",
+    "mode": "proposal_only",
+    "remote_branch_count_observed": 7,
+    "recommendations": {
+      "branches": "one active review/p2-async-evaluation branch during experiment; audit all existing refs; later separate infrastructure-only PR after review; keep main protected until review",
+      "evaluation": "retain separate evaluation runtime/VRAM and non-fatal evaluator failures; simplify to one operator interface; TK2 then TK5 only on confirmed assignment 503",
+      "orchestration": "target event-driven, artifact-backed campaign record with approval gate and bounded sessions; rehearse before replacing external cron/state; named verified credential profiles rather than manual overwrite, no automatic retries on non-503 errors"
+    },
+    "unresolved_decisions_for_liaison_henrry": [
+      "approve one-branch campaign and later infra-only PR",
+      "retain separate train/eval runtimes behind one operator interface",
+      "approve future event-driven coordinator and credential profiles after rehearsal"
+    ],
+    "training_dispatched": false,
+    "merge_performed": false,
+    "code_changed": false
   }
 }
