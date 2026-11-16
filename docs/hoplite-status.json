@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T16:20:58Z",
+  "updated_at": "2026-11-16T16:40:23Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,12 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Session-1 checkpoint-50 evaluation produced no metrics because the generated async evaluator passed a SHA-256 pin object as a subprocess argv element. The fix and regression tests are on review/p2-async-evaluation; Liaison integration is needed before rerunning evaluation through the main workflow. Session-2 retry run 43905833510 is independently in progress on main at the Colab notebook step; no training was dispatched by this evaluator-fix task.",
+  "blocked": "Checkpoint-50 retroactive evaluation run 43909652724 is in progress on TK2; metrics are not available yet. Session-2 retry:1 run 43905833510 failed at Colab assignment with the same POST /tun/m/assign ReadTimeout after 120 seconds; the ambiguity-safe client correctly refused to replay the request, and Liaison reports there is no active TK4 runtime. This is a repeated Colab assignment timeout, not a 503/profile quota signal. Retry:2 is staged as prepared on review; advise waiting for endpoint stability before dispatch rather than immediate retry.",
   "questions": [
-    "Liaison: independently review and merge the async evaluation argv fix on review/p2-async-evaluation. Checkpoint-50 is recoverable from the session-1 artifact; after integration, an isolated slice evaluation can be dispatched for checkpoint_step=50 without training."
+    "Liaison: verify and integrate the prepared retry:2 ledger update on review/p2-async-evaluation. Because two consecutive assignment POSTs timed out, wait for Colab assignment service/account readiness before dispatch; the prepared inputs stay TK4/checkpoint-50/max_steps=100 and no dispatch was made by this agent.",
+    "Checkpoint-50 isolated evaluation run 43909652724 is still running on TK2. Inspect and record its direction_accuracy, macro_f1, and brier metrics artifact when complete; use TK5 only if the evaluator reports the explicitly configured TK2 assignment HTTP 503 fallback."
   ],
-  "next_step": "Async eval root cause confirmed from run 43881234317 artifact: run_one passed dataset[files][train-v2.jsonl] as a dict {sha256:...} into build_remote_job; generated job embedded the dict as train_sha256, then placed it in the p2a_eval.py --expected-train-sha256 argv. Python failed at subprocess.run with TypeError: expected str, bytes or os.PathLike object, not dict. Fix normalizes either the pin object or string to its SHA string before job generation, and generated code checks all argv values are strings. Tests cover dict normalization and invalid pins. Session-1 p2a-output-full.zip is downloadable and contains a complete checkpoint-50 directory including adapter_model.safetensors, adapter_config.json, p2a_training_manifest.json, optimizer, scheduler, RNG and trainer state; manifest matches V2 revision/campaign. Therefore checkpoint-50 CAN be evaluated retroactively; it is not limited to waiting for the next checkpoint. The existing isolated p2-eval.yml accepts checkpoint_step=50; it fetches that verified checkpoint from the HF checkpoint repo and evaluates the pinned V2 slice. No eval dispatch made because main still contains the buggy evaluator until Liaison integrates this review change. Current training retry run 43905833510 is independently in progress on main commit 4646d5cfccc9c5de4a1b869d508ed33322075bd3; approval/campaign validation/V2 verification passed and Run notebook on Colab T4 is in progress. No training dispatch initiated by this task. Full suite: 124 pass, one optional cryptography test skipped; compileall, JSON/YAML/notebook parsing and diff checks pass.",
+  "next_step": "Run 43905833510 root cause: exact log exception is AmbiguousColabPostError: POST /tun/m/assign outcome is unknown after ReadTimeout; refusing to replay a possibly completed request. The underlying requests ReadTimeout is HTTPSConnectionPool(colab.research.google.com): read timeout=120. Campaign approval, V2 verify, continuation validation, and profile check all passed; failure is in Colab assignment POST before notebook execution. Unlike retry:0, the fixed client did not replay and get 412. Liaison confirms no active Colab runtime, so the first assignment did not leave an orphan runtime. No code change indicated; repeated endpoint timeout makes immediate redispatch inadvisable. On review/p2-async-evaluation, merged main 56a2cb8 and imported the authoritative paused campaign ledger with retry:1 failure recorded (ledger revision 10). prepare-retry passed its recorded-failed-child and checkpoint-50 lineage gates and created p2a-v2-full:43881234317:retry:2 in prepared state only. Inputs remain train_tk4 / executor lv1 / T4 / checkpoint-50 / max_steps 100 / save_steps 25 / same approval ref and V2 revision. Campaign ledger now active/ready for the prepared continuation, state revision 20. No dispatching transition or workflow dispatch was made; retry:2 awaits independent Liaison verification/integration and endpoint recovery/cooldown. Checkpoint-50 eval run 43909652724, head 56a2cb8, is in progress on TK2; no final metrics artifact yet. Watch run and record direction accuracy, macro-F1, Brier when it finishes; only switch to TK5 on explicitly reported TK2 assignment HTTP 503. The run-43981234317 adapter artifact contains full checkpoint-50, so retroactive evaluation is possible. Evaluator fix is now on main 56a2cb8. No training or evaluation dispatched by this task. Prior verification: 124 tests pass (one optional cryptography test skipped), compilation and YAML/JSON/notebook parsing and diff checks pass.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +482,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "4646d5cfccc9c5de4a1b869d508ed33322075bd3",
+    "verified_remote_main": "56a2cb8ebf542057ea3f1d3adfd4faf88ee5c56e",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +504,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main 4646d5c contains the Colab POST ambiguity retry fix and prepared session-2 retry; run 43905833510 is in progress. The session-1 async-eval argv fix is under review only.",
+    "main_current_coordinator": "Main 56a2cb8 contains the async eval argv normalization and session retry:1; retry:1 failed on ambiguous assignment POST ReadTimeout without replay, and main ledger marks campaign paused pending retry recovery.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -630,21 +631,46 @@
     "training_run_43905833510": {
       "ref": "main",
       "head_sha": "4646d5cfccc9c5de4a1b869d508ed33322075bd3",
-      "status": "in_progress",
-      "conclusion": null,
-      "at_last_check": "Run notebook on Colab T4 (vncolab) in_progress after approval, bounded campaign validation and pinned V2 dataset verification passed",
-      "profile": "train_tk4",
-      "campaign_retry_intent": "p2a-v2-full:43881234317:retry:1",
-      "training_dispatch_by_this_task": false
+      "conclusion": "failure",
+      "retry": "retry:1",
+      "failure_step": "Run notebook on Colab T4 (vncolab), at assignment before notebook run",
+      "approval_campaign_dataset_gates": "passed",
+      "profile": "train_tk4; PROFILE_VERIFIED",
+      "exact_exception": "AmbiguousColabPostError: POST /tun/m/assign outcome is unknown after ReadTimeout; refusing to replay a possibly completed request",
+      "underlying_exception": "requests.exceptions.ReadTimeout: HTTPSConnectionPool(host=colab.research.google.com, port=443): Read timed out (read timeout=120)",
+      "http_status": "none; no 412 because new client refuses replay; no 503",
+      "active_runtime_after_failure": "none per Liaison; no orphan runtime",
+      "notebook_started": false,
+      "training_steps": 0,
+      "checkpoint_uploaded": false,
+      "fix": "Existing fix is behaving as designed: do not replay ambiguous non-idempotent POST. No code change indicated.",
+      "retry2_intent": "p2a-v2-full:43881234317:retry:2",
+      "retry2_state": "prepared on review ledger; not marked dispatching; no workflow dispatch",
+      "retry2_profile": "train_tk4",
+      "retry2_checkpoint": "checkpoint-50",
+      "retry2_max_steps": 100,
+      "recommendation": "wait for Colab assignment endpoint stability/cooldown before any further attempt; do not rotate profile absent a confirmed 503/account quota signal."
     },
     "async_evaluation_argv_fix": {
-      "branch": "review/p2-async-evaluation",
+      "branch": "main 56a2cb8; integrated by Liaison",
       "root_cause": "run_one passed dataset.files[train-v2.jsonl] as a SHA-256 mapping object; build_remote_job embedded that dict in generated code and the p2a_eval.py subprocess argv.",
       "evidence": "Run 43881234317 p2-evaluations artifact colab_eval_job.py line 45 uses train_sha256 as --expected-train-sha256 argv; eval.log ends TypeError expected str/bytes/PathLike, not dict.",
       "fix": "Normalize pin mappings to their sha256 string before building job; validate hash pin type and assert generated subprocess argv contains strings only.",
       "regression_tests": "Mapping pin becomes a string in generated job; malformed/null/non-string hash pins fail before remote job generation.",
       "checkpoint_50_retro_evaluation": "possible: session-1 p2a-output-full.zip contains complete checkpoint-50 adapter, training manifest, optimizer/scheduler/RNG/trainer state; HF has the verified checkpoint. Isolated p2-eval.yml can evaluate step 50 on pinned V2 validation after evaluator fix is integrated.",
-      "eval_dispatch": "not dispatched; main still has prior evaluator until Liaison integration; no training dispatch in this task."
+      "eval_dispatch": "run 43909652724 in progress on TK2; no metrics available at update time"
+    },
+    "training_run_43909652724": {
+      "kind": "isolated checkpoint-50 evaluation",
+      "ref": "main",
+      "head_sha": "56a2cb8ebf542057ea3f1d3adfd4faf88ee5c56e",
+      "status": "in_progress",
+      "conclusion": null,
+      "profile_order": "TK2, TK5 only after explicit TK2 assignment HTTP 503",
+      "requested_checkpoint_step": 50,
+      "full_holdout": false,
+      "metrics": null,
+      "last_observed": "evaluation job running at 2026-11-16T16:40:23Z"
     }
   },
   "training_workflow_ready": false,
