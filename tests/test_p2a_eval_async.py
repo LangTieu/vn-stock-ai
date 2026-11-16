@@ -1,9 +1,17 @@
 import sys
+import json
+import subprocess
+import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.p2a_eval_async import build_remote_job, train_sha256_pin
+from scripts.p2a_eval_async import (
+    REMOTE_EVAL_RUNNER, build_remote_job, preserve_remote_eval_logs,
+    train_sha256_pin,
+)
 
 
 class AsyncEvalBundleTests(unittest.TestCase):
@@ -27,6 +35,49 @@ class AsyncEvalBundleTests(unittest.TestCase):
         for value in ({'sha256': None}, {'sha256': 123}, None, 123):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'SHA-256'):
                 train_sha256_pin(value)
+
+    def test_remote_evaluator_captures_and_persists_child_stdout_and_stderr(self):
+        source = build_remote_job(100, False, '/tmp/p2-eval', 'md5', 'b' * 64,
+                                  {'sha256': 'a' * 64})
+        self.assertIn('subprocess.run(cmd, capture_output=True, text=True, check=False)', source)
+        self.assertIn("diagnostics=Path('/content/p2-eval')/'diagnostics'", source)
+        self.assertIn('\nrun_eval_command(cmd, diagnostics)\nmetrics=', source)
+        self.assertIn("remote_dir = '/content/p2-eval'",
+                      (Path(__file__).resolve().parents[1] / 'scripts/p2a_eval_async.py').read_text())
+        self.assertIn("'p2a_eval.stdout.log'", source)
+        self.assertIn("'p2a_eval.stderr.log'", source)
+        self.assertIn("stderr=result.stderr", source)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            namespace = {
+                'subprocess': types.SimpleNamespace(
+                    run=lambda *args, **kwargs:
+                        subprocess.CompletedProcess(args[0], 2, 'model stdout', 'root error'),
+                    CalledProcessError=subprocess.CalledProcessError),
+                'Path': Path,
+            }
+            exec(REMOTE_EVAL_RUNNER, namespace)
+            with self.assertRaises(subprocess.CalledProcessError) as raised:
+                namespace['run_eval_command'](['python', 'p2a_eval.py'], temporary)
+            self.assertEqual(raised.exception.stderr, 'root error')
+            self.assertEqual((Path(temporary) / 'p2a_eval.stdout.log').read_text(), 'model stdout')
+            self.assertEqual((Path(temporary) / 'p2a_eval.stderr.log').read_text(), 'root error')
+
+    def test_failed_remote_archive_logs_are_extracted_for_runner_artifact(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            archive = root / 'eval.zip'
+            import zipfile
+            with zipfile.ZipFile(archive, 'w') as zipped:
+                zipped.writestr('diagnostics/step-100/slice/p2a_eval.stdout.log', 'stdout detail')
+                zipped.writestr('diagnostics/step-100/slice/p2a_eval.stderr.log', 'specific evaluator failure')
+                zipped.writestr('../unrelated.txt', 'must not extract')
+            preserved = preserve_remote_eval_logs(archive, root / 'runner')
+            self.assertEqual({p.name for p in preserved},
+                             {'p2a_eval.stdout.log', 'p2a_eval.stderr.log'})
+            self.assertEqual((root / 'runner/p2a_eval.stderr.log').read_text(),
+                             'specific evaluator failure')
+            self.assertFalse((root / 'unrelated.txt').exists())
 
     def test_modal_legacy_p1_smoke_is_retired_before_gpu_assignment(self):
         source = (Path(__file__).resolve().parents[1] / 'scripts/modal_p2a.py').read_text()

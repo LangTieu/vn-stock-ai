@@ -29,6 +29,22 @@ TKN = ('openid', 'https://www.googleapis.com/auth/userinfo.profile',
        'https://www.googleapis.com/auth/colaboratory',
        'https://www.googleapis.com/auth/drive.file')
 
+REMOTE_EVAL_RUNNER = '''def run_eval_command(cmd, out):
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    diagnostic_dir = Path(out)
+    diagnostic_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = diagnostic_dir / 'p2a_eval.stdout.log'
+    stderr_path = diagnostic_dir / 'p2a_eval.stderr.log'
+    stdout_path.write_text(result.stdout or '', encoding='utf-8')
+    stderr_path.write_text(result.stderr or '', encoding='utf-8')
+    if result.returncode:
+        print(f"P2A_EVAL_FAILED exit={result.returncode}; stdout={stdout_path.name}; "
+              f"stderr={stderr_path.name}", flush=True)
+        raise subprocess.CalledProcessError(
+            result.returncode, cmd, output=result.stdout, stderr=result.stderr)
+    return result
+'''
+
 
 def token_candidate(profile):
     home = Path.home() / '.config/vncolab'
@@ -135,6 +151,27 @@ def train_sha256_pin(value):
     return value
 
 
+def preserve_remote_eval_logs(archive, output_dir):
+    archive = Path(archive)
+    output_dir = Path(output_dir)
+    preserved = []
+    if not archive.is_file():
+        return preserved
+    output_dir.mkdir(parents=True, exist_ok=True)
+    expected = {'p2a_eval.stdout.log', 'p2a_eval.stderr.log'}
+    with zipfile.ZipFile(archive) as zipped:
+        for info in zipped.infolist():
+            relative = Path(info.filename)
+            if (relative.is_absolute() or '..' in relative.parts
+                    or 'diagnostics' not in relative.parts
+                    or relative.name not in expected):
+                continue
+            destination = output_dir / relative.name
+            destination.write_bytes(zipped.read(info))
+            preserved.append(destination)
+    return preserved
+
+
 def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha256, train_sha256,
                      full_validation_approval_ref=''):
     train_sha256 = train_sha256_pin(train_sha256)
@@ -203,11 +240,13 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
     lines += [
         "metrics_path=str(out/'metrics.json')",
         "predictions_path=str(out/'predictions.jsonl')",
+        "diagnostics=Path('/content/p2-eval')/'diagnostics'/f'step-{step}'/('full' if full_holdout else 'slice')",
         "cmd=[sys.executable, '-u', '/content/p2a_eval.py', '--holdout', eval_holdout, '--holdout-md5', eval_md5, '--holdout-sha256', dataset_sha, '--adapter', adapter, '--output', predictions_path, '--checkpoint-step', str(step), '--expected-dataset-repo', dataset_repo, '--expected-dataset-revision', dataset_revision, '--expected-train-sha256', train_sha256]",
         "if manifest_path: cmd += ['--slice-manifest', manifest_path]",
         "if full_holdout: cmd += ['--full-holdout', '--full-validation-approval-ref', full_validation_approval_ref]",
         "if not all(isinstance(arg, str) for arg in cmd): raise TypeError('evaluation subprocess argv must contain only strings')",
-        'subprocess.run(cmd, check=True)',
+        REMOTE_EVAL_RUNNER,
+        'run_eval_command(cmd, diagnostics)',
         "metrics=__import__('json').load(open(predictions_path+'.metrics.json'))",
         "metrics.update({'checkpoint_step':step,'checkpoint_path':remote,'full_holdout':full_holdout,'dataset_sha256':dataset_sha,'validation_source_sha256':validation_sha256})",
         "Path(metrics_path).write_text(json.dumps(metrics, ensure_ascii=False, indent=2)+'\\n', encoding='utf-8')",
@@ -283,7 +322,7 @@ def run_colab_eval_staged(step, full_holdout, profile, home, validation, full_va
         full_validation_approval_ref = full['approval_reference']
     out_dir = RESULT_ROOT / f'step-{step}' / ('full' if full_holdout else 'slice')
     out_dir.mkdir(parents=True, exist_ok=True)
-    remote_dir = f"/content/p2-eval/step-{step}/{'full' if full_holdout else 'slice'}"
+    remote_dir = '/content/p2-eval'
     job_file = out_dir / 'colab_eval_job.py'
     job_file.write_text(build_remote_job(step, full_holdout, str(out_dir),
                                         validation['validation_md5'],
@@ -304,8 +343,11 @@ def run_colab_eval_staged(step, full_holdout, profile, home, validation, full_va
         proc = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT,
                               text=True, check=False)
     result = json.loads(result_json.read_text(encoding='utf-8')) if result_json.is_file() else {}
+    preserved_logs = preserve_remote_eval_logs(archive, out_dir)
     if proc.returncode:
         error = str(result.get('error') or '') + '\n' + log_path.read_text(errors='replace')[-5000:]
+        if preserved_logs:
+            error += '\nremote evaluator logs preserved: ' + ', '.join(str(path) for path in preserved_logs)
         raise RuntimeError(f'Colab eval failed (exit={proc.returncode}): {error}')
     if not archive.is_file():
         raise RuntimeError('Colab eval completed without a results archive')
