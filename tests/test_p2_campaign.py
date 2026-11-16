@@ -39,6 +39,10 @@ class CampaignPlannerTests(unittest.TestCase):
 
     def test_campaign_blocks_training_and_evaluation_until_dataset_is_pinned(self):
         unpinned = json.loads((ROOT / 'docs/p2-campaign.json').read_text())
+        unpinned['dataset']['revision'] = None
+        unpinned['dataset']['signing_public_key_b64'] = None
+        unpinned['dataset']['files'] = {'train-v2.jsonl': None, 'validation-v2.jsonl': None}
+        unpinned['dataset']['file_md5'] = {'train-v2.jsonl': None, 'validation-v2.jsonl': None}
         for operation in ('train', 'evaluate'):
             plan = plan_operation(unpinned, operation)
             self.assertEqual(plan['decision'], 'blocked')

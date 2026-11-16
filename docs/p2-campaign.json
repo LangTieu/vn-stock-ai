@@ -15,11 +15,15 @@
     "flat_band_pct": 2.0,
     "training_policy": "exclude FLAT and censored rows from binary supervised training",
     "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
-    "revision": null,
-    "signing_public_key_b64": null,
+    "revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+    "signing_public_key_b64": "MdeU+L0PVEh91aXpWfKzciLVDi74huVPMhuYmx1Ieyw=",
     "files": {
-      "train-v2.jsonl": null,
-      "validation-v2.jsonl": null
+      "train-v2.jsonl": {
+        "sha256": "aaa239c33f7d6891bdc0dc5dd8cace00ff72075cf230bfeaa35aafac6a4978fe"
+      },
+      "validation-v2.jsonl": {
+        "sha256": "5ab54b64d5576eeeea2ffe849baaa1f494028916f1bac209a00ec38638e3f175"
+      }
     },
     "full_validation": {
       "status": "pending",
@@ -30,8 +34,8 @@
       "sha256": null
     },
     "file_md5": {
-      "train-v2.jsonl": null,
-      "validation-v2.jsonl": null
+      "train-v2.jsonl": "1217076cfb92e5100ef83369abc9ae46",
+      "validation-v2.jsonl": "8e23f329deeed26fdf031bed17ff0632"
     }
   },
   "limits": {
