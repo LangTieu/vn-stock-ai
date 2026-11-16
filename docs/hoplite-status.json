@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T16:40:23Z",
+  "updated_at": "2026-11-16T16:56:37Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,12 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Checkpoint-50 retroactive evaluation run 43909652724 is in progress on TK2; metrics are not available yet. Session-2 retry:1 run 43905833510 failed at Colab assignment with the same POST /tun/m/assign ReadTimeout after 120 seconds; the ambiguity-safe client correctly refused to replay the request, and Liaison reports there is no active TK4 runtime. This is a repeated Colab assignment timeout, not a 503/profile quota signal. Retry:2 is staged as prepared on review; advise waiting for endpoint stability before dispatch rather than immediate retry.",
+  "blocked": "Three separate Colab assignment POST attempts tonight—two training attempts on TK4 and one isolated evaluation on TK2—ended in the same 120-second ReadTimeout. The evaluator run 43909652724 produced no metrics. No HTTP 503 or per-account quota error was observed; evidence across TK4 and TK2 points to shared Colab assignment endpoint/service instability, though it is not a definitive provider incident diagnosis. Retry:2 remains prepared and must stay undispatched until a later controlled run proves assignment recovery.",
   "questions": [
-    "Liaison: verify and integrate the prepared retry:2 ledger update on review/p2-async-evaluation. Because two consecutive assignment POSTs timed out, wait for Colab assignment service/account readiness before dispatch; the prepared inputs stay TK4/checkpoint-50/max_steps=100 and no dispatch was made by this agent.",
-    "Checkpoint-50 isolated evaluation run 43909652724 is still running on TK2. Inspect and record its direction_accuracy, macro_f1, and brier metrics artifact when complete; use TK5 only if the evaluator reports the explicitly configured TK2 assignment HTTP 503 fallback."
+    "Liaison: keep retry:2 on HOLD. Do not run a standalone cheap assignment probe, which could itself leave an ambiguous runtime. Treat the next authorized isolated checkpoint evaluation as the health gate: require POST /tun/m/assign to return successfully, runtime endpoint to become ready, and evaluation job to enter the notebook/kernel before considering retry:2. A successful full eval would additionally provide the missing checkpoint-50 metrics. Continue only after recovery is confirmed; TK5 fallback remains limited to an explicit TK2 HTTP 503."
   ],
-  "next_step": "Run 43905833510 root cause: exact log exception is AmbiguousColabPostError: POST /tun/m/assign outcome is unknown after ReadTimeout; refusing to replay a possibly completed request. The underlying requests ReadTimeout is HTTPSConnectionPool(colab.research.google.com): read timeout=120. Campaign approval, V2 verify, continuation validation, and profile check all passed; failure is in Colab assignment POST before notebook execution. Unlike retry:0, the fixed client did not replay and get 412. Liaison confirms no active Colab runtime, so the first assignment did not leave an orphan runtime. No code change indicated; repeated endpoint timeout makes immediate redispatch inadvisable. On review/p2-async-evaluation, merged main 56a2cb8 and imported the authoritative paused campaign ledger with retry:1 failure recorded (ledger revision 10). prepare-retry passed its recorded-failed-child and checkpoint-50 lineage gates and created p2a-v2-full:43881234317:retry:2 in prepared state only. Inputs remain train_tk4 / executor lv1 / T4 / checkpoint-50 / max_steps 100 / save_steps 25 / same approval ref and V2 revision. Campaign ledger now active/ready for the prepared continuation, state revision 20. No dispatching transition or workflow dispatch was made; retry:2 awaits independent Liaison verification/integration and endpoint recovery/cooldown. Checkpoint-50 eval run 43909652724, head 56a2cb8, is in progress on TK2; no final metrics artifact yet. Watch run and record direction accuracy, macro-F1, Brier when it finishes; only switch to TK5 on explicitly reported TK2 assignment HTTP 503. The run-43981234317 adapter artifact contains full checkpoint-50, so retroactive evaluation is possible. Evaluator fix is now on main 56a2cb8. No training or evaluation dispatched by this task. Prior verification: 124 tests pass (one optional cryptography test skipped), compilation and YAML/JSON/notebook parsing and diff checks pass.",
+  "next_step": "Run 43909652724 (isolated checkpoint-50 eval on TK2, main head 56a2cb8) failed in Evaluate checkpoint. Exact failure: underlying requests.exceptions.ReadTimeout / urllib3 ReadTimeoutError from HTTPSConnectionPool(host=colab.research.google.com, port=443), read timeout=120; wrapped as AmbiguousColabPostError: POST /tun/m/assign outcome is unknown after ReadTimeout; refusing to replay a possibly completed request. No 412, no HTTP 503, no notebook execution, and no metrics artifact/results. Evaluator code fix was present and passed pre-assignment checks. This follows retry:0 and retry:1 training assignment ReadTimeouts on TK4: three assignment POST timeouts across two profiles (TK4 twice, TK2 once), so shared Colab assignment service instability is more consistent than account quota, but cannot be proven without provider telemetry. Do not rotate accounts or dispatch another assignment yet. Main bfe2a9a ledger keeps retry:2 p2a-v2-full:43881234317:retry:2 in prepared state, checkpoint-50 lineage intact, exact inputs TK4/lv1/T4/max_steps=100/save_steps=25/same approval and dataset. Campaign is active and ready in ledger but no run is submitted for retry:2. No direct probe: it can also hang/leak a runtime. Health criterion: a later authorized isolated evaluation POST succeeds, runtime endpoint/kernel is ready, and eval enters the notebook; successful completion yields checkpoint-50 metrics. Only TK2 HTTP 503 warrants its configured TK5 fallback. After that evidence, Liaison may dispatch retry:2; this agent will not dispatch training. Report is on review/p2-async-evaluation; no code changes were needed. Previous eval argv fix is integrated in main 56a2cb8.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -482,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "56a2cb8ebf542057ea3f1d3adfd4faf88ee5c56e",
+    "verified_remote_main": "bfe2a9aa2ff755718838ac11da59989b651b058c",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -504,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main 56a2cb8 contains the async eval argv normalization and session retry:1; retry:1 failed on ambiguous assignment POST ReadTimeout without replay, and main ledger marks campaign paused pending retry recovery.",
+    "main_current_coordinator": "Main bfe2a9a has retry:2 in prepared state (not dispatching/submitted); checkpoint-50 lineage remains recorded. Retry:0, retry:1 and checkpoint-50 evaluation all hit Colab assignment POST ReadTimeout. Hold dispatch until a later controlled evaluation proves assignment service recovered.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -649,7 +648,10 @@
       "retry2_profile": "train_tk4",
       "retry2_checkpoint": "checkpoint-50",
       "retry2_max_steps": 100,
-      "recommendation": "wait for Colab assignment endpoint stability/cooldown before any further attempt; do not rotate profile absent a confirmed 503/account quota signal."
+      "recommendation": "Hold retry:2 until a controlled isolated eval shows successful assignment/runtime start; do not probe or rotate absent 503.",
+      "status": "failed",
+      "root_cause": "Same Colab POST /tun/m/assign ReadTimeout (120s), wrapped as AmbiguousColabPostError; safe client did not replay; no active runtime afterward per Liaison.",
+      "redispatched": false
     },
     "async_evaluation_argv_fix": {
       "branch": "main 56a2cb8; integrated by Liaison",
@@ -661,16 +663,35 @@
       "eval_dispatch": "run 43909652724 in progress on TK2; no metrics available at update time"
     },
     "training_run_43909652724": {
-      "kind": "isolated checkpoint-50 evaluation",
+      "kind": "isolated checkpoint-50 slice evaluation",
       "ref": "main",
       "head_sha": "56a2cb8ebf542057ea3f1d3adfd4faf88ee5c56e",
-      "status": "in_progress",
-      "conclusion": null,
-      "profile_order": "TK2, TK5 only after explicit TK2 assignment HTTP 503",
-      "requested_checkpoint_step": 50,
-      "full_holdout": false,
+      "conclusion": "failure",
+      "status": "completed",
+      "started_at": "2026-11-16T16:38:07Z",
+      "failed_at": "2026-11-16T16:42:22Z",
+      "profile": "tk2",
+      "failure_step": "Evaluate checkpoint on separate Colab account (TK2, then TK5 only on assign 503)",
+      "exact_exception": "AmbiguousColabPostError: POST /tun/m/assign outcome is unknown after ReadTimeout; refusing to replay a possibly completed request",
+      "underlying_exception": "requests.exceptions.ReadTimeout / urllib3 ReadTimeoutError: HTTPSConnectionPool(host=colab.research.google.com, port=443): Read timed out (read timeout=120)",
+      "http_status": "none; no 412, no 503",
+      "notebook_started": false,
+      "metrics_artifact": false,
       "metrics": null,
-      "last_observed": "evaluation job running at 2026-11-16T16:40:23Z"
+      "classification": "same assignment timeout as training attempts; across TK2 and TK4 this suggests shared endpoint instability, not proven by provider telemetry",
+      "retry2_dispatch": "on hold; await successful controlled evaluation assignment/runtime startup"
+    },
+    "colab_assignment_incident": {
+      "failed_attempts": [
+        "43905833510 on train_tk4",
+        "43909652724 on eval tk2"
+      ],
+      "prior_failure": "43997454800 on train_tk4",
+      "common_exception": "120-second ReadTimeout on POST /tun/m/assign; safe client now refuses POST replay",
+      "evidence_scope": "two Colab account profiles (TK4 and TK2); no HTTP 503/account-limit response",
+      "assessment": "shared endpoint/service instability is likely; provider incident is not independently confirmed",
+      "recovery_gate": "future authorized isolated evaluation successfully returns from assignment, runtime endpoint becomes available, and kernel/notebook starts; do not issue a cheap probe that could strand a runtime",
+      "retry2": "prepared only; no dispatch until recovery gate passes"
     }
   },
   "training_workflow_ready": false,
