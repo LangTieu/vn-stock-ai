@@ -37,6 +37,8 @@ jobs:
       queue: max
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Build redacted event or operator plan without credentials or dispatch
         env:
           EVENT_NAME: ${{ github.event_name }}

@@ -138,6 +138,7 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertIn('branches: [main]', workflow)
         self.assertNotIn('branches: [review/p2-async-evaluation]', workflow)
         self.assertIn('contents: write', workflow)
+        self.assertIn('ref: main', workflow)
         self.assertIn('p2_campaign_ledger.py record', workflow)
         self.assertIn('git push origin HEAD:main', workflow)
         self.assertIn('docs/p2-campaign-ledger-v2.json', workflow)
