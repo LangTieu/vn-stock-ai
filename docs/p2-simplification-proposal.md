@@ -1,6 +1,9 @@
-# P2 training simplification proposals (preparation only)
+# P2 training simplification proposals (historical; main is now V2)
 
-**Scope:** proposals only. No workflow dispatch, merge, code/config change, or training is authorized by this document. Full training remains paused pending Henrry's explicit approval.
+> Updated 2026-11-16: Main V2 at `8488d1c` is the campaign source of truth; the single working feature branch was merged, and PR #1 was closed as superseded. The former instruction to hold main unchanged is obsolete. Training remains separately gated.
+
+
+**Historical scope:** at the time this proposal was written, no workflow dispatch, merge, code/config change, or training was authorized by the document. Full training remains separately gated.
 
 ## 1. Branch and merge workflow
 

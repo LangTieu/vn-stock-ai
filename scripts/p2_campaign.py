@@ -9,6 +9,7 @@ REQUIRED_CHECKPOINT_FILES = {
     'adapter_config.json', 'p2a_training_manifest.json',
 }
 ADAPTER_FILES = {'adapter_model.safetensors', 'adapter_model.bin'}
+CAMPAIGN_REF = 'main'
 
 
 def load_json(path):
@@ -18,8 +19,10 @@ def load_json(path):
 def validate_manifest(manifest):
     if manifest.get('schema_version') != 1:
         raise ValueError('unsupported campaign manifest schema_version')
-    if not manifest.get('campaign_id') or not manifest.get('ref'):
-        raise ValueError('campaign_id and ref are required')
+    if not manifest.get('campaign_id'):
+        raise ValueError('campaign_id is required')
+    if manifest.get('ref') != CAMPAIGN_REF:
+        raise ValueError(f'campaign_ref must equal {CAMPAIGN_REF!r}')
     dataset = manifest.get('dataset') or {}
     if dataset.get('label_version') != 2 or dataset.get('repo_id') != 'Jerlob/vn-stock-ai-p2a-v2':
         raise ValueError('campaign must target the private P2a V2 dataset repository and label-version 2')

@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: [Run Colab notebook]
     types: [completed]
-    branches: [review/p2-async-evaluation]
+    branches: [main]
   workflow_dispatch:
     inputs:
       operation:

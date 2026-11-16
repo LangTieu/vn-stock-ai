@@ -1,4 +1,6 @@
 # Proposed solutions for P2 readiness gaps
+> **Historical note (updated 2026-11-16):** Main V2 is now active at `8488d1c`; the pinned private V2 dataset is published. PR #1 is closed as superseded and its evaluator content is included in main per the handoff. The previous two-stage merge plan is superseded. The proposal below records earlier findings; remaining live gates are authenticated data verification, durable coordinator state/ref validation, confirmatory validation, and training approval/readiness. Do not execute the legacy poller.
+
 
 **Status: proposal only.** No liaison-side chain file was changed or run. No repository code, workflow, credential, state ledger, PR, or data was modified by this proposal. No run was dispatched, no PR was merged, and training remains paused.
 
@@ -14,7 +16,7 @@ Do not clear `chained_from` while the old script or cron can execute: resetting 
 
 1. On the Liaison machine only, make a timestamped, access-controlled backup of the current `chain_state.json`; do not put credentials in that backup or the repo.
 2. Retire the old poller from the active schedule (leave the disabled cron disabled). Preserve the eight historical entries as audit history; do not reuse them as an active V2 campaign ledger.
-3. In the Liaison-owned working copy only, replace the hardcoded dispatch `ref` with a required `campaign_ref` setting whose value must equal `review/p2-async-evaluation`; fail closed if unset or different. Do not edit `docs/p2-chain-reference/chain_next.py` in this repository.
+3. In the Liaison-owned working copy only, replace the hardcoded dispatch `ref` with a required `campaign_ref` setting whose value must equal `main`; fail closed if unset or different. Do not edit `docs/p2-chain-reference/chain_next.py` in this repository.
 4. Initialize the *new coordinator's* ledger as a paused campaign, rather than resetting the legacy script's live state:
 
 ```json
@@ -23,7 +25,7 @@ Do not clear `chained_from` while the old script or cron can execute: resetting 
   "campaign_id": "p2a-v2-full",
   "status": "paused",
   "approved": false,
-  "ref": "review/p2-async-evaluation",
+  "ref": "main",
   "legacy_cutoff_run_id": 43580242658,
   "seen_source_run_ids": [],
   "dispatch_intents": [],
@@ -37,7 +39,7 @@ The old eight entries remain in the archived legacy ledger; the cutoff ensures t
 ### Safe verification, without dispatch
 
 - Verify the old cron is still disabled and the old poller is not invoked.
-- Run syntax/static checks on the Liaison-owned copy only; inspect the generated dispatch *plan* and assert `ref == review/p2-async-evaluation`, the 50-step cap, and a V2 manifest requirement.
+- Run syntax/static checks on the Liaison-owned copy only; inspect the generated dispatch *plan* and assert `campaign_ref == main`, the 50-step cap, and a V2 manifest requirement.
 - Exercise with fixture run responses and a mocked HF listing / mocked API client. Assert zero POST calls, zero token reads from the repo, and no Colab allocation. Add an explicit `--dry-run` path that returns before the API POST; do not run the current script as a “test” because it has no safe dry-run mode and completed runs can dispatch.
 - Keep cron disabled until the new coordinator passes all fixture cases and a reviewed rehearsal. A dry-run proves the plan, not that a real dispatch is safe.
 
@@ -65,18 +67,15 @@ The current sample `docs/p2-campaign.json` is a seed manifest, not durable mutab
 - Pros: no mutable `chain_state.json` reset per session; auditable lineage and replay protection.
 - Cons: cross-run artifact lookup, retention, permissions, races, and dispatch reconciliation need tests. An Actions artifact is not a transactional database; state expiry must fail closed, not reset to an empty ledger.
 
-**Repo vs Liaison:** repo can implement schema migration, artifact input/output, concurrency, deterministic idempotency, recovery states, and fixture tests. Liaison must decide/provision artifact retention or the durable state store and any required Actions write permission. Event workflow activation requires review/merge into the default branch under Henrry's Stage 1 approval; until then, only local/fixture dry-run is live.
+**Repo vs Liaison:** repo can implement schema migration, artifact input/output, concurrency, deterministic idempotency, recovery states, and fixture tests. Liaison must decide/provision artifact retention or the durable state store and any required Actions write permission. The event workflow is on main, but durable state/checkpoint handoff and coordinator rehearsal remain required before non-dry automation.
 
-## 3. PR #1 readiness and merge order
+## 3. Superseded PR #1 readiness and current gates
 
-PR #1 is open and GitHub reports it mergeable, but “mergeable” only means no known branch conflict; it does not establish review approval, green checks, or V2 compatibility. Before Stage 1 is merge-ready:
+PR #1 was closed as superseded after Henrry's direct order moved the V2 line to main at `8488d1c`; its evaluator content is in main per the handoff. Do not reopen it or apply the former two-stage merge sequence. The following are current readiness gates instead:
 
-1. Require focused CI checks green on the current PR head and an independent code review; retain auto-merge off. Verify no secrets or private data are committed.
-2. Review the exact file scope. The evaluator implementation/hook may change trainer/notebook code only for instrumentation and detached scheduling; it must not silently change training labels, hyperparameters, data URLs, or add a training dispatch.
-3. **Fix/check V2 evaluation compatibility:** `scripts/p2a_eval_async.py` currently downloads legacy `p1_holdout.jsonl` from the public P1 repo. `p2a_eval.py` rejects train/holdout label-version mismatches. A V2 adapter/checkpoint therefore cannot be correctly evaluated by that legacy holdout. Add a V2, label-compatible validation source pinned by manifest/hash (use the internal 2024 validation for routine checkpoint comparisons; the external holdout is compromised and must not be treated as pristine). Keep full-holdout evaluation disabled until its label version and approval are explicitly aligned.
-4. Verify the safety contract with tests: checkpoint cadence (slice each 50, full only at approved milestone), TK2 then TK5 only on confirmed assignment 503, serialized/deduplicated eval, and eval failure visible in logs/artifact but not changing training's exit/success state. Ensure checkpoint incompleteness or v2-manifest mismatch blocks evaluation.
-5. Record the reviewed PR head SHA and verification evidence in status. Stage 1 merge still needs Henrry's separate explicit approval; no merge is authorized by this readiness checklist.
+1. Run authenticated `scripts/p2a_v2_dataset.py verify` and fetch both files at the pinned revision, checking signature, SHA-256/MD5, label semantics, and temporal split.
+2. Migrate the coordinator to durable schema-v2 state with legacy cutoff `43580242658`, `campaign_ref=main` enforced fail-closed, idempotent event handling, persisted dispatch intents/checkpoint inventory, and a no-dispatch rehearsal. Keep the legacy poller disabled.
+3. Reserve and freeze a wider V2 confirmation slice disjoint from the 64-row ablation sample; compare baseline metrics with simple baselines before interpreting a model run.
+4. Set training workflow readiness and record the explicit approval reference required by the workflow only after these gates pass. Any future training starts from the base model; do not resume legacy checkpoint-150.
 
-**Recommended order:** (a) prepare/fix PR #1 and get checks/review green; (b) when Henrry separately approves Stage 1, merge only evaluator infrastructure; (c) separately complete V2 data transfer/resume and coordinator readiness; (d) obtain Henrry's distinct full-training approval; (e) train on the feature ref and evaluate each checkpoint; (f) only after full training completes and per-checkpoint evaluation proves the model, open/merge Stage 2 PR(s) for remaining P2 work under Henrry's decision. Keep `main` the clean proven line until then.
-
-No work in this turn changes PR #1 or any workflow/code. The steps above are proposals for Liaison/Henrry review.
+No training or coordinator dispatch is authorized by this historical proposal.

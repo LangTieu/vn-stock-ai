@@ -1,10 +1,22 @@
-# P2a checklist progress (current branch)
+# P2a checklist progress (main V2 line; reconciliation changes prepared on review branch)
 
-Updated 2026-11-15. The current conversation describes the 24 issues by five workstreams, but does not include the original 24 individually numbered items; this report records only verified progress and does not claim all items are complete.
+Updated 2026-11-16. The current conversation describes the 24 issues by five workstreams, but does not include the original 24 individually numbered items; this report records only verified progress and does not claim all items are complete.
 
-## Decided P2 merge-back plan (Henrry approval, 2026-11-16 10:53 ICT)
+## Main V2 reconciliation (Henrry order, 2026-11-16 12:58 ICT)
 
-Henrry approved this two-stage plan at 10:53 ICT on 2026-11-16; it is decided policy, not a proposal. **Stage 1:** evaluator infrastructure PR #1 (`review/p2-async-evaluation-infra` → `main`) remains review-only and may merge only after a separate explicit approval from Henrry. **Stage 2:** all remaining P2 training code, v2 labels, guards, and coordinator merge via PR(s) only after full training completes and per-checkpoint evaluation proves the model. Until Stage 2 evidence exists, `main` remains the clean proven line. Recording this plan does not authorize any merge, dispatch, or training.
+Henrry directly ordered the V2 campaign merged; Liaison fast-forward-clean merged `review/p2-async-evaluation` into `main` at `8488d1c` (merge base `5301343`, feature parent `e4ed66e`). Main now contains the V2 training code, verified dataset pins, and evaluator changes. PR #1 is closed as superseded, with its required content included in main; the former two-stage merge plan no longer applies. Campaign and coordinator event refs must be `main` and rejected if any other branch is configured. This reconciliation is documentation/configuration work only: no further merge, training, or dispatch is authorized in this turn.
+
+The campaign file on main contains Liaison's receipt pins for private dataset revision `4e00aefe775509fdd69fe1e70c6232468d4041d8`. The receipt reports Ed25519 verification, manifest byte identity, and a time-separated split (latest train target endpoint 2023-12-29, earliest validation as-of 2024-01-02). Repository-side CLI `verify`/`fetch` still cannot be confirmed without HF read credentials in this workspace.
+
+## Pipeline readiness and training recommendation
+
+1. **Pinned data:** revision, checksums, and trusted signing key are present on main and match Liaison's receipt. Still obtain an authenticated execution of the CLI verify plus train/validation fetch and file/hash/label checks; this workspace has no `HF_TOKEN`.
+2. **Evaluation path:** PR #1 is superseded and closed. Main contains the V2 evaluator path; its code uses the private pinned V2 validation artifact, not the P1 holdout. Do not reopen or merge PR #1.
+3. **Coordinator state:** not end-to-end ready. The committed campaign manifest is a seed, not durable mutable state; there is no migrated schema-v2 ledger or cross-run append-only state artifact. Keep the legacy poller disabled/retired, preserve legacy cutoff `43580242658`, require `campaign_ref=main`, and rehearse idempotency, dispatch intent, event-SHA validation, and checkpoint reconciliation without dispatch.
+4. **Training readiness/approval:** `training_workflow_ready` remains false and the manifest's training approval status/reference remain pending/null. The direct delegation is conditional; do not bypass the explicit workflow approval gate. No training dispatch in this turn.
+5. **Model evidence:** the selected baseline's direction accuracy is 46.875% versus the 50% majority baseline on 64 validation rows; Brier is 0.27515 versus 0.25 constant-prevalence. This exploratory result does not justify training as a predictive-skill run. Before a go-ahead, pre-register and freeze a wider untouched confirmation from V2 validation rows excluding the 64 rows already used for ablation; report results against simple baselines. Any later training must start from the base model, not legacy checkpoint-150, and remain explicitly exploratory if confirmation is not positive.
+
+**Ordered go/no-go:** authenticated dataset verification → durable schema-v2 coordinator migration and no-dispatch rehearsal → frozen untouched validation confirmation beating simple baselines → record workflow-ready evidence and explicit training approval reference → only then consider a bounded baseline-from-scratch run on `main`. None of these steps authorizes dispatch by itself.
 
 | Workstream | Progress | Evidence / remaining gate |
 | --- | --- | --- |

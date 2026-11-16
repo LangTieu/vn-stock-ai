@@ -77,7 +77,7 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertEqual(plan_event(self.manifest, event)['decision'], 'source_not_completed')
         event.update(status='completed', conclusion='failure')
         self.assertEqual(plan_event(self.manifest, event)['decision'], 'manual_recovery_review')
-        event.update(conclusion='success', head_branch='main')
+        event.update(conclusion='success', head_branch='review/p2-async-evaluation')
         self.assertEqual(plan_event(self.manifest, event)['decision'], 'ref_mismatch')
         event['head_branch'] = self.manifest['ref']
         self.manifest['state']['seen_source_run_ids'] = ['1']
@@ -125,13 +125,26 @@ class CampaignPlannerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'credential'):
             validate_manifest(manifest)
 
-    def test_dispatch_argv_is_all_strings_and_uses_feature_ref(self):
+    def test_campaign_ref_fails_closed_unless_main(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest['ref'] = 'review/p2-async-evaluation'
+        with self.assertRaisesRegex(ValueError, 'campaign_ref must equal .main.'):
+            validate_manifest(manifest)
+        manifest['ref'] = 'main'
+        self.assertTrue(validate_manifest(manifest))
+
+    def test_campaign_workflow_only_accepts_main_workflow_run_events(self):
+        workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        self.assertIn('branches: [main]', workflow)
+        self.assertNotIn('branches: [review/p2-async-evaluation]', workflow)
+
+    def test_dispatch_argv_is_all_strings_and_uses_main_ref(self):
         plan = plan_operation(self.manifest, 'evaluate', 50)
         plan['inputs'] = {'checkpoint_step': 50, 'full_holdout': False}
         argv = gh_dispatch_args(plan)
         self.assertTrue(all(isinstance(value, str) for value in argv))
         self.assertIn('--ref', argv)
-        self.assertIn('review/p2-async-evaluation', argv)
+        self.assertIn('main', argv)
         self.assertIn('checkpoint_step=50', argv)
 
 

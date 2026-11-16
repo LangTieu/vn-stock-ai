@@ -2,7 +2,7 @@ name: Snapshot Finhay current universe and sectors
 
 on:
   push:
-    branches: [review/p2-async-evaluation]
+    branches: [main]
     paths:
       - '.github/workflows/p2a-finhay-universe.yml'
       - 'scripts/fetch_p2a_finhay_universe.py'
@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: review/p2-async-evaluation
+          ref: main
       - name: Fetch current stock catalog and all sector constituent pages
         env:
           FINHAY_API_KEY: ${{ secrets.FINHAY_API_KEY }}

@@ -2,7 +2,7 @@ name: Collect Finhay P2a source data
 
 on:
   push:
-    branches: [review/p2-async-evaluation]
+    branches: [main]
     paths:
       - '.github/workflows/p2a-finhay-collect.yml'
       - 'scripts/fetch_p2a_finhay.py'
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: review/p2-async-evaluation
+          ref: main
       - name: Fetch Finhay market histories and events
         env:
           FINHAY_API_KEY: ${{ secrets.FINHAY_API_KEY }}
