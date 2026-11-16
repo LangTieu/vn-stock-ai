@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T05:34:29Z",
+  "updated_at": "2026-11-16T05:55:15Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
   "questions": [],
-  "next_step": "Fetch path bug fixed and pushed as commit 791a141; full suite passes (97 tests, one optional cryptography test skipped). Liaison is handling publication dispatch in parallel; this agent did not dispatch it. Campaign revision, hashes, and trusted signing key remain null until a verified publication receipt is available. Do not start training without Henrry's separate explicit approval.",
+  "next_step": "Liaison reports the private V2 dataset published at immutable revision 4e00aefe775509fdd69fe1e70c6232468d4041d8. Campaign pins are committed and the publisher allowlist now tolerates only HF auto-added .gitattributes. Full suite passes (98 tests; one optional cryptography test skipped). Live scripts/p2a_v2_dataset.py verify/fetch could not be completed in this workspace because HF_TOKEN is unavailable; do not treat that as independent remote verification. No training was dispatched; wait for Henrry's separate explicit training order.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -402,6 +402,36 @@
     "fetch_copy_fix_commit": "791a141",
     "fetch_copy_fix": "Imported shutil and added regression test for copying cache download into a distinct output directory.",
     "publication_dispatched_by_this_agent": false,
-    "liaison_dispatch_status": "reported as dispatching in parallel; not independently verified"
+    "liaison_dispatch_status": "reported as dispatching in parallel; not independently verified",
+    "status": "published; receipt reported by Liaison",
+    "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+    "private": true,
+    "revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+    "source_label_run_id": 43691791091,
+    "train_rows": 51620,
+    "train_class_counts": {
+      "UP": 25810,
+      "DOWN": 25810
+    },
+    "train_sha256": "aaa239c33f7d6891bdc0dc5dd8cace00ff72075cf230bfeaa35aafac6a4978fe",
+    "train_md5": "1217076cfb92e5100ef83369abc9ae46",
+    "validation_rows": 4332,
+    "validation_class_counts": {
+      "UP": 2166,
+      "DOWN": 2166
+    },
+    "validation_sha256": "5ab54b64d5576eeeea2ffe849baaa1f494028916f1bac209a00ec38638e3f175",
+    "validation_md5": "8e23f329deeed26fdf031bed17ff0632",
+    "split": {
+      "train_target_endpoint_max": "2023-12-29",
+      "validation_as_of_min": "2024-01-02",
+      "external_holdout_included": false
+    },
+    "signature": "Ed25519 verified by Liaison; manifest reported byte-identical to prepared manifest",
+    "pin_commit": "ef96a3e",
+    "allowlist_fix_commit": "1bc1509",
+    "allowlist_behavior": "Permits required files with optional .gitattributes only; regression rejects any other extra file and missing required files.",
+    "live_verify_fetch_by_this_agent": "blocked: HF_TOKEN is not configured in this workspace; uv run with huggingface_hub==0.30.2 reached RuntimeError: HF_TOKEN is required to read the private V2 dataset.",
+    "training_dispatched": false
   }
 }
