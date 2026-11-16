@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:49:38.120604Z",
+  "updated_at": "2026-11-16T02:50:42.548471Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
   "questions": [],
-  "next_step": "Coordinator design revised after reading read-only liaison chain reference at cf27ab2 (not executed/edited): current cron polls latest run, dispatches from hardcoded main on any completed outcome, accepts structurally complete checkpoints without v2 manifest/hash validation, has only post-dispatch chained_from dedup, and silently returns while runs are active. The revised proposal requires manifest-backed approval/caps/checkpoint-label compatibility, pre-dispatch intent + idempotency/reconciliation, visible decision artifacts, and fixture-only dry-run before touching cron. Training/eval profile names are interface-only; credentials stay with Liaison. No training dispatch/merge; keep training paused.",
+  "next_step": "Item 1: standing single-feature-branch policy recorded. Prepare a narrowly scoped evaluator-hook/guard PR for review only; do not merge. Then implement the single operator interface while preserving separate train/eval Colab runtimes, and a manifest-backed event coordinator with explicit approval/caps plus fixture-only dry-run. Keep cron disabled but do not remove it until dry-run/event rehearsal is proven. No training dispatch; Henrry approval is still required.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -247,5 +247,25 @@
       "training_dispatched": false,
       "merge_performed": false
     }
+  },
+  "simplification_implementation": {
+    "training_dispatched": false,
+    "merge_performed": false,
+    "training_paused_pending_henrry_approval": true,
+    "item_1_single_branch_policy": {
+      "state": "implemented",
+      "standing_rule": "P2 campaign uses one active feature branch; every run records ref/SHA; no parallel campaign branches; one narrowly scoped infra review branch is allowed; main remains unchanged until review; merge needs separate approval.",
+      "file": "docs/hoplite-directives.md",
+      "infrastructure_pr": "preparing focused review only; not merged"
+    },
+    "item_2_operator_entrypoint": {
+      "state": "in_progress",
+      "goal": "one train/eval operator interface; preserve distinct Colab runtimes and explicit account orders; evaluation failures visible and non-fatal"
+    },
+    "item_3_event_coordinator": {
+      "state": "in_progress",
+      "goal": "manifest-backed event coordinator, explicit first-session approval gate, max session/step caps, dry-run rehearsal; keep existing cron disabled until coordinator is proven; credential profile interface only, no credential material"
+    },
+    "chain_reference_audit_commit": "cf27ab2"
   }
 }
