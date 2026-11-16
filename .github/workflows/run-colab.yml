@@ -20,6 +20,10 @@ on:
         options: [smoke, full]
         required: true
         default: "full"
+      training_approval_ref:
+        description: "Required for full mode: explicit Henrry approval reference verified by Liaison"
+        required: false
+        default: ""
       gpu:
         description: "GPU Colab (T4 free; L4/A100 can units)"
         required: false
@@ -58,6 +62,12 @@ on:
         options: [github, machine1, lv1]
         required: true
         default: github
+      train_profile:
+        description: "Liaison-installed named training credential profile (used only with executor=lv1)"
+        type: choice
+        options: [train_tk4, train_tk5, train_tk1]
+        required: true
+        default: train_tk4
       drive_inventory:
         description: "Only inspect P2 source JSONs in Drive; do not start Colab or training"
         type: boolean
@@ -170,6 +180,17 @@ jobs:
     runs-on: ${{ inputs.executor == 'machine1' && fromJSON('["self-hosted", "colab-driver"]') || inputs.executor == 'lv1' && fromJSON('["self-hosted", "colab-driver-lv1"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Require explicit training approval for full mode
+        if: ${{ inputs.mode == 'full' && !inputs.p2a_v2_smoke && !inputs.p2a_v2_ablation && !inputs.drive_inventory && !inputs.hf_source_audit }}
+        env:
+          APPROVAL_REF_INPUT: ${{ inputs.training_approval_ref }}
+          APPROVAL_REF_CONFIGURED: ${{ secrets.P2_TRAIN_APPROVAL_REF }}
+        run: |
+          set -euo pipefail
+          if [ -z "$APPROVAL_REF_INPUT" ] || [ -z "$APPROVAL_REF_CONFIGURED" ] || [ "$APPROVAL_REF_INPUT" != "$APPROVAL_REF_CONFIGURED" ]; then
+            echo "Full training is blocked: explicit matching Henrry approval reference is required." >&2
+            exit 2
+          fi
       - name: Configure Colab credentials
         if: ${{ inputs.executor == 'github' }}
         env:
@@ -189,6 +210,13 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_CHECKPOINT_REPO: Jerlob/vn-stock-ai-p2a-checkpoints
           P2_EVAL_ENABLED: "1"
+          TRAIN_PROFILE: ${{ inputs.train_profile }}
+          EXECUTOR: ${{ inputs.executor }}
+          P2_TRAIN_TK4_EMAIL: ${{ vars.P2_TRAIN_TK4_EMAIL }}
+          P2_TRAIN_TK5_EMAIL: ${{ vars.P2_TRAIN_TK5_EMAIL }}
+          P2_TRAIN_TK1_EMAIL: ${{ vars.P2_TRAIN_TK1_EMAIL }}
+          P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
+          P2_EVAL_TK5_EMAIL: ${{ vars.P2_EVAL_TK5_EMAIL }}
           DOWNLOAD_REMOTE: ${{ inputs.download_remote || format('/content/p2a-checkpoints/{0}', inputs.mode) }}
           DOWNLOAD_LOCAL: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
         run: |
@@ -200,6 +228,14 @@ jobs:
             python3 -m venv .vncolab-venv
             .vncolab-venv/bin/pip install -q "google-auth>=2.49.1" "google-auth-oauthlib>=1.3.0" "requests>=2.32.5" "jupyter-kernel-client==0.9.0" "nbformat>=5.10.4" "websocket-client>=1.6"
             PY=".vncolab-venv/bin/python"
+          fi
+          if [ "$EXECUTOR" = "lv1" ]; then
+            case "$TRAIN_PROFILE" in
+              train_tk4|train_tk5|train_tk1) ;;
+              *) echo "Unsupported named training profile" >&2; exit 2 ;;
+            esac
+            export VNCOLAB_HOME="$HOME/.config/vncolab/$TRAIN_PROFILE"
+            "$PY" scripts/p2_profile_check.py --kind train --profile "$TRAIN_PROFILE"
           fi
           download_args=()
           if [ -n "$DOWNLOAD_REMOTE" ] && [ -n "$DOWNLOAD_LOCAL" ]; then

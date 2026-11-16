@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:53:35.414217Z",
+  "updated_at": "2026-11-16T03:05:33.285870Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,9 +9,9 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
+  "blocked": "Full training is not approved and the v2 full-training workflow is not certified ready. No training dispatch or merge is authorized by the current work.",
   "questions": [],
-  "next_step": "Item 1 complete: the standing one-campaign-feature-branch rule is recorded and the isolated evaluator infrastructure PR #1 is open for review with auto-merge disabled; it has not been merged. Continue item 2 by adding one train/eval operator interface while keeping training and evaluation Colab runtimes separate and evaluator failures non-fatal. Continue item 3 with an event-driven, manifest-backed coordinator and fixture-only dry-run; keep cron disabled/in place until proven. Never dispatch training; Henrry approval remains required.",
+  "next_step": "Item 2 is implemented: a unified CLI plans train/evaluate, named credential profiles are identity-checked without storing token values, and eval errors are visible/non-fatal to training. Training remains fail-closed because the v2 full-session data transfer/workflow is not yet certified and Henrry approval is pending. Finish item 3 by rehearsing the manifest-backed event coordinator with fixtures, keep cron disabled and untouched, and record any activation gaps. No training dispatch or merge.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -64,7 +64,8 @@
     "ef200f2",
     "2a11bea",
     "cf27ab2",
-    "448dbfe"
+    "448dbfe",
+    "ca439a5"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -270,12 +271,31 @@
       "verification": "6 focused tests, compileall, and diff check passed on the PR branch"
     },
     "item_2_operator_entrypoint": {
-      "state": "in_progress",
-      "goal": "one train/eval operator interface; preserve distinct Colab runtimes and explicit account orders; evaluation failures visible and non-fatal"
+      "state": "implemented_and_dry_run_verified",
+      "entrypoint": "scripts/p2_operator.py train|evaluate",
+      "evaluation": "explicit --dispatch targets p2-eval.yml on the approved feature ref; separate runtime, profile order eval_tk2 then eval_tk5 only on confirmed assignment 503; expected account identities are injected as vars",
+      "training": "named profile choices train_tk4/train_tk5/train_tk1; profile files remain Liaison-installed under ~/.config/vncolab/<profile>/token.json, mode 0600 and email-verified; fallback planner advances only after confirmed assignment 503",
+      "failure_isolation": "separate evaluator process/runtime; test verifies evaluator worker nonzero exit does not set training ok=false",
+      "safety": "training dry-run fails closed because Henrry approval is pending and the v2 full-training workflow is not certified ready; full mode also requires matching training approval reference",
+      "dry_run_evidence": "operator train plan blocked as expected; evaluation plan routes p2-eval.yml with TK2/TK5 order; no workflow command executed",
+      "verification": "90 tests pass; compileall, YAML/JSON parsing, diff check pass"
     },
     "item_3_event_coordinator": {
-      "state": "in_progress",
-      "goal": "manifest-backed event coordinator, explicit first-session approval gate, max session/step caps, dry-run rehearsal; keep existing cron disabled until coordinator is proven; credential profile interface only, no credential material"
+      "state": "implemented_and_fixture_dry_run_rehearsed",
+      "manifest": "docs/p2-campaign.json",
+      "planner": "scripts/p2_campaign.py",
+      "event_workflow": ".github/workflows/p2-campaign.yml",
+      "approval_gate": "pending in sample; planner requires approval status/reference and v2 full-training workflow readiness",
+      "caps": {
+        "max_sessions": 1,
+        "steps_per_session": 50,
+        "max_total_steps": 50
+      },
+      "checkpoint_guard": "structural optimizer/scheduler/trainer/RNG/adapter files plus p2a_training_manifest.json; exact label-v2, SHA-256, label method and flat-band compatibility",
+      "dedup_and_recovery": "source run IDs and dispatch intents are recognized; failed/cancelled runs block for manual review; profile advances only for explicit /tun/m/assign HTTP 503",
+      "dry_run": "train/eval and successful/running/failed event fixtures exercised locally; zero dispatch and no credentials accessed",
+      "cron": "liaison chain reference untouched; 20-minute polling remains disabled; remove only after event workflow is reviewed/activated and a non-training rehearsal proves parity",
+      "activation_limit": "workflow_run coordinator is staged on feature ref and is not live until separately reviewed/merged to default branch; no merge performed"
     },
     "chain_reference_audit_commit": "cf27ab2"
   }
