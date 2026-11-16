@@ -5,6 +5,8 @@ on:
     workflows: [Run Colab notebook]
     types: [completed]
     branches: [main]
+  repository_dispatch:
+    types: [p2-campaign-run-completed]
   workflow_dispatch:
     inputs:
       operation:
@@ -29,7 +31,7 @@ permissions:
 
 jobs:
   event-plan:
-    if: ${{ github.event_name == 'workflow_run' || inputs.dry_run }}
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch' || inputs.dry_run }}
     runs-on: ubuntu-latest
     concurrency:
       group: p2-campaign-ledger-main
@@ -40,21 +42,21 @@ jobs:
         with:
           ref: main
       - name: Download non-secret source run context artifact
-        if: ${{ github.event_name == 'workflow_run' }}
+        if: ${{ github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch' }}
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: p2-campaign-run-context
           path: /tmp/p2-campaign-source-context
           repository: ${{ github.repository }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event.client_payload.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build redacted event or operator plan without credentials or dispatch
         env:
           EVENT_NAME: ${{ github.event_name }}
           OPERATION: ${{ inputs.operation }}
           CHECKPOINT_STEP: ${{ inputs.checkpoint_step }}
-          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event.client_payload.run_id }}
           WORKFLOW_RUN_STATUS: ${{ github.event.workflow_run.status }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
@@ -84,6 +86,13 @@ jobs:
               'head_sha': os.environ['WORKFLOW_RUN_SHA'],
           }))
           PY
+            elif [ "$EVENT_NAME" = "repository_dispatch" ]; then
+              [[ "$WORKFLOW_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Invalid source run id in campaign event" >&2; exit 2; }
+              gh run view "$WORKFLOW_RUN_ID" --json databaseId,status,conclusion,headBranch,headSha \
+                | jq '{run_id: .databaseId, status: .status, conclusion: .conclusion,
+                      head_branch: .headBranch, head_sha: .headSha}' > /tmp/p2-campaign-event.json
+            fi
+          if [ "$EVENT_NAME" = "workflow_run" ] || [ "$EVENT_NAME" = "repository_dispatch" ]; then
             run_planner python3 scripts/p2_campaign.py event --manifest docs/p2-campaign.json \
               --event /tmp/p2-campaign-event.json --output p2-campaign-plan.json
             record_result=$(python3 scripts/p2_campaign_ledger.py record \

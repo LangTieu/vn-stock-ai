@@ -9,9 +9,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from p2_campaign_chain import (
-    MAX_SESSIONS, MAX_TOTAL_STEPS, dispatch_argv, prepare_continuation,
+    MAX_SESSIONS, MAX_TOTAL_STEPS, dispatch_argv, mark_dispatch_state,
+    prepare_continuation, prepare_retry,
 )
-from p2_campaign_ledger import initial_ledger, record_approval, record_event, validate_ledger, write_ledger
+from p2_campaign_ledger import (
+    initial_ledger, record_approval, record_event, validate_ledger,
+    validate_training_dispatch, write_ledger,
+)
 
 LEDGER_SCRIPT = ROOT / 'scripts/p2_campaign_ledger.py'
 CHAIN_SCRIPT = ROOT / 'scripts/p2_campaign_chain.py'
@@ -79,6 +83,72 @@ def make_checkpoint(step):
 
 
 class CampaignChainTests(unittest.TestCase):
+    def test_failed_assignment_can_only_retry_from_committed_checkpoint_with_new_intent(self):
+        parent_id, failed_id = 43830000001, 43830000002
+        ledger = approved_ledger()
+        ledger['seen_source_run_ids'] = [parent_id]
+        ledger['events'] = [{
+            'source_run_id': parent_id, 'source_ref': 'main',
+            'source_sha': f'{parent_id:040x}', 'status': 'completed',
+            'conclusion': 'success', 'decision': 'candidate',
+            'recorded_at': '2026-11-16T00:00:00Z',
+        }]
+        ledger['ledger_revision'] = ledger['state_revision'] = 1
+        context = make_context(parent_id)
+        context['train_profile'] = 'train_tk4'
+        first = prepare_continuation(ledger, make_event(parent_id), context,
+                                     make_checkpoint(50))
+        mark_dispatch_state(ledger, first['intent_id'], 'dispatching')
+        mark_dispatch_state(ledger, first['intent_id'], 'submitted')
+
+        failed_event = make_event(failed_id, 'failure')
+        ledger['seen_source_run_ids'].append(failed_id)
+        ledger['events'].append({
+            'source_run_id': failed_id, 'source_ref': 'main',
+            'source_sha': failed_event['head_sha'], 'status': 'completed',
+            'conclusion': 'failure', 'decision': 'continuation_failed_manual_review',
+            'recorded_at': '2026-11-16T00:05:00Z',
+        })
+        ledger['ledger_revision'] += 1
+        ledger['state_revision'] += 1
+        failed_context = make_context(failed_id, max_steps=100,
+                                      parent=str(parent_id), resume='checkpoint-50')
+        failed = prepare_continuation(ledger, failed_event, failed_context, None)
+        self.assertEqual(failed['decision'], 'continuation_failed_manual_review')
+        self.assertEqual(ledger['dispatch_intents'][0]['status'], 'failed')
+
+        retried = prepare_retry(ledger, parent_id, failed_id)
+        self.assertEqual(retried['intent_id'], f'p2a-v2-full:{parent_id}:retry:1')
+        self.assertEqual(retried['inputs']['resume_checkpoint'], 'checkpoint-50')
+        self.assertEqual(retried['inputs']['max_steps'], '100')
+        self.assertEqual(retried['inputs']['train_profile'], 'train_tk4')
+        mark_dispatch_state(ledger, retried['intent_id'], 'dispatching')
+        self.assertEqual(validate_training_dispatch(ledger, retried['inputs'])['session_kind'],
+                         'continuation')
+        self.assertTrue(validate_ledger(ledger))
+
+        completed_id = 43830000003
+        completed_event = make_event(completed_id)
+        ledger['seen_source_run_ids'].append(completed_id)
+        ledger['events'].append({
+            'source_run_id': completed_id, 'source_ref': 'main',
+            'source_sha': completed_event['head_sha'], 'status': 'completed',
+            'conclusion': 'success', 'decision': 'eligible',
+            'recorded_at': '2026-11-16T00:10:00Z',
+        })
+        ledger['ledger_revision'] += 1
+        ledger['state_revision'] += 1
+        completed_context = make_context(completed_id, max_steps=100,
+                                         parent=str(parent_id), resume='checkpoint-50')
+        result = prepare_continuation(ledger, completed_event, completed_context,
+                                      make_checkpoint(100))
+        self.assertEqual(result['decision'], 'dispatch_prepared')
+        self.assertEqual(ledger['dispatch_intents'][0]['status'], 'failed')
+        self.assertEqual(ledger['dispatch_intents'][1]['status'], 'completed')
+        self.assertEqual(ledger['dispatch_intents'][1]['child_run_id'], completed_id)
+        self.assertEqual(ledger['sessions'][-1]['end_step'], 100)
+        self.assertTrue(validate_ledger(ledger))
+
     def test_prepared_intent_survives_process_restart_and_duplicate_replay(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

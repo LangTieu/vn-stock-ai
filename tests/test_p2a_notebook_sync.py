@@ -75,6 +75,16 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn('source_run_id', workflow)
         self.assertIn('"$HOME/vncolab-venv/bin/python" scripts/p2a_colab_assignment_check.py --profile tk2', workflow)
 
+    def test_campaign_completion_signal_handles_github_token_event_suppression(self):
+        workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()
+        coordinator = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        self.assertIn('Signal P2 coordinator after run completion', workflow)
+        self.assertIn('github.rest.repos.createDispatchEvent', workflow)
+        self.assertIn('contents: write', workflow)
+        self.assertIn('repository_dispatch:', coordinator)
+        self.assertIn('p2-campaign-run-completed', coordinator)
+        self.assertIn('gh run view "$WORKFLOW_RUN_ID"', coordinator)
+
     def test_notebook_exposes_verified_dataset_hashes_and_ablation_settings(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         settings = ''.join(notebook['cells'][1]['source'])

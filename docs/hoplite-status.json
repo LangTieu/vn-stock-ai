@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T13:30:31Z",
+  "updated_at": "2026-11-16T16:07:53Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Run 43873942716 on main passed approval and private V2 verification, then reached Colab but stopped during notebook setup: cell 3 used undefined P2A_TRAIN_SHA256/P2A_HOLDOUT_SHA256 instead of TRAIN_SHA256/HOLDOUT_SHA256; cell 7 imported nonexistent HOLDOUT_MD5 from p2a_train; cell 8 run_dir error was a cascade. No optimizer training or checkpoint exists. The notebook fix and local cell regression are on the review branch, not main; do not redispatch until that fix is integrated on main. training_workflow_ready remains false.",
+  "blocked": "Session 2 run 43897454800 passed approval, V2 verification, campaign validation and train_tk4 profile check, then failed during Colab assignment. The log shows POST /tun/m/assign ReadTimeout after the 120-second request timeout; the client replayed the same non-idempotent POST/token and received 412 Precondition Failed 5 seconds later. This is not HTTP 503 and does not establish an account limit; no profile rotation was made. The outcome of the first POST is ambiguous and no colab_result/checkpoint exists. Safe retry and ledger reconciliation fixes plus a new intent are on review/p2-async-evaluation, not main. No redispatch until Liaison integrates this branch under the standing branch rule.",
   "questions": [
-    "Liaison: review/integrate the notebook fix and campaign continuation changes from review/p2-async-evaluation--campaign-chain. After the fix is on main, dispatch session 1 with the approved inputs; run 43873942716 created no checkpoint and must not be resumed."
+    "Integration gate: Liaison to independently verify and merge review/p2-async-evaluation into main; no diagnosis or hand-fix is being requested. After integration, continue the already prepared retry intent only if main still shows no active/pending run and checkpoint-50 lineage remains valid."
   ],
-  "next_step": "Fix notebook SHA variable references in cells 3, 7 and 9; cell 7 imports only dataset_path and reads MD5s set by cell 1. Local regression executes settings/setup/training cells with pinned V2 environment variables and mocked dataset/subprocess; embedded scripts parity test remains required. Run 43873942716 was workflow-dispatched on main, approval/V2 dataset verification passed, train_tk4 profile was verified, and Colab launched; cell 3 NameError halted before trainer execution. Cell 7 then raised ImportError for nonexistent p2a_train.HOLDOUT_MD5, while cell 8 run_dir NameError was cascading. No optimizer step/checkpoint/evaluation; no resume possible. Do not dispatch from the review ref or rerun uncorrected main. Changes are under review on review/p2-async-evaluation--campaign-chain. Auto-chain session continuation safeguards (main-ref/full-run eligibility, exact checkpoint manifest, session/step caps, persisted intent-before-dispatch, failure closed) are implemented on that branch but not active on main. Workflow readiness stays false until a successful full session uploads a matching checkpoint; no further dispatch by this agent.",
+  "next_step": "Root cause for run 43897454800: after campaign validation passed with resume checkpoint-50/max_steps=100 and train_tk4, Colab POST /tun/m/assign timed out (ReadTimeout) after 120s; client retried the same POST/token, then got 412 Precondition Failed. No 503 was observed, so retain TK4; first POST outcome may be ambiguous. Fix on review/p2-async-evaluation: POST requests are not transport/status retried; assignment reconciliation uses GET before a fresh token, and run startup refuses to allocate if that account already has an active runtime. Added completion repository_dispatch so bot-triggered child runs are recorded, plus a manual retry intent that requires the failed child event and exact latest checkpoint lineage. Run 43897454800 failure event is appended to docs/p2-campaign-ledger-v2.json and a separate intent p2a-v2-full:43881234317:retry:1 is persisted as dispatching on the review branch with profile train_tk4, resume checkpoint-50, max_steps=100, save_steps=25, approval and dataset pins unchanged. The bounded validator passes. Do not dispatch until this exact review branch is integrated on main; branch rule requires Liaison to merge. Then confirm no active TK4 runtime (the repaired client now checks), validate main ledger and launch this intent. Session 1 run 43881234317 succeeded for 50 steps and checkpoint-25/checkpoint-50 were Liaison-verified with V2 manifests. Its p2-evaluations artifact is reachable but has no metrics: async evaluator log ends in TypeError (subprocess argv contains dict); no metrics JSON was uploaded, so accuracy/F1/Brier cannot be reported. Full suite: 122 passed, one optional cryptography test skipped; compile, YAML/JSON/notebook parsing and diff checks pass.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "1f314984ea4ce88782b09d8b4961527b6a58f009",
+    "verified_remote_main": "6f64371960426ffef24ce59425a796baf4edb66b",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main p2-campaign.yml persists completed main-ref event metadata to the schema-v2 ledger. The run 43873942716 notebook fix and checkpoint-gated continuation automation are not on main yet.",
+    "main_current_coordinator": "Main ledger contains successful session 1 and its submitted session-2 intent but not failed run 43897454800. This review branch appends the failure and a retry intent, prevents replaying ambiguous Colab POSTs, reconciles assignments, and signals coordinator completion through repository_dispatch; integration pending.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -540,8 +540,8 @@
       "no_retry_or_dispatch_by_this_agent": true
     },
     "campaign_autochain_implementation": {
-      "branch": "review/p2-async-evaluation--campaign-chain",
-      "status": "implemented with multi-process persistence and replay tests; 115-test suite passes; integration to main pending",
+      "branch": "review/p2-async-evaluation",
+      "status": "merged initial chain to main; assignment-retry safety, bot-run completion signal and manual retry-intent recovery are implemented and tested on review/p2-async-evaluation; pending integration",
       "source_gate": "completed main workflow_run plus non-secret run-context artifact for full P2a session",
       "checkpoint_gate": "latest checkpoint exactly equals requested max step, full optimizer/trainer/adapter files, V2 hashes/revision/label semantics/campaign ID and approval manifest match",
       "intent_order": "persist session+prepared intent; persist dispatching state; only then workflow_dispatch; mark submitted after acceptance",
@@ -552,12 +552,12 @@
         "max_total_steps": 5198
       },
       "final_session": "max_steps=5198, save_steps=5198 so exact cap checkpoint is available",
-      "workflow_ready": "remains false until successful full session has a complete matching checkpoint; ledger flips ready only from that verified event",
-      "local_rehearsal": "A step-50 fixture persisted the session and prepared checkpoint-50/max_steps=100 intent across separate processes; duplicate event replay did not duplicate the session; dispatching state persisted and passed bounded input validation. No GitHub workflow dispatch was invoked.",
+      "workflow_ready": "ledger ready=true after successful run 43881234317 produced matching checkpoint-50; top-level campaign manifest readiness remains false pending separate certification.",
+      "local_rehearsal": "Verified failure event 43897454800 persisted; prior intent marked failed; fresh retry intent p2a-v2-full:43881234317:retry:1 prepared from checkpoint-50/max_steps=100 and marked dispatching; bounded validator allowed exact inputs. No workflow dispatch was invoked.",
       "legacy_cron": "disabled; legacy chain_state unused"
     },
     "coordinator_autochain": {
-      "will_chain_next_50_step_session": "after implementation is integrated on main and a successful full session produces a complete matching checkpoint; current run 43829851906 failed before Colab",
+      "will_chain_next_50_step_session": "Session 1 auto-chained session 2. Run 43897454800 failed at Colab assignment; the failure event and retry intent are staged on review. The completion repository_dispatch signal is not yet integrated on main, so bot-triggered child completion may not reach the coordinator until it is merged.",
       "legacy_cron_reenabled": false,
       "caps": {
         "max_sessions": 104,
@@ -585,7 +585,48 @@
       "verification": "Notebook regression executes cells 1, 3 and 7 locally using the exact V2 repo/revision/hash variable names, a fake p2a_train exposing only dataset_path, and mocked dataset/subprocess; embedded p2a_train.py, numerics, validation and evaluator scripts match canonical sources byte-for-byte.",
       "redispatch": "not performed; main still contains the defective notebook and campaign changes are review-only. Integrate fix first, then run a fresh session 1; do not resume this failed run."
     },
-    "training_started": false
+    "training_started": true,
+    "training_run_43881234317": {
+      "ref": "main",
+      "head_sha": "66669bda2b5702d8ee2607e635ad7d8946c45cfb",
+      "conclusion": "success",
+      "steps_completed": 50,
+      "profile": "train_tk4",
+      "checkpoint_25_and_50": "Liaison verified complete with matching V2 manifest; latest checkpoint checkpoint-50",
+      "loss_step_50": 0.1748,
+      "evaluation_artifact": "p2-evaluations downloaded and inspected",
+      "evaluation_metrics": null,
+      "evaluation_blocker": "async eval log ended with TypeError: subprocess argv contained a dict; artifact zip has validation slice/manifest only and no metrics JSON",
+      "optimizer_training_succeeded": true
+    },
+    "training_run_43897454800": {
+      "ref": "main",
+      "head_sha": "d68a064ef35ef8df264fafb647f1364ab7bb3792",
+      "conclusion": "failure",
+      "approval_gate": "passed",
+      "v2_dataset_verification": "passed at immutable revision 4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "campaign_validation": "passed: checkpoint-50, max_steps=100, source run 43881234317",
+      "profile": "train_tk4; PROFILE_VERIFIED",
+      "failure_step": "Run notebook on Colab T4 (vncolab), before a Colab result was produced",
+      "assignment_trace": [
+        "POST /tun/m/assign transport ReadTimeout after 120-second timeout",
+        "client retried same POST/token after 5 seconds",
+        "retry returned HTTP 412 Precondition Failed"
+      ],
+      "classification": "ambiguous Colab assignment POST; not HTTP 503; no evidence of account quota limit",
+      "training_started": false,
+      "checkpoint_uploaded": false,
+      "colab_result_artifact": false,
+      "fix": "Never replay non-idempotent POST after ambiguous transport failure; GET-reconcile assignment before a fresh token; refuse a new run if the account reports an active runtime. Do not rotate profile absent 503/account-limit evidence.",
+      "ledger_failure_event_recorded_on_review": true,
+      "new_retry_intent": "p2a-v2-full:43881234317:retry:1",
+      "retry_profile": "train_tk4",
+      "retry_status": "dispatching in review ledger; main integration required before dispatch",
+      "redispatched": false,
+      "failed_run_checkpoint_available": false,
+      "retry_from_previous_verified_checkpoint": true,
+      "active_assignment_check": "added to reviewed code; account state not queried from this workspace, so re-dispatch must stop if profile reports an active runtime"
+    }
   },
   "training_workflow_ready": false,
   "training_approval": {

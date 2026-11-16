@@ -10,3 +10,5 @@
 - Never fabricate, infer, or synthesize missing market data. Mark gates `passes: true` only when supported by verified evidence.
 - Report concrete evidence, verification performed, and unresolved limits.
 - Read these directives at the start of every work turn.
+
+- BRANCH RULE (Henrry, 16/11 — BẮT BUỘC): commit TRỰC TIẾP trên nhánh review/p2-async-evaluation — ĐÓ LÀ NHÁNH DUY NHẤT. KHÔNG BAO GIỜ tạo nhánh mới: không nhánh --suffix, không nhánh theo task, không nhánh review/...--..., không nhánh song song. Nếu công cụ của bạn tự tạo nhánh, chuyển sang review/p2-async-evaluation rồi commit ở đó. main là tuyến campaign V2; CHỈ Liaison mới gộp review vào main sau khi kiểm chứng độc lập. Nhánh phụ review/p2-async-evaluation--campaign-chain ngày 16/11 đã bị xóa; không tạo lại.

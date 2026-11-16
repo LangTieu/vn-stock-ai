@@ -9,8 +9,8 @@ hop voi minh:
     (may headless khong co keyring nen CLI goc hoi lai moi lan).
   * Auth tach 2 buoc (auth-url / auth-code) de chay duoc tren may remote
     (InstaBox) noi khong go truc tiep duoc stdin.
-  * POST assign gui kem Content-Length: 0 + retry ca loi transport
-    (ProxyError/ConnectionError) — CLI goc chi retry ReadTimeout/502-504.
+  * POST assign gui kem Content-Length: 0; timeout cua POST duoc doi soat bang GET,
+    khong gui lai token da co the bi tieu thu.
   * Chay notebook: bo qua cell drive.mount (can tuong tac) vi du lieu cua
     minh da nhung san trong notebook.
 
@@ -197,6 +197,10 @@ class ColabRequestError(Exception):
     pass
 
 
+class AmbiguousColabPostError(ColabRequestError):
+    pass
+
+
 class TooManyAssignmentsError(Exception):
     pass
 
@@ -204,6 +208,13 @@ class TooManyAssignmentsError(Exception):
 class Client:
     def __init__(self, session):
         self.session = session
+
+    def ensure_no_active_assignments(self):
+        assignments = self.list_assignments()
+        if assignments:
+            raise TooManyAssignmentsError(
+                f"Refusing a new Colab assignment while {len(assignments)} runtime(s) "
+                "are already active; inspect `vncolab sessions` before retrying")
 
     def _req(self, method, url, headers=None, data=None, timeout=120):
         h = {"Accept": "application/json",
@@ -225,6 +236,10 @@ class Client:
                 resp = self.session.request(method, url, **kwargs)
             except (_rq.exceptions.ProxyError, _rq.exceptions.ConnectionError,
                     _rq.exceptions.ReadTimeout) as e:
+                if method == "POST":
+                    raise AmbiguousColabPostError(
+                        f"POST {url} outcome is unknown after {type(e).__name__}; "
+                        "refusing to replay a possibly completed request") from e
                 last_err = e
                 if attempt + 1 == max_attempts:
                     break
@@ -233,7 +248,8 @@ class Client:
                       file=sys.stderr, flush=True)
                 time.sleep(delay)
                 continue
-            if resp.status_code in (502, 503, 504) and attempt + 1 < max_attempts:
+            if (method != "POST" and resp.status_code in (502, 503, 504)
+                    and attempt + 1 < max_attempts):
                 print(f"Colab {method} returned HTTP {resp.status_code}; "
                       f"retry {attempt + 1}/{max_attempts - 1} in {delay}s",
                       file=sys.stderr, flush=True)
@@ -262,24 +278,33 @@ class Client:
     def assign(self, accelerator=None, variant=None, shape=None):
         nbh = uuid.uuid4()
         url = self._assign_url(nbh, variant, accelerator, shape)
-        # GET: lay token XSRF, hoac tra ve assignment co san.
-        resp = self._req("GET", url)
-        body = resp.text
-        if body.startswith(")]}'\n"):
-            body = body[5:]
-        data = json.loads(body) if body.strip() else {}
-        if "endpoint" in data and "runtimeProxyInfo" in data:
-            return data
-        token = data.get("token")
-        if not token:
-            raise ColabRequestError(f"GET assign tra ve khong co token: {body[:200]}")
-        # POST: cap may that.
-        resp = self._req("POST", url,
-                         headers={"X-Goog-Colab-Token": token})
-        body = resp.text
-        if body.startswith(")]}'\n"):
-            body = body[5:]
-        return json.loads(body)
+        for attempt in range(2):
+            # GET either returns the current assignment or a fresh one-use token.
+            resp = self._req("GET", url)
+            body = resp.text
+            if body.startswith(")]}'\n"):
+                body = body[5:]
+            data = json.loads(body) if body.strip() else {}
+            if "endpoint" in data and "runtimeProxyInfo" in data:
+                return data
+            token = data.get("token")
+            if not token:
+                raise ColabRequestError(f"GET assign returned no token or assignment: {body[:200]}")
+            try:
+                resp = self._req("POST", url,
+                                 headers={"X-Goog-Colab-Token": token})
+            except AmbiguousColabPostError:
+                if attempt == 1:
+                    raise
+                print("Colab assignment POST outcome unknown; reconciling with GET before retry",
+                      file=sys.stderr, flush=True)
+                time.sleep(5)
+                continue
+            body = resp.text
+            if body.startswith(")]}'\n"):
+                body = body[5:]
+            return json.loads(body)
+        raise ColabRequestError("Colab assignment could not be reconciled after POST timeout")
 
     def list_assignments(self):
         resp = self._req("GET", urljoin(COLAB_DOMAIN, f"{TUN}/assignments")
@@ -630,6 +655,7 @@ def cmd_stop(args):
 def cmd_run(args):
     """Cap may moi, chay file .py hoac .ipynb, in output, tat may."""
     client = Client(authorized_session())
+    client.ensure_no_active_assignments()
     accel = args.gpu or None
     res = client.assign(accelerator=accel,
                         variant=_variant_for(accel) if accel else None)

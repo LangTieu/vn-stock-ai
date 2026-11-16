@@ -226,9 +226,10 @@ def prepare_continuation(ledger, event, context, checkpoint):
         if context.get('resume_checkpoint') != sessions[-1]['checkpoint_name']:
             return {'decision': 'no_chain_resume_mismatch', 'dispatch': False,
                     'ledger_changed': False}
-        parent_intent = next((intent for intent in ledger['dispatch_intents']
-                              if intent['source_run_id'] == parent_run_id), None)
-        if not parent_intent or parent_intent['status'] not in {'dispatching', 'submitted'}:
+        parent_intent = next((intent for intent in reversed(ledger['dispatch_intents'])
+                              if intent['source_run_id'] == parent_run_id
+                              and intent['status'] in {'dispatching', 'submitted'}), None)
+        if not parent_intent:
             return {'decision': 'no_chain_parent_intent_unconfirmed', 'dispatch': False,
                     'ledger_changed': False}
         parent_intent['status'] = 'completed'
@@ -326,6 +327,72 @@ def mark_dispatch_state(ledger, intent_id, status):
     return True
 
 
+def prepare_retry(ledger, parent_run_id, failed_run_id, train_profile=None):
+    validate_ledger(ledger)
+    parent_run_id = _positive_int(parent_run_id, 'parent_run_id')
+    failed_run_id = _positive_int(failed_run_id, 'failed_run_id')
+    failure_event = next((event for event in ledger['events']
+                          if event['source_run_id'] == failed_run_id), None)
+    if not failure_event or failure_event['conclusion'] != 'failure':
+        raise ValueError('manual continuation retry requires a recorded failed child event')
+    parent = next((item for item in ledger['dispatch_intents']
+                   if item.get('source_run_id') == parent_run_id
+                   and item.get('status') == 'failed'
+                   and item.get('child_run_id') == failed_run_id), None)
+    if not parent:
+        raise ValueError('failed child does not match a failed parent dispatch intent')
+    session = next((item for item in ledger['sessions']
+                    if item.get('source_run_id') == parent_run_id), None)
+    checkpoint = ledger.get('latest_v2_compatible_checkpoint') or {}
+    if (not session or checkpoint.get('name') != session.get('checkpoint_name')
+            or checkpoint.get('step') != session.get('end_step')):
+        raise ValueError('retry checkpoint does not match the latest committed campaign session')
+    if any(item.get('source_run_id') == failed_run_id for item in ledger['sessions']):
+        raise ValueError('failed child already has a committed campaign session')
+    if any(item['status'] in {'prepared', 'dispatching', 'submitted'}
+           for item in ledger['dispatch_intents']):
+        raise ValueError('another campaign dispatch intent is still pending')
+
+    inputs = dict(parent.get('inputs') or {})
+    profile = train_profile or inputs.get('train_profile')
+    if profile not in {'train_tk4', 'train_tk5', 'train_tk1'}:
+        raise ValueError('retry requires an approved named training profile')
+    target_step = _positive_int(inputs.get('max_steps'), 'target max_steps')
+    current_step = session['end_step']
+    if (target_step > MAX_TOTAL_STEPS or target_step <= current_step
+            or target_step - current_step > MAX_SESSION_STEPS):
+        raise ValueError('retry target exceeds the per-session or campaign step cap')
+    if (inputs.get('resume_checkpoint') != checkpoint.get('name')
+            or inputs.get('training_approval_ref') != ledger.get('approval_reference')
+            or inputs.get('p2a_v2_dataset_revision') != DATASET_REVISION):
+        raise ValueError('retry inputs do not match the committed checkpoint campaign lineage')
+    inputs['train_profile'] = profile
+    inputs['campaign_chain_source_run_id'] = str(parent_run_id)
+    retries = [item for item in ledger['dispatch_intents']
+               if item.get('source_run_id') == parent_run_id
+               and ':retry:' in item.get('intent_id', '')]
+    intent_id = f'{CAMPAIGN_ID}:{parent_run_id}:retry:{len(retries) + 1}'
+    ledger['dispatch_intents'].append({
+        'intent_id': intent_id,
+        'source_run_id': parent_run_id,
+        'source_sha': session.get('source_sha'),
+        'target_max_steps': target_step,
+        'resume_checkpoint': checkpoint['name'],
+        'dataset_revision': DATASET_REVISION,
+        'approval_reference': ledger['approval_reference'],
+        'status': 'prepared',
+        'inputs': inputs,
+        'retry_of_intent_id': parent['intent_id'],
+        'retry_after_run_id': failed_run_id,
+        'prepared_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    })
+    ledger['status'] = 'active'
+    ledger['training_workflow_ready'] = True
+    ledger['state_revision'] += 1
+    return {'decision': 'dispatch_prepared', 'dispatch': True, 'ledger_changed': True,
+            'intent_id': intent_id, 'checkpoint': checkpoint, 'inputs': inputs}
+
+
 def dispatch_argv(plan):
     if not plan.get('dispatch') or plan.get('decision') != 'dispatch_prepared':
         raise ValueError('refusing to dispatch a non-ready campaign plan')
@@ -340,13 +407,17 @@ def dispatch_argv(plan):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=('plan', 'dispatch', 'mark-dispatching', 'mark-submitted'))
+    parser.add_argument('command', choices=(
+        'plan', 'dispatch', 'mark-dispatching', 'mark-submitted', 'prepare-retry'))
     parser.add_argument('--ledger', required=True)
     parser.add_argument('--event')
     parser.add_argument('--context')
     parser.add_argument('--checkpoint-fixture')
     parser.add_argument('--plan-file')
     parser.add_argument('--intent-id')
+    parser.add_argument('--parent-run-id')
+    parser.add_argument('--failed-run-id')
+    parser.add_argument('--train-profile')
     parser.add_argument('--output')
     args = parser.parse_args()
     ledger_path = Path(args.ledger)
@@ -380,6 +451,13 @@ def main():
         argv = dispatch_argv(plan)
         subprocess.run(argv, check=True, env={**os.environ, 'GH_TOKEN': os.environ['GH_TOKEN']})
         print(json.dumps({'dispatched': True, 'intent_id': plan['intent_id']}, sort_keys=True))
+    elif args.command == 'prepare-retry':
+        if not args.parent_run_id or not args.failed_run_id:
+            raise SystemExit('--parent-run-id and --failed-run-id are required')
+        result = prepare_retry(ledger, args.parent_run_id, args.failed_run_id,
+                               args.train_profile)
+        write_ledger(ledger_path, ledger)
+        print(json.dumps(result, sort_keys=True))
     else:
         if not args.intent_id:
             raise SystemExit('--intent-id is required')
