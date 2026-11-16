@@ -1,0 +1,61 @@
+{
+  "chained_from": 43580242658,
+  "dispatched": [
+    {
+      "from_run": 43430067616,
+      "conclusion": "cancelled",
+      "resume": "checkpoint-50",
+      "max_steps": 100,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43492860765,
+      "conclusion": "failure",
+      "resume": "checkpoint-50",
+      "max_steps": 100,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43495925451,
+      "conclusion": "failure",
+      "resume": "checkpoint-50",
+      "max_steps": 100,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43499008224,
+      "conclusion": "failure",
+      "resume": "checkpoint-50",
+      "max_steps": 100,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43502085659,
+      "conclusion": "cancelled",
+      "resume": "checkpoint-75",
+      "max_steps": 125,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43548413689,
+      "conclusion": "cancelled",
+      "resume": "checkpoint-125",
+      "max_steps": 175,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43579293830,
+      "conclusion": "failure",
+      "resume": "checkpoint-125",
+      "max_steps": 175,
+      "dispatch_status": 204
+    },
+    {
+      "from_run": 43580242658,
+      "conclusion": "cancelled",
+      "resume": "checkpoint-150",
+      "max_steps": 200,
+      "dispatch_status": 204
+    }
+  ]
+}
