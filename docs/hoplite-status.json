@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T16:07:53Z",
+  "updated_at": "2026-11-16T16:20:58Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Session 2 run 43897454800 passed approval, V2 verification, campaign validation and train_tk4 profile check, then failed during Colab assignment. The log shows POST /tun/m/assign ReadTimeout after the 120-second request timeout; the client replayed the same non-idempotent POST/token and received 412 Precondition Failed 5 seconds later. This is not HTTP 503 and does not establish an account limit; no profile rotation was made. The outcome of the first POST is ambiguous and no colab_result/checkpoint exists. Safe retry and ledger reconciliation fixes plus a new intent are on review/p2-async-evaluation, not main. No redispatch until Liaison integrates this branch under the standing branch rule.",
+  "blocked": "Session-1 checkpoint-50 evaluation produced no metrics because the generated async evaluator passed a SHA-256 pin object as a subprocess argv element. The fix and regression tests are on review/p2-async-evaluation; Liaison integration is needed before rerunning evaluation through the main workflow. Session-2 retry run 43905833510 is independently in progress on main at the Colab notebook step; no training was dispatched by this evaluator-fix task.",
   "questions": [
-    "Integration gate: Liaison to independently verify and merge review/p2-async-evaluation into main; no diagnosis or hand-fix is being requested. After integration, continue the already prepared retry intent only if main still shows no active/pending run and checkpoint-50 lineage remains valid."
+    "Liaison: independently review and merge the async evaluation argv fix on review/p2-async-evaluation. Checkpoint-50 is recoverable from the session-1 artifact; after integration, an isolated slice evaluation can be dispatched for checkpoint_step=50 without training."
   ],
-  "next_step": "Root cause for run 43897454800: after campaign validation passed with resume checkpoint-50/max_steps=100 and train_tk4, Colab POST /tun/m/assign timed out (ReadTimeout) after 120s; client retried the same POST/token, then got 412 Precondition Failed. No 503 was observed, so retain TK4; first POST outcome may be ambiguous. Fix on review/p2-async-evaluation: POST requests are not transport/status retried; assignment reconciliation uses GET before a fresh token, and run startup refuses to allocate if that account already has an active runtime. Added completion repository_dispatch so bot-triggered child runs are recorded, plus a manual retry intent that requires the failed child event and exact latest checkpoint lineage. Run 43897454800 failure event is appended to docs/p2-campaign-ledger-v2.json and a separate intent p2a-v2-full:43881234317:retry:1 is persisted as dispatching on the review branch with profile train_tk4, resume checkpoint-50, max_steps=100, save_steps=25, approval and dataset pins unchanged. The bounded validator passes. Do not dispatch until this exact review branch is integrated on main; branch rule requires Liaison to merge. Then confirm no active TK4 runtime (the repaired client now checks), validate main ledger and launch this intent. Session 1 run 43881234317 succeeded for 50 steps and checkpoint-25/checkpoint-50 were Liaison-verified with V2 manifests. Its p2-evaluations artifact is reachable but has no metrics: async evaluator log ends in TypeError (subprocess argv contains dict); no metrics JSON was uploaded, so accuracy/F1/Brier cannot be reported. Full suite: 122 passed, one optional cryptography test skipped; compile, YAML/JSON/notebook parsing and diff checks pass.",
+  "next_step": "Async eval root cause confirmed from run 43881234317 artifact: run_one passed dataset[files][train-v2.jsonl] as a dict {sha256:...} into build_remote_job; generated job embedded the dict as train_sha256, then placed it in the p2a_eval.py --expected-train-sha256 argv. Python failed at subprocess.run with TypeError: expected str, bytes or os.PathLike object, not dict. Fix normalizes either the pin object or string to its SHA string before job generation, and generated code checks all argv values are strings. Tests cover dict normalization and invalid pins. Session-1 p2a-output-full.zip is downloadable and contains a complete checkpoint-50 directory including adapter_model.safetensors, adapter_config.json, p2a_training_manifest.json, optimizer, scheduler, RNG and trainer state; manifest matches V2 revision/campaign. Therefore checkpoint-50 CAN be evaluated retroactively; it is not limited to waiting for the next checkpoint. The existing isolated p2-eval.yml accepts checkpoint_step=50; it fetches that verified checkpoint from the HF checkpoint repo and evaluates the pinned V2 slice. No eval dispatch made because main still contains the buggy evaluator until Liaison integrates this review change. Current training retry run 43905833510 is independently in progress on main commit 4646d5cfccc9c5de4a1b869d508ed33322075bd3; approval/campaign validation/V2 verification passed and Run notebook on Colab T4 is in progress. No training dispatch initiated by this task. Full suite: 124 pass, one optional cryptography test skipped; compileall, JSON/YAML/notebook parsing and diff checks pass.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "6f64371960426ffef24ce59425a796baf4edb66b",
+    "verified_remote_main": "4646d5cfccc9c5de4a1b869d508ed33322075bd3",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main ledger contains successful session 1 and its submitted session-2 intent but not failed run 43897454800. This review branch appends the failure and a retry intent, prevents replaying ambiguous Colab POSTs, reconciles assignments, and signals coordinator completion through repository_dispatch; integration pending.",
+    "main_current_coordinator": "Main 4646d5c contains the Colab POST ambiguity retry fix and prepared session-2 retry; run 43905833510 is in progress. The session-1 async-eval argv fix is under review only.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -541,7 +541,7 @@
     },
     "campaign_autochain_implementation": {
       "branch": "review/p2-async-evaluation",
-      "status": "merged initial chain to main; assignment-retry safety, bot-run completion signal and manual retry-intent recovery are implemented and tested on review/p2-async-evaluation; pending integration",
+      "status": "session-2 retry safety merged on main; async-evaluator SHA argv normalization separately under review",
       "source_gate": "completed main workflow_run plus non-secret run-context artifact for full P2a session",
       "checkpoint_gate": "latest checkpoint exactly equals requested max step, full optimizer/trainer/adapter files, V2 hashes/revision/label semantics/campaign ID and approval manifest match",
       "intent_order": "persist session+prepared intent; persist dispatching state; only then workflow_dispatch; mark submitted after acceptance",
@@ -596,7 +596,7 @@
       "loss_step_50": 0.1748,
       "evaluation_artifact": "p2-evaluations downloaded and inspected",
       "evaluation_metrics": null,
-      "evaluation_blocker": "async eval log ended with TypeError: subprocess argv contained a dict; artifact zip has validation slice/manifest only and no metrics JSON",
+      "evaluation_blocker": "Confirmed TypeError: train-v2.jsonl manifest pin object was embedded in the generated evaluator subprocess argv as --expected-train-sha256. No metrics JSON; evaluator code fix is on review/p2-async-evaluation. Complete checkpoint-50 is recoverable from p2a-output-full.zip and can be reevaluated retroactively via p2-eval.yml after merge.",
       "optimizer_training_succeeded": true
     },
     "training_run_43897454800": {
@@ -626,6 +626,25 @@
       "failed_run_checkpoint_available": false,
       "retry_from_previous_verified_checkpoint": true,
       "active_assignment_check": "added to reviewed code; account state not queried from this workspace, so re-dispatch must stop if profile reports an active runtime"
+    },
+    "training_run_43905833510": {
+      "ref": "main",
+      "head_sha": "4646d5cfccc9c5de4a1b869d508ed33322075bd3",
+      "status": "in_progress",
+      "conclusion": null,
+      "at_last_check": "Run notebook on Colab T4 (vncolab) in_progress after approval, bounded campaign validation and pinned V2 dataset verification passed",
+      "profile": "train_tk4",
+      "campaign_retry_intent": "p2a-v2-full:43881234317:retry:1",
+      "training_dispatch_by_this_task": false
+    },
+    "async_evaluation_argv_fix": {
+      "branch": "review/p2-async-evaluation",
+      "root_cause": "run_one passed dataset.files[train-v2.jsonl] as a SHA-256 mapping object; build_remote_job embedded that dict in generated code and the p2a_eval.py subprocess argv.",
+      "evidence": "Run 43881234317 p2-evaluations artifact colab_eval_job.py line 45 uses train_sha256 as --expected-train-sha256 argv; eval.log ends TypeError expected str/bytes/PathLike, not dict.",
+      "fix": "Normalize pin mappings to their sha256 string before building job; validate hash pin type and assert generated subprocess argv contains strings only.",
+      "regression_tests": "Mapping pin becomes a string in generated job; malformed/null/non-string hash pins fail before remote job generation.",
+      "checkpoint_50_retro_evaluation": "possible: session-1 p2a-output-full.zip contains complete checkpoint-50 adapter, training manifest, optimizer/scheduler/RNG/trainer state; HF has the verified checkpoint. Isolated p2-eval.yml can evaluate step 50 on pinned V2 validation after evaluator fix is integrated.",
+      "eval_dispatch": "not dispatched; main still has prior evaluator until Liaison integration; no training dispatch in this task."
     }
   },
   "training_workflow_ready": false,

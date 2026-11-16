@@ -127,8 +127,17 @@ def latest_complete_step(token, dataset):
     return max(valid)
 
 
+def train_sha256_pin(value):
+    if isinstance(value, dict):
+        value = value.get('sha256')
+    if not isinstance(value, str) or not value:
+        raise ValueError('pinned train-v2.jsonl SHA-256 must resolve to a string')
+    return value
+
+
 def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha256, train_sha256,
                      full_validation_approval_ref=''):
+    train_sha256 = train_sha256_pin(train_sha256)
     train_src = Path(__file__).with_name('p2a_train.py').read_text(encoding='utf-8')
     numerics_src = Path(__file__).with_name('p2a_numerics.py').read_text(encoding='utf-8')
     eval_src = Path(__file__).with_name('p2a_eval.py').read_text(encoding='utf-8')
@@ -197,6 +206,7 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         "cmd=[sys.executable, '-u', '/content/p2a_eval.py', '--holdout', eval_holdout, '--holdout-md5', eval_md5, '--holdout-sha256', dataset_sha, '--adapter', adapter, '--output', predictions_path, '--checkpoint-step', str(step), '--expected-dataset-repo', dataset_repo, '--expected-dataset-revision', dataset_revision, '--expected-train-sha256', train_sha256]",
         "if manifest_path: cmd += ['--slice-manifest', manifest_path]",
         "if full_holdout: cmd += ['--full-holdout', '--full-validation-approval-ref', full_validation_approval_ref]",
+        "if not all(isinstance(arg, str) for arg in cmd): raise TypeError('evaluation subprocess argv must contain only strings')",
         'subprocess.run(cmd, check=True)',
         "metrics=__import__('json').load(open(predictions_path+'.metrics.json'))",
         "metrics.update({'checkpoint_step':step,'checkpoint_path':remote,'full_holdout':full_holdout,'dataset_sha256':dataset_sha,'validation_source_sha256':validation_sha256})",
@@ -278,7 +288,7 @@ def run_colab_eval_staged(step, full_holdout, profile, home, validation, full_va
     job_file.write_text(build_remote_job(step, full_holdout, str(out_dir),
                                         validation['validation_md5'],
                                         validation['validation_sha256'],
-                                        validation['dataset']['files']['train-v2.jsonl'],
+                                        train_sha256_pin(validation['dataset']['files']['train-v2.jsonl']),
                                         full_validation_approval_ref), encoding='utf-8')
     archive = out_dir / 'colab-eval.zip'
     result_json = out_dir / 'vncolab-result.json'

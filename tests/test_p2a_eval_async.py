@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.p2a_eval_async import build_remote_job
+from scripts.p2a_eval_async import build_remote_job, train_sha256_pin
 
 
 class AsyncEvalBundleTests(unittest.TestCase):
@@ -14,6 +14,19 @@ class AsyncEvalBundleTests(unittest.TestCase):
         self.assertIn('pinned V2 validation SHA-256 mismatch', source)
         self.assertIn("'--expected-dataset-repo'", source)
         self.assertNotIn('vn-stock-ai-p1', source)
+
+    def test_train_hash_object_is_normalized_before_embedding_subprocess_argv(self):
+        train_sha = 'a' * 64
+        source = build_remote_job(50, False, '/tmp/p2-eval', 'md5', 'b' * 64,
+                                  {'sha256': train_sha})
+        self.assertIn(f'train_sha256={train_sha!r}', source)
+        self.assertNotIn("train_sha256={'sha256':", source)
+        self.assertIn('all(isinstance(arg, str) for arg in cmd)', source)
+
+    def test_invalid_train_hash_pin_is_rejected_before_remote_job_generation(self):
+        for value in ({'sha256': None}, {'sha256': 123}, None, 123):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'SHA-256'):
+                train_sha256_pin(value)
 
     def test_modal_legacy_p1_smoke_is_retired_before_gpu_assignment(self):
         source = (Path(__file__).resolve().parents[1] / 'scripts/modal_p2a.py').read_text()
