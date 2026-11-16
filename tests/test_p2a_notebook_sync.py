@@ -1,7 +1,12 @@
 import ast
 import json
+import os
+import subprocess
+import sys
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +87,45 @@ class TrainingNotebookSyncTests(unittest.TestCase):
             self.assertIn(name, train)
         self.assertIn('SEED = os.environ.get("SEED", "42")', settings)
 
+    def test_v2_setup_and_training_cells_execute_with_pinned_environment(self):
+        notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
+        cells = [''.join(notebook['cells'][index]['source']) for index in (1, 3, 7)]
+        train_sha = 'a' * 64
+        holdout_sha = 'b' * 64
+        revision = '4e00aefe775509fdd69fe1e70c6232468d4041d8'
+        env = {
+            'MODE': 'full',
+            'TRAIN_URL': f'hf://Jerlob/vn-stock-ai-p2a-v2@{revision}/train-v2.jsonl',
+            'HOLDOUT_URL': f'hf://Jerlob/vn-stock-ai-p2a-v2@{revision}/validation-v2.jsonl',
+            'TRAIN_MD5': 'c' * 32,
+            'HOLDOUT_MD5': 'd' * 32,
+            'P2A_TRAIN_SHA256': train_sha,
+            'P2A_HOLDOUT_SHA256': holdout_sha,
+            'P2A_LABEL_VERSION': '2',
+            'P2A_V2_DATASET_REPO': 'Jerlob/vn-stock-ai-p2a-v2',
+            'P2A_V2_DATASET_REVISION': revision,
+            'OUTPUT_DIR': '/tmp/p2a-notebook-test',
+            'MAX_STEPS': '50',
+            'SAVE_STEPS': '25',
+        }
+        namespace = {}
+        fake_train = types.ModuleType('p2a_train')
+        fake_train.dataset_path = lambda _url, target, _md5: target
+        class CompletedProcess:
+            stdout = ()
+            def wait(self):
+                return 0
+        with patch.dict(os.environ, env, clear=True), \
+                patch.dict(sys.modules, {'p2a_train': fake_train}), \
+                patch.object(subprocess, 'Popen', return_value=CompletedProcess()) as popen:
+            exec(cells[0], namespace)
+            exec(cells[1], namespace)
+            exec(cells[2], namespace)
+        self.assertEqual(namespace['TRAIN_SHA256'], train_sha)
+        self.assertEqual(namespace['HOLDOUT_SHA256'], holdout_sha)
+        self.assertIn(train_sha, popen.call_args.args[0])
+
+
     def test_training_notebook_has_no_legacy_dataset_defaults(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         settings = ''.join(notebook['cells'][1]['source'])
@@ -91,8 +135,9 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertNotIn('Jerlob/vn-stock-ai-p1', settings)
         self.assertIn('P2A_LABEL_VERSION != "2"', setup)
         self.assertIn('legacy P1 defaults are disabled', setup)
-        self.assertIn("'--train-sha256', P2A_TRAIN_SHA256", ''.join(notebook['cells'][7]['source']))
-        self.assertIn("'--holdout-sha256', P2A_HOLDOUT_SHA256", ''.join(notebook['cells'][9]['source']))
+        self.assertIn("'--train-sha256', TRAIN_SHA256", ''.join(notebook['cells'][7]['source']))
+        self.assertIn("'--holdout-sha256', HOLDOUT_SHA256", ''.join(notebook['cells'][9]['source']))
+        self.assertNotIn('HOLDOUT_MD5 as DEFAULT_HOLDOUT_MD5', ''.join(notebook['cells'][7]['source']))
 
     def test_full_colab_job_verifies_pinned_private_v2_revision_before_runtime(self):
         workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()

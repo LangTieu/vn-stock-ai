@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T08:53:35Z",
+  "updated_at": "2026-11-16T13:30:31Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "The approved session has not trained: run 43829851906 failed before Colab assignment because the persistent runner venv lacked huggingface_hub (ModuleNotFoundError); no checkpoint/evaluation exists. The dependency repair and auto-chain implementation are under review, not on main. training_workflow_ready remains false until a successful full session uploads a complete matching checkpoint.",
+  "blocked": "Run 43873942716 on main passed approval and private V2 verification, then reached Colab but stopped during notebook setup: cell 3 used undefined P2A_TRAIN_SHA256/P2A_HOLDOUT_SHA256 instead of TRAIN_SHA256/HOLDOUT_SHA256; cell 7 imported nonexistent HOLDOUT_MD5 from p2a_train; cell 8 run_dir error was a cascade. No optimizer training or checkpoint exists. The notebook fix and local cell regression are on the review branch, not main; do not redispatch until that fix is integrated on main. training_workflow_ready remains false.",
   "questions": [
-    "Liaison: please review/integrate review/p2-async-evaluation--campaign-chain. Run 43829851906 had no Colab assignment/checkpoint, so no resume was dispatched by this agent; session 1 still needs an authorized fresh start after the dependency repair lands."
+    "Liaison: review/integrate the notebook fix and campaign continuation changes from review/p2-async-evaluation--campaign-chain. After the fix is on main, dispatch session 1 with the approved inputs; run 43873942716 created no checkpoint and must not be resumed."
   ],
-  "next_step": "Run 43829851906 passed the approval gate but failed V2 dataset verify with ModuleNotFoundError huggingface_hub because a persistent runner venv skipped conditional install. Review branch now installs the pinned HF client, cryptography and Colab dependencies each run. No Colab assignment, training, checkpoint, or evaluation occurred; no retry was dispatched. The auto-chain path is implemented and locally rehearsed: successful full P2a context + matching approval/data + complete exact-step HF checkpoint required; it commits session/prepared intent, then dispatching state, before GH workflow_dispatch, and marks submitted after acceptance. Failed/cancelled events never dispatch. Cap 104 sessions / 50 steps each / 5,198 total (final 48-step session saves at the cap). The implementation is on review/p2-async-evaluation--campaign-chain and not yet live on main. Approval/caps are recorded on this branch; workflow_ready remains false until a successful compatible checkpoint. No dispatch by this agent.",
+  "next_step": "Fix notebook SHA variable references in cells 3, 7 and 9; cell 7 imports only dataset_path and reads MD5s set by cell 1. Local regression executes settings/setup/training cells with pinned V2 environment variables and mocked dataset/subprocess; embedded scripts parity test remains required. Run 43873942716 was workflow-dispatched on main, approval/V2 dataset verification passed, train_tk4 profile was verified, and Colab launched; cell 3 NameError halted before trainer execution. Cell 7 then raised ImportError for nonexistent p2a_train.HOLDOUT_MD5, while cell 8 run_dir NameError was cascading. No optimizer step/checkpoint/evaluation; no resume possible. Do not dispatch from the review ref or rerun uncorrected main. Changes are under review on review/p2-async-evaluation--campaign-chain. Auto-chain session continuation safeguards (main-ref/full-run eligibility, exact checkpoint manifest, session/step caps, persisted intent-before-dispatch, failure closed) are implemented on that branch but not active on main. Workflow readiness stays false until a successful full session uploads a matching checkpoint; no further dispatch by this agent.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "299759fdcbba0f345a68b000845ee2608a857275",
+    "verified_remote_main": "1f314984ea4ce88782b09d8b4961527b6a58f009",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -493,7 +493,7 @@
     "coordinator_ref_enforced_in_review_changes": "main in manifest, planner, ledger, and workflow_run filter; event workflow explicitly checks out latest main before serialized ledger commits",
     "coordinator_durable_state": "Main contains the paused schema-v2 event ledger and atomic append-only recorder. The main workflow serializes completed main-ref event writes; four source events are persisted and duplicate replay was verified in the prior rehearsal. This review branch adds approval/cap metadata, checkpoint-gated continuation planning and durable pre-dispatch intent states; auto-continuation remains unintegrated.",
     "training_recommendation": "not justified as a predictive-skill run by n=64 ablation below majority/Brier baselines; confirm on untouched broader V2 validation first",
-    "training_dispatched": false,
+    "training_dispatched": true,
     "legacy_poller_cron": "Liaison confirms p2-overnight-chain cron disabled since 2026-11-14; legacy cutoff 43580242658 is preserved in new schema-v2 ledger.",
     "coordinator_ledger_path": "docs/p2-campaign-ledger-v2.json",
     "coordinator_dry_run": "Two completed events recorded across separate CLI processes, ledger revision advanced 0->1->2, restart read preserved IDs/SHA, replay was deduplicated, dispatch_intents remained empty.",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main p2-campaign.yml filters workflow_run events to main and persists completed event metadata to the schema-v2 ledger. Checkpoint verification and continuation dispatch safeguards are still only on review/p2-async-evaluation--campaign-chain.",
+    "main_current_coordinator": "Main p2-campaign.yml persists completed main-ref event metadata to the schema-v2 ledger. The run 43873942716 notebook fix and checkpoint-gated continuation automation are not on main yet.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -541,7 +541,7 @@
     },
     "campaign_autochain_implementation": {
       "branch": "review/p2-async-evaluation--campaign-chain",
-      "status": "implemented, multi-process replay tested and 114-test suite passes; PR/integration pending",
+      "status": "implemented with multi-process persistence and replay tests; 115-test suite passes; integration to main pending",
       "source_gate": "completed main workflow_run plus non-secret run-context artifact for full P2a session",
       "checkpoint_gate": "latest checkpoint exactly equals requested max step, full optimizer/trainer/adapter files, V2 hashes/revision/label semantics/campaign ID and approval manifest match",
       "intent_order": "persist session+prepared intent; persist dispatching state; only then workflow_dispatch; mark submitted after acceptance",
@@ -565,7 +565,27 @@
         "max_total_steps": 5198
       },
       "no_checkpoint_or_evaluation_from_43829851906": true
-    }
+    },
+    "training_run_43873942716": {
+      "ref": "main",
+      "head_sha": "4e9e69b9396c1f61e9d753d30d5923d1cdf54df9",
+      "workflow_dispatched": true,
+      "conclusion": "failure",
+      "approval_gate": "passed",
+      "private_v2_dataset_verification": "passed at immutable revision 4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "profile_verification": "PROFILE_VERIFIED kind=train profile=train_tk4",
+      "colab_assignment_started": true,
+      "notebook_setup_started": true,
+      "root_cause": "Notebook cell 3 references undefined P2A_TRAIN_SHA256/P2A_HOLDOUT_SHA256 rather than cell-1 TRAIN_SHA256/HOLDOUT_SHA256; cell 7 imports nonexistent p2a_train.HOLDOUT_MD5; cell 8 run_dir NameError cascades after cell 3 abort.",
+      "training_started": false,
+      "optimizer_steps": 0,
+      "checkpoint_uploaded": false,
+      "resume_checkpoint_available": false,
+      "repair": "Review branch changes cell 3 to use TRAIN_SHA256/HOLDOUT_SHA256, cell 7 imports dataset_path only and relies on cell-1 TRAIN_MD5/HOLDOUT_MD5, cell 7 passes TRAIN_SHA256; cell 9 passes HOLDOUT_SHA256.",
+      "verification": "Local V2 environment executes notebook cells 1, 3, and 7 with mocked dataset resolver and subprocess. Embedded script parity is checked against canonical scripts.",
+      "redispatch": "not performed; main still contains the defective notebook and campaign changes are review-only. Integrate fix first, then run a fresh session 1; do not resume this failed run."
+    },
+    "training_started": false
   },
   "training_workflow_ready": false,
   "training_approval": {
