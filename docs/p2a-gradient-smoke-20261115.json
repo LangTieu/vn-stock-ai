@@ -1,0 +1,22 @@
+{
+  "run_id": 43697301620,
+  "label_version": 2,
+  "smoke_only": true,
+  "full_training_started": false,
+  "colab_profile": "tk2",
+  "requested_max_steps": 2,
+  "training_slice_rows": 64,
+  "training_slice_classes": {
+    "UP": 32,
+    "DOWN": 32
+  },
+  "training_slice_sha256": "6a7abc9970ecbe2538846bf65498c02a0bc62a563626991111db64e2e44c5663",
+  "finite_gradient_norm_observations": 6,
+  "nonfinite_loss_or_gradient_guard_triggered": false,
+  "tk5_fallback_used": false,
+  "tk5_fallback_reason": null,
+  "colab_run_return_code": 0,
+  "smoke_passes": true,
+  "raw_adjusted_prices_in_artifact": false,
+  "note": "Sanitized summary derived from the private Actions smoke result; no raw price values, prompts, credentials, or model outputs included."
+}

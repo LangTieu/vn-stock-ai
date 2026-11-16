@@ -1,0 +1,347 @@
+{
+  "checked_on": "2026-11-15",
+  "label_version": "legacy P1 v1; diagnostic only; no model evaluated",
+  "input_sha256": {
+    "p1_train.jsonl": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+    "p1_holdout.jsonl": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d"
+  },
+  "split_ranges": {
+    "train": [
+      "2014-10-27",
+      "2024-07-12"
+    ],
+    "holdout": [
+      "2025-01-02",
+      "2026-05-19"
+    ]
+  },
+  "split_label_counts": {
+    "train": {
+      "DOWN": 40251,
+      "UP": 42896,
+      "FLAT": 795
+    },
+    "holdout": {
+      "DOWN": 7683,
+      "UP": 5958,
+      "FLAT": 183
+    }
+  },
+  "cross_split_overlap": {
+    "ticker_asof": 0,
+    "prompt_hash": 0,
+    "temporal_target_overlap": {
+      "left_as_of_range": [
+        "2014-10-27",
+        "2024-07-12"
+      ],
+      "left_target_endpoint_range": [
+        "2015-04-23",
+        "2024-12-31"
+      ],
+      "right_as_of_start": "2025-01-02",
+      "left_targets_at_or_after_right_as_of_start": 0,
+      "passes_no_forward_target_overlap": true
+    }
+  },
+  "validation_slice": {
+    "method": "fixed-seed round-robin by ticker x calendar-quarter; equal UP/DOWN",
+    "seed": 42,
+    "per_class": 1000,
+    "selected_count": 2000,
+    "eligible_bulk_up_down": 83147,
+    "class_counts": {
+      "UP": 1000,
+      "DOWN": 1000
+    },
+    "source_sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+    "slice_sha256": "21ae18bae1af0b2a44bbd0c4977da82bb7e46d89aa939591f262642ccf0b1cda",
+    "ticker_count": 67,
+    "time_bucket_count": 40
+  },
+  "majority_prevalence_coinflip_baselines": {
+    "train": {
+      "overall": {
+        "n": 83147,
+        "class_counts": {
+          "DOWN": 40251,
+          "UP": 42896
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.5159055648429889,
+        "majority_macro_f1": 0.3403283006592988,
+        "prevalence_p_up": 0.5159055648429889,
+        "prevalence_brier": 0.24974701300702548,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2021": {
+        "n": 11129,
+        "class_counts": {
+          "DOWN": 3467,
+          "UP": 7662
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.6884715607871327,
+        "majority_macro_f1": 0.40774839018679154,
+        "prevalence_p_up": 0.6884715607871327,
+        "prevalence_brier": 0.21447847077446217,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:UPCOM": {
+        "n": 25159,
+        "class_counts": {
+          "DOWN": 12642,
+          "UP": 12517
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5024842004849159,
+        "majority_macro_f1": 0.33443559694187985,
+        "prevalence_p_up": 0.49751579951508407,
+        "prevalence_brier": 0.24999382874795073,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2022": {
+        "n": 11500,
+        "class_counts": {
+          "UP": 3295,
+          "DOWN": 8205
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.7134782608695652,
+        "majority_macro_f1": 0.41639177873636135,
+        "prevalence_p_up": 0.28652173913043477,
+        "prevalence_brier": 0.20442703213610586,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2023": {
+        "n": 10940,
+        "class_counts": {
+          "UP": 6876,
+          "DOWN": 4064
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.6285191956124314,
+        "majority_macro_f1": 0.3859452177817692,
+        "prevalence_p_up": 0.6285191956124314,
+        "prevalence_brier": 0.2334828163591336,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2024": {
+        "n": 5085,
+        "class_counts": {
+          "DOWN": 2539,
+          "UP": 2546
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.5006882989183874,
+        "majority_macro_f1": 0.3336391036561394,
+        "prevalence_p_up": 0.5006882989183874,
+        "prevalence_brier": 0.24999952624459895,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2014": {
+        "n": 1018,
+        "class_counts": {
+          "DOWN": 594,
+          "UP": 424
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5834970530451866,
+        "majority_macro_f1": 0.3684863523573201,
+        "prevalence_p_up": 0.4165029469548134,
+        "prevalence_brier": 0.2430282421327693,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:HOSE": {
+        "n": 37499,
+        "class_counts": {
+          "DOWN": 17759,
+          "UP": 19740
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.5264140377076723,
+        "majority_macro_f1": 0.3448697566344625,
+        "prevalence_p_up": 0.5264140377076723,
+        "prevalence_brier": 0.24930229861197767,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2015": {
+        "n": 5381,
+        "class_counts": {
+          "UP": 2352,
+          "DOWN": 3029
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5629065229511243,
+        "majority_macro_f1": 0.360166468489893,
+        "prevalence_p_up": 0.4370934770488757,
+        "prevalence_brier": 0.24604276937019967,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2016": {
+        "n": 6489,
+        "class_counts": {
+          "UP": 1762,
+          "DOWN": 4727
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.7284635537062721,
+        "majority_macro_f1": 0.4214514978601997,
+        "prevalence_p_up": 0.27153644629372786,
+        "prevalence_brier": 0.1978044046279013,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2017": {
+        "n": 6989,
+        "class_counts": {
+          "UP": 3742,
+          "DOWN": 3247
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.5354127915295465,
+        "majority_macro_f1": 0.34870934675239956,
+        "prevalence_p_up": 0.5354127915295465,
+        "prevalence_brier": 0.24874593419608487,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2018": {
+        "n": 7595,
+        "class_counts": {
+          "DOWN": 4056,
+          "UP": 3539
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5340355497037524,
+        "majority_macro_f1": 0.34812462449575143,
+        "prevalence_p_up": 0.46596445029624756,
+        "prevalence_brier": 0.2488415813563634,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2019": {
+        "n": 7963,
+        "class_counts": {
+          "UP": 3328,
+          "DOWN": 4635
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5820670601532086,
+        "majority_macro_f1": 0.3679155421495475,
+        "prevalence_p_up": 0.4179329398467914,
+        "prevalence_brier": 0.24326499763780962,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2020": {
+        "n": 9058,
+        "class_counts": {
+          "UP": 7370,
+          "DOWN": 1688
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.8136453963347318,
+        "majority_macro_f1": 0.44862429997565134,
+        "prevalence_p_up": 0.8136453963347318,
+        "prevalence_brier": 0.15162656535802904,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:HNX": {
+        "n": 20489,
+        "class_counts": {
+          "DOWN": 9850,
+          "UP": 10639
+        },
+        "majority_class": "UP",
+        "majority_accuracy": 0.5192542339792083,
+        "majority_macro_f1": 0.3417823181701362,
+        "prevalence_p_up": 0.5192542339792083,
+        "prevalence_brier": 0.2496292744738739,
+        "coin_flip_expected_accuracy": 0.5
+      }
+    },
+    "holdout": {
+      "overall": {
+        "n": 13641,
+        "class_counts": {
+          "DOWN": 7683,
+          "UP": 5958
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5632285023092148,
+        "majority_macro_f1": 0.36029825548677546,
+        "prevalence_p_up": 0.43677149769078516,
+        "prevalence_brier": 0.24600215649573362,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2025": {
+        "n": 10664,
+        "class_counts": {
+          "DOWN": 5430,
+          "UP": 5234
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5091897974493623,
+        "majority_macro_f1": 0.33739281719895614,
+        "prevalence_p_up": 0.4908102025506377,
+        "prevalence_brier": 0.24991554762283968,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:UPCOM": {
+        "n": 4293,
+        "class_counts": {
+          "DOWN": 2426,
+          "UP": 1867
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5651059864896343,
+        "majority_macro_f1": 0.3610656347670784,
+        "prevalence_p_up": 0.4348940135103657,
+        "prevalence_brier": 0.24576121052321157,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:HOSE": {
+        "n": 6296,
+        "class_counts": {
+          "DOWN": 3559,
+          "UP": 2737
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.565279542566709,
+        "majority_macro_f1": 0.36113647894469814,
+        "prevalence_p_up": 0.43472045743329096,
+        "prevalence_brier": 0.24573858132228119,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "year:2026": {
+        "n": 2977,
+        "class_counts": {
+          "DOWN": 2253,
+          "UP": 724
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.7568021498152503,
+        "majority_macro_f1": 0.43078393881453153,
+        "prevalence_p_up": 0.24319785018474974,
+        "prevalence_brier": 0.18405265585026576,
+        "coin_flip_expected_accuracy": 0.5
+      },
+      "exchange:HNX": {
+        "n": 3052,
+        "class_counts": {
+          "UP": 1354,
+          "DOWN": 1698
+        },
+        "majority_class": "DOWN",
+        "majority_accuracy": 0.5563564875491481,
+        "majority_macro_f1": 0.35747368421052633,
+        "prevalence_p_up": 0.4436435124508519,
+        "prevalence_brier": 0.2468239463111227,
+        "coin_flip_expected_accuracy": 0.5
+      }
+    }
+  },
+  "limitations": [
+    "Labels are legacy v1, not v2 total-return labels.",
+    "No sector/industry fields are present in P1 prompts; point-in-time feature/universe validation remains open.",
+    "A balanced validation slice is a deterministic held-out subset of train rows, not an independent temporal validation set.",
+    "No GPU model smoke or model evaluation was run."
+  ]
+}

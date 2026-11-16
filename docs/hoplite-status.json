@@ -1,0 +1,437 @@
+{
+  "updated_at": "2026-11-16T05:55:15Z",
+  "current_item": 4,
+  "done": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "in_progress": null,
+  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
+  "questions": [],
+  "next_step": "Liaison reports the private V2 dataset published at immutable revision 4e00aefe775509fdd69fe1e70c6232468d4041d8. Campaign pins are committed and the publisher allowlist now tolerates only HF auto-added .gitattributes. Full suite passes (98 tests; one optional cryptography test skipped). Live scripts/p2a_v2_dataset.py verify/fetch could not be completed in this workspace because HF_TOKEN is unavailable; do not treat that as independent remote verification. No training was dispatched; wait for Henrry's separate explicit training order.",
+  "commits": [
+    "855cad8",
+    "baf7261",
+    "d3264a1",
+    "441bc8f",
+    "bfa7a2e",
+    "c37410f",
+    "e5de5da",
+    "f736d17",
+    "09ff304",
+    "47240bb",
+    "9f539e1",
+    "e7db5ea",
+    "6af5bed",
+    "306ab32",
+    "ec3de76",
+    "b304438",
+    "d0d11be",
+    "bdee2fa",
+    "a858fda",
+    "9e718aa",
+    "124c434",
+    "88ddead",
+    "597d5a3",
+    "f347774",
+    "99df17b",
+    "f19bc0c",
+    "46ed4ba",
+    "505fa28",
+    "6bd947f",
+    "551b11d",
+    "c4ad0de",
+    "12df547",
+    "d10a857",
+    "83fd36e",
+    "b951f52",
+    "e72b821",
+    "fc38d41",
+    "a9c7ab4",
+    "25588fb",
+    "7b137b2",
+    "025e6c6",
+    "ab87ec4",
+    "6018ab2",
+    "24643ad",
+    "10d5d35",
+    "8de74ef",
+    "8c49896",
+    "f6b60cc",
+    "ef200f2",
+    "2a11bea",
+    "cf27ab2",
+    "448dbfe",
+    "ca439a5",
+    "a4bc534",
+    "a3a7462"
+  ],
+  "last_ablation_attempt": {
+    "run_id": 43725322373,
+    "conclusion": "success",
+    "artifact_id": 14170730720,
+    "artifact_name": "p2a-v2-controlled-ablation",
+    "artifact_size_bytes": 9432,
+    "artifact_expires_at": "2026-11-29",
+    "source_label_run_id": 43691791091,
+    "label_version": 2,
+    "max_steps_per_trial": 12,
+    "seed": 42,
+    "split": {
+      "validation_year": 2024,
+      "train_target_endpoint_max": "2023-12-26",
+      "validation_as_of_min": "2024-01-02",
+      "external_holdout_used_for_selection": false,
+      "train_rows": 128,
+      "validation_rows": 64,
+      "train_slice_sha256": "b4de731e8d6ba7ee6cc61d23c3d2325949350694f022ae94228fc3685df95895",
+      "validation_slice_sha256": "b6bee90e7eb8296e076f7886c6c4bee03e9b39090c890a8b74880a07c418c7d7"
+    },
+    "trials": [
+      {
+        "name": "baseline",
+        "profile": "tk2",
+        "lora_r": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 0.0001,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.46875,
+        "macro_f1": 0.4682306940371457,
+        "brier": 0.27515066267169097,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      },
+      {
+        "name": "lower_learning_rate",
+        "profile": "tk2",
+        "lora_r": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 5e-05,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.46875,
+        "macro_f1": 0.4666666666666667,
+        "brier": 0.34576657697460356,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      },
+      {
+        "name": "lower_lora_rank",
+        "profile": "tk2",
+        "lora_r": 4,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "learning_rate": 0.0001,
+        "steps": 12,
+        "validation_count": 64,
+        "direction_accuracy": 0.4375,
+        "macro_f1": 0.43529411764705883,
+        "brier": 0.27854838508106783,
+        "finite_gradient_norm_observations": 48,
+        "nonfinite_guard_triggered": false
+      }
+    ],
+    "selected_config": "baseline (LoRA r=8, alpha=32, dropout=0.1, LR=1e-4)",
+    "selection_rule": "highest direction accuracy, then macro-F1, then lowest Brier",
+    "simple_baselines": {
+      "majority_accuracy": 0.5,
+      "majority_macro_f1": 0.3333333333333333,
+      "constant_prevalence_brier": 0.25
+    },
+    "interpretation": "Baseline is the within-ablation winner by direction accuracy, then macro-F1, then Brier tie-break if needed; however all three trials have lower direction accuracy than majority baseline and worse Brier than constant-prevalence baseline. These 12-step runs are exploratory only, not evidence of useful predictive skill or authorization for full training.",
+    "tk5_fallback": "not used; all three trials ran on TK2 and no assignment HTTP 503 occurred",
+    "full_training_started": false
+  },
+  "latest_ablation_run_id": 43725322373,
+  "checkpoint_resume_preparation": {
+    "checkpoint": "Jerlob/vn-stock-ai-p2a-checkpoints/checkpoints/checkpoint-150",
+    "checkpoint_manifest_verdict": "not v2-compatible; do not resume optimizer/adapter state; recommend clean restart from the Qwen2.5-14B base model after Henrry approval",
+    "manifest_access_limit": "HF_TOKEN is absent in this workspace; HF API requests for model metadata, repo tree, and checkpoint-150/p2a_training_manifest.json returned HTTP 401 (Invalid username or password). The manifest was not independently downloaded.",
+    "checkpoint_provenance_evidence": {
+      "actions_run_id": 43580242658,
+      "run_ref": "main",
+      "run_head_sha": "5301343fdc54767df02e1ac43076c7670b7bc07a",
+      "run_conclusion": "cancelled after checkpoint-150 upload",
+      "training_source": "notebooks/p2a_train.ipynb default TRAIN_URL points to p1_train.jsonl.gz (legacy P1); main training source at that ref has no p2a_training_manifest writer or v2 label gate",
+      "dataset_md5_from_run_log": "f6273e8a12e35fe1027f29ca2127b9c0",
+      "checkpoint_upload_log": "CHECKPOINT_UPLOADED checkpoints/checkpoint-150; verified_files=6; old uploader verified optimizer/scheduler/trainer/RNG plus adapter files, not a v2 data manifest",
+      "checkpoint_125_download_log": "the resumed checkpoint file listing had no p2a_training_manifest.json"
+    },
+    "v1_vs_v2_evidence": {
+      "legacy_v1_audit_label_version": "legacy P1 v1; diagnostic only; no model evaluated",
+      "legacy_v1_train_sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "legacy_run_train_md5": "f6273e8a12e35fe1027f29ca2127b9c0",
+      "v2_label_version": 2,
+      "v2_label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
+      "v2_flat_band_pct": 2.0,
+      "v2_train_sha256": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+      "v2_counts": {
+        "UP": 37357,
+        "DOWN": 29934,
+        "FLAT": 5638,
+        "censored": 11013
+      },
+      "v2_semantics": "unavailable exact endpoints are censored; training parser excludes FLAT and censored rows from binary supervised training"
+    },
+    "resume_guard_evidence": {
+      "manifest_required": "scripts/p2a_train.py validate_resume_manifest refuses a checkpoint without p2a_training_manifest.json and instructs starting from the base model",
+      "compared_fields": [
+        "label_version",
+        "train_sha256",
+        "max_length",
+        "model_id",
+        "system_prompt_sha256",
+        "input_transform_version",
+        "population_scope",
+        "flat_band_pct",
+        "lora",
+        "target_modules",
+        "training",
+        "epochs",
+        "seed",
+        "trainer_code_sha256",
+        "numerics_code_sha256"
+      ],
+      "data_gate": "current training requires label_version 2; legacy v1 is rejected before training"
+    },
+    "dispatch_ref_recommendation": {
+      "ref": "review/p2-async-evaluation",
+      "workflow": "run-colab.yml with workflow_dispatch ref set to the feature branch",
+      "why": "the feature ref enables P2_EVAL_ENABLED=1, contains the vncolab checkpoint-trigger hook and p2a_eval_async.py account order TK2 then TK5 only on TK2 assignment HTTP 503, and stages evaluation results; main run-colab does not set this flag or contain that hook",
+      "merge_required_before_run_colab_dispatch": false,
+      "separate_manual_eval_workflow": "p2-eval.yml is absent from main; merging it would be needed only to dispatch that standalone workflow from the default-branch workflow list, not for the feature-ref run-colab integrated evaluator"
+    },
+    "training_dispatch": "not dispatched; training remains paused pending Henrry approval",
+    "recommendation": "Do not resume from checkpoint-150: its provenance is legacy v1 and it has no verified v2 manifest; current resume guard rejects missing manifests and mismatched label version/data hashes. If approved later, restart from base model, not checkpoint-150."
+  },
+  "p2_simplification_proposals": {
+    "document": "docs/p2-simplification-proposal.md",
+    "mode": "proposal_only",
+    "remote_branch_count_observed": 7,
+    "recommendations": {
+      "branches": "one active review/p2-async-evaluation branch during experiment; audit all existing refs; later separate infrastructure-only PR after review; keep main protected until review",
+      "evaluation": "retain separate evaluation runtime/VRAM and non-fatal evaluator failures; simplify to one operator interface; TK2 then TK5 only on confirmed assignment 503",
+      "orchestration": "target event-driven, artifact-backed campaign record with approval gate and bounded sessions; rehearse before replacing external cron/state; named verified credential profiles rather than manual overwrite, no automatic retries on non-503 errors"
+    },
+    "unresolved_decisions_for_liaison_henrry": [
+      "approve one-branch campaign and later infra-only PR",
+      "retain separate train/eval runtimes behind one operator interface",
+      "approve future event-driven coordinator and credential profiles after rehearsal"
+    ],
+    "training_dispatched": false,
+    "merge_performed": false,
+    "code_changed": false,
+    "orchestration": "Read-only audit at commit cf27ab2 found cron-driven polling, hardcoded ref=main, resume from newest structurally complete but label-unverified checkpoint, no conclusion/approval/cap gate, post-success-only dedup, and silent-running behavior. Propose event-driven manifest-backed coordinator with v2 compatibility checks, approval/session/total-step caps, pre-dispatch intent and reconciliation, visible dry-run decision artifacts, plus named profile interfaces; leave cron disabled but in place until rehearsal proves parity. Do not run the liaison script or modify reference files.",
+    "chain_reference_review": {
+      "commit": "cf27ab2",
+      "files_read": [
+        "docs/p2-chain-reference/README.md",
+        "docs/p2-chain-reference/chain_next.py",
+        "docs/p2-chain-reference/chain_state.json"
+      ],
+      "executed": false,
+      "reference_files_modified": false,
+      "findings": [
+        "polls newest run-colab run",
+        "dispatch ref is hardcoded main",
+        "any completed conclusion can chain",
+        "newest checkpoint checks optimizer/scheduler/trainer_state/rng/adapter_config plus an adapter weight but not the v2 manifest/data hash",
+        "50-step continuation with no campaign/session cap or approval gate",
+        "dedup keyed only by chained_from and ledger updated after dispatch acceptance",
+        "silent return when run active or already chained",
+        "disabled 20-minute cron context; state is Liaison-machine local"
+      ],
+      "recommendation": "Manifest-backed event-driven coordinator with v2 checkpoint compatibility, explicit approval/caps, pre-dispatch intent and reconciliation, visible decision artifacts; fixture-only dry-run and non-training rehearsal before cron removal.",
+      "training_dispatched": false,
+      "merge_performed": false
+    }
+  },
+  "simplification_implementation": {
+    "training_dispatched": false,
+    "merge_performed": false,
+    "training_paused_pending_henrry_approval": true,
+    "item_1_single_branch_policy": {
+      "state": "implemented_and_pr_open",
+      "standing_rule": "P2 campaign uses one active feature branch; every run records ref/SHA; no parallel campaign branches; one narrowly scoped infra review branch is allowed; main remains unchanged until review; merge needs separate approval.",
+      "file": "docs/hoplite-directives.md",
+      "infrastructure_pr": {
+        "number": 1,
+        "url": "https://github.com/LangTieu/vn-stock-ai/pull/1",
+        "head": "review/p2-async-evaluation-infra",
+        "base": "main",
+        "state": "open_for_review",
+        "auto_merge": false,
+        "merged": false,
+        "scope": "async P2 evaluation hook and guards only; based on main, excludes experiment/data/ablation history"
+      },
+      "verification": "6 focused tests, compileall, and diff check passed on the PR branch"
+    },
+    "item_2_operator_entrypoint": {
+      "state": "implemented_and_dry_run_verified",
+      "entrypoint": "scripts/p2_operator.py train|evaluate",
+      "evaluation": "explicit --dispatch targets p2-eval.yml on the approved feature ref; separate runtime, profile order eval_tk2 then eval_tk5 only on confirmed assignment 503; expected account identities are injected as vars",
+      "training": "named profile choices train_tk4/train_tk5/train_tk1; profile files remain Liaison-installed under ~/.config/vncolab/<profile>/token.json, mode 0600 and email-verified; fallback planner advances only after confirmed assignment 503",
+      "failure_isolation": "separate evaluator process/runtime; test verifies evaluator worker nonzero exit does not set training ok=false",
+      "safety": "training dry-run fails closed because Henrry approval is pending and the v2 full-training workflow is not certified ready; full mode also requires matching training approval reference",
+      "dry_run_evidence": "operator train plan blocked as expected; evaluation plan routes p2-eval.yml with TK2/TK5 order; no workflow command executed",
+      "verification": "90 tests pass; compileall, YAML/JSON parsing, diff check pass"
+    },
+    "item_3_event_coordinator": {
+      "state": "dry_run_planner_implemented; automatic_continuation_not_activated",
+      "manifest": "docs/p2-campaign.json",
+      "planner": "scripts/p2_campaign.py",
+      "single_operator": "scripts/p2_operator.py train|evaluate and .github/workflows/p2-campaign.yml",
+      "approval_gate": "sample state pending; training requires a recorded approval reference and certified V2 full-training workflow",
+      "caps": {
+        "max_sessions": 1,
+        "steps_per_session": 50,
+        "max_total_steps": 50
+      },
+      "checkpoint_guard": "requires optimizer/scheduler/trainer_state/RNG/adapter config+weights+p2a_training_manifest.json and exact V2 data SHA/label method/FLAT band match",
+      "idempotency": "planner blocks run IDs present in manifest seen_source_run_ids/dispatch_intents and handles failed/running/duplicate/ref-mismatch states; persistent cross-run ledger integration is not wired yet",
+      "fallback": "training next profile is only planned for confirmed /tun/m/assign HTTP 503 and only after approval/workflow/cap gates; evaluator remains TK2 then TK5 only on confirmed 503",
+      "dry_run": "local train/eval plans and success/running/failure fixture events rehearsed; plan paths made no GitHub, Colab, or credential calls; training plan returned blocked; evaluation plan showed isolated p2-eval route",
+      "event_activation": "p2-campaign.yml on workflow_run is staged on feature branch and only emits a decision artifact. GitHub event activation requires default-branch availability; no merge performed.",
+      "cron": "liaison 20-minute cron remains disabled and unmodified; do not remove until persistent campaign state, checkpoint artifact handoff, alerts, and event path are proven",
+      "remaining_blockers": [
+        "current run-colab does not implement private full-V2 artifact transfer/resume; structural checkpoint+manifest checks alone do not make a training workflow ready",
+        "workflow_run decision artifacts are not yet fed back as durable campaign state/checkpoint inventory for exactly-once continuation",
+        "Liaison must provision named credential profiles/identity vars outside repo",
+        "Henrry training approval is still pending"
+      ],
+      "training_dispatched": false,
+      "merge_performed": false
+    },
+    "chain_reference_audit_commit": "cf27ab2"
+  },
+  "merge_plan": {
+    "state": "decided_by_henrry",
+    "decision_time": "2026-11-16 10:53 ICT",
+    "stage_1": {
+      "pr": 1,
+      "head": "review/p2-async-evaluation-infra",
+      "base": "main",
+      "action": "review only; merge only after separate explicit Henrry approval",
+      "merged": false
+    },
+    "stage_2": {
+      "scope": "all remaining P2 training code, v2 labels, guards, and coordinator",
+      "action": "merge through PR(s) only after full training completes and per-checkpoint evaluation proves the model",
+      "merged": false
+    },
+    "main_policy": "keep main the clean proven line until Stage 2 proof is satisfied",
+    "current_turn_effect": "record decision only; no merge, dispatch, or training"
+  },
+  "not_ready_solutions": {
+    "mode": "proposal_only",
+    "chain_reset_ref_fix": {
+      "liaison_side_only": true,
+      "keep_old_cron_disabled": true,
+      "archive_old_chain_state": "Preserve all 8 historic dispatches; do not clear chained_from while the old poller exists, because null can trigger another automatic dispatch.",
+      "new_paused_ledger": "schema_version=2, campaign_id=p2a-v2-full, status=paused, approved=false, ref=review/p2-async-evaluation, legacy_cutoff_run_id=43580242658, empty new event/session/intent lists",
+      "code_ref_change": "Replace chain_next.py hardcoded ref=main with required campaign_ref=review/p2-async-evaluation in the Liaison-owned copy only; no repo reference changes.",
+      "safe_verification": "Do not execute old poller. Use a copy/fixture-only dry-run and mocked API/HF calls; assert exact feature ref and zero POST/Colab calls."
+    },
+    "v2_data_transfer": {
+      "recommendation": "After data-use/retention approval, privately pin only V2 labeled train/validation JSONL plus manifest to an immutable HF dataset revision; authenticate download with HF_TOKEN; validate SHA, label_version=2, adjusted-return horizon/FLAT/censor policy and checkpoint manifest each session.",
+      "fallback": "Pinned private Actions artifact by run ID plus bounded authenticated chunk/stream transfer and end-to-end SHA rehearsal; less preferred due size/reliability.",
+      "repo_work": "Implement source selector, authenticated downloader/transfer, V2 validators and resume manifest compatibility.",
+      "liaison_work": "Authorize private storage/retention and provision HF read access; no raw adjusted-price table.",
+      "training": "checkpoint-150 is legacy and not resumable; restart from base model only after separate approval."
+    },
+    "campaign_state": {
+      "recommendation": "Per-campaign serialized workflow, append-only state artifact with retention beyond campaign, source run/ref/SHA/dataset revision/checkpoint hashes/approval/caps/decision, source-run idempotency, pre-dispatch intent and API acceptance reconciliation; expired/missing state fails closed.",
+      "repo_work": "Implement schema/migration, artifact read/write, concurrency, dedup/reconcile, fixture tests.",
+      "liaison_work": "Choose/provision durable retention/state store and Actions permissions; event workflow activation requires Stage 1 PR/default-branch review/approval.",
+      "not_exactly_once": "Treat event delivery as at-least-once and reconcile; do not claim cross-service transactional exactly-once."
+    },
+    "pr_1_readiness": {
+      "current_state": "open and mergeable is not equivalent to approved or checks green",
+      "blocker": "async evaluator currently defaults to legacy P1 p1_holdout.jsonl; eval code rejects train/holdout label-version mismatch, so V2 checkpoint evaluation must use a pinned V2 compatible internal validation source before PR can substantiate V2 per-checkpoint proof.",
+      "checks": "focused green tests/review, no secrets/data, instrumentation-only training changes, checkpoint completeness, 50-step cadence/milestone policy, TK2/TK5 503-only fallback, visible non-fatal evaluator failure",
+      "order": "PR1 checks/review then Stage1 only on separate Henrry approval; complete V2 transfer/coordinator then separate training approval; per-checkpoint eval; Stage2 PR(s) only after full training and model proof."
+    },
+    "no_operations_performed": {
+      "chain_script_executed": false,
+      "chain_reference_edited": false,
+      "workflow_dispatched": false,
+      "training_started": false,
+      "pr_merged": false,
+      "code_changed": false
+    }
+  },
+  "p2_v1_contamination_audit": {
+    "audit_ref": "review/p2-async-evaluation",
+    "audit_head": "a3a7462",
+    "main_comparison": "5301343",
+    "overall": "RISK: no evidence of successful mixed-version current training, but three legacy default/consumer paths remain",
+    "items": {
+      "1_notebook_embedded_parity": "CLEAN: train/eval/validation/numerics embedded source byte-identical to standalone; defaults remain P1 and are detailed in item 6",
+      "2_async_eval": "RISK: P1 holdout default; version mismatch blocks if V2 manifest exists, but missing-manifest bypass allows legacy eval; checkpoint enumerator does not require V2 manifest",
+      "3_workflow_jobs": "RISK: smoke/ablation source V2 artifact; generic P2 full path is not wired to V2 data and inherits P1 notebook defaults; trainer gate aborts V1 before model load",
+      "4_resume": "CLEAN for current trainer: V1/missing manifest rejected and dataset hash/version/config compared; checkpoint-150 legacy, not resumable",
+      "5_data_docs": "CLEAN: repository data only calendar file; V1 baseline explicitly diagnostic; V2 reports distinctly named/hash-labeled and provenance inputs explicitly P1",
+      "6_hf_p1_refs": "RISK: notebook default P1 train/holdout, async evaluator P1 holdout and legacy MD5s persist in P2 paths",
+      "7_modal": "RISK: helper points at P1 volume/archive and P1 MD5s; current trainer guard should abort but path is stale, not V2 smoke",
+      "8_p3_litellm": "CLEAN: no P1 dataset/P2a checkpoint/version refs in targeted gateway configs"
+    },
+    "embedded_script_sha256": {
+      "scripts/p2a_train.py": "05d2fce7db5021327e199f63542176ebe58049d23d908fe96e4d3f1c5a59774c",
+      "scripts/p2a_eval.py": "ea290b516090a9ca8b8ee91bab08ec3c96122c25721e45674225ac3d21aaaa76",
+      "scripts/p2a_validation.py": "1dc014f6e95d560e905039f9293d530a97fcadef627a6d0ef4b5170ae76306d8",
+      "scripts/p2a_numerics.py": "e5af0fe580ebb51221d2e30545829df26050f362209b64f1cd7d491d0f6b111a"
+    },
+    "private_artifacts_or_modal_volume_inspected": false,
+    "code_changed": false,
+    "workflow_dispatched": false,
+    "merged": false,
+    "training_started": false
+  },
+  "private_v2_dataset_publication": {
+    "authorization": "Liaison approved private V2 storage/retention and committing pinning/publication edits on 2026-11-16",
+    "implementation_commit": "4aae5ce",
+    "publication_dispatched": true,
+    "campaign_pins_populated": true,
+    "next_action": "No publication retry needed; training remains paused until Henrry gives a separate explicit order.",
+    "fetch_copy_fix_commit": "791a141",
+    "fetch_copy_fix": "Imported shutil and added regression test for copying cache download into a distinct output directory.",
+    "publication_dispatched_by_this_agent": false,
+    "liaison_dispatch_status": "published; receipt supplied and verified by Liaison",
+    "status": "published; receipt reported by Liaison",
+    "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+    "private": true,
+    "revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+    "source_label_run_id": 43691791091,
+    "train_rows": 51620,
+    "train_class_counts": {
+      "UP": 25810,
+      "DOWN": 25810
+    },
+    "train_sha256": "aaa239c33f7d6891bdc0dc5dd8cace00ff72075cf230bfeaa35aafac6a4978fe",
+    "train_md5": "1217076cfb92e5100ef83369abc9ae46",
+    "validation_rows": 4332,
+    "validation_class_counts": {
+      "UP": 2166,
+      "DOWN": 2166
+    },
+    "validation_sha256": "5ab54b64d5576eeeea2ffe849baaa1f494028916f1bac209a00ec38638e3f175",
+    "validation_md5": "8e23f329deeed26fdf031bed17ff0632",
+    "split": {
+      "train_target_endpoint_max": "2023-12-29",
+      "validation_as_of_min": "2024-01-02",
+      "external_holdout_included": false
+    },
+    "signature": "Ed25519 verified by Liaison; manifest reported byte-identical to prepared manifest",
+    "pin_commit": "ef96a3e",
+    "allowlist_fix_commit": "1bc1509",
+    "allowlist_behavior": "Permits required files with optional .gitattributes only; regression rejects any other extra file and missing required files.",
+    "live_verify_fetch_by_this_agent": "blocked: HF_TOKEN is not configured in this workspace; uv run with huggingface_hub==0.30.2 reached RuntimeError: HF_TOKEN is required to read the private V2 dataset.",
+    "training_dispatched": false
+  }
+}

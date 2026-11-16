@@ -1,0 +1,94 @@
+{
+  "checked_at": "2026-11-15T08:23:00.223107Z",
+  "provider": "VNDirect Finfo",
+  "api": "https://api-finfo.vndirect.com.vn/v4/stock_prices",
+  "p1_input_sha256": {
+    "p1_train.jsonl.gz": "ba7d73d892f23df1cb94c671d38e55e71722f5080886c43a7168058f2c9ac734",
+    "p1_holdout.jsonl": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d"
+  },
+  "observed_sessions_sha256": "354869c3cce06f21b960ac128abdfb524e4ba2ecd4ebde02394e2989ceb11b00",
+  "symbols_requested": 1322,
+  "required_endpoint_rows": 97766,
+  "api_endpoint_rows_by_exchange": {
+    "HNX": 38556,
+    "HOSE": 57487,
+    "UPCOM": 39166
+  },
+  "invalid_or_missing_adClose_by_exchange": {},
+  "exchange_mismatches_excluded": {
+    "HNX:UPCOM": 577,
+    "HOSE:HNX": 1460,
+    "HOSE:UPCOM": 2737,
+    "UPCOM:HNX": 6272,
+    "UPCOM:HOSE": 5150
+  },
+  "fetch_errors_by_type": {},
+  "coverage_by_split": {
+    "p1_train.jsonl.gz": {
+      "adjusted_price_endpoints_available": 72929,
+      "exact_session_endpoints_required": 83942,
+      "missing_endpoint_adClose": 72,
+      "missing_start_adClose": 10941,
+      "p1_bulk_rows": 83942
+    },
+    "p1_holdout.jsonl": {
+      "adjusted_price_endpoints_available": 13570,
+      "exact_session_endpoints_required": 13824,
+      "missing_start_adClose": 254,
+      "p1_bulk_rows": 13824
+    }
+  },
+  "v2_output_sha256": {
+    "p1_train_v2.jsonl": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+    "p1_holdout_v2.jsonl": "c2ca1795044c7cf43f420fdc5a8328358e0bb859f392f3a772de83acaebab839"
+  },
+  "v2_counts": {
+    "p1_train_v2.jsonl": {
+      "label_DOWN": 29934,
+      "label_FLAT": 5638,
+      "label_UP": 37357,
+      "status_censored": 11013,
+      "status_labeled": 72929
+    },
+    "p1_holdout_v2.jsonl": {
+      "label_DOWN": 6800,
+      "label_FLAT": 1481,
+      "label_UP": 5289,
+      "non_bulk": 200,
+      "status_censored": 254,
+      "status_labeled": 13570
+    }
+  },
+  "labeled_endpoint_pairs": 86499,
+  "censored_rows_by_exchange_reason": {
+    "p1_train_v2.jsonl": {
+      "HNX:missing_start_adjusted_close": 362,
+      "HOSE:missing_endpoint_adjusted_close": 62,
+      "HOSE:missing_start_adjusted_close": 2978,
+      "UPCOM:missing_endpoint_adjusted_close": 10,
+      "UPCOM:missing_start_adjusted_close": 7601
+    },
+    "p1_holdout_v2.jsonl": {
+      "HNX:missing_start_adjusted_close": 3,
+      "HOSE:missing_start_adjusted_close": 163,
+      "UPCOM:missing_start_adjusted_close": 88
+    }
+  },
+  "liaison_authorized_internal_training": true,
+  "raw_adjusted_price_values_committed_or_uploaded": false,
+  "passes_label_data_gate": true,
+  "limitations": [
+    "P1 sample is not asserted to represent the complete historical market universe.",
+    "Rows without both exact adjusted endpoints are censored.",
+    "Exchange-mismatched vendor rows were excluded from labels."
+  ],
+  "coverage_method": "Only exact as_of and exact 120th observed-session Finfo rows whose floor matched the P1 exchange partition were used; mismatched source-exchange keys were not used and corresponding unavailable endpoints were censored.",
+  "label_build_run_id": 43691791091,
+  "v2_label_hashes": {
+    "p1_train_v2.jsonl": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+    "p1_holdout_v2.jsonl": "c2ca1795044c7cf43f420fdc5a8328358e0bb859f392f3a772de83acaebab839"
+  },
+  "raw_price_values_in_repository_or_action_artifact": false,
+  "v2_validation_audit": "docs/p2a-data-audit-v2.json",
+  "v2_baselines": "docs/p2a-validation-baseline-v2.json"
+}

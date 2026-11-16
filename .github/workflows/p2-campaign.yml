@@ -1,0 +1,104 @@
+name: P2 train/evaluate operator and campaign planner
+
+on:
+  workflow_run:
+    workflows: [Run Colab notebook]
+    types: [completed]
+    branches: [review/p2-async-evaluation]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Choose training (approval-gated) or isolated checkpoint evaluation"
+        type: choice
+        options: [train, evaluate]
+        required: true
+        default: train
+      checkpoint_step:
+        description: "Checkpoint step for evaluation"
+        required: false
+        default: latest
+      dry_run:
+        description: "Rehearse the plan only; no workflow dispatch"
+        type: boolean
+        required: true
+        default: true
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  event-plan:
+    if: ${{ github.event_name == 'workflow_run' || inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build redacted event or operator plan without credentials or dispatch
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          OPERATION: ${{ inputs.operation }}
+          CHECKPOINT_STEP: ${{ inputs.checkpoint_step }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_STATUS: ${{ github.event.workflow_run.status }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          run_planner() {
+            set +e
+            "$@"
+            result=$?
+            set -e
+            if [ -s p2-campaign-plan.json ] && jq -e '.decision' p2-campaign-plan.json >/dev/null; then
+              return 0
+            fi
+            return "$result"
+          }
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            python3 - <<'PY' > /tmp/p2-campaign-event.json
+          import json, os
+          print(json.dumps({
+              'run_id': os.environ['WORKFLOW_RUN_ID'],
+              'status': os.environ['WORKFLOW_RUN_STATUS'],
+              'conclusion': os.environ['WORKFLOW_RUN_CONCLUSION'],
+              'head_branch': os.environ['WORKFLOW_RUN_BRANCH'],
+          }))
+          PY
+            run_planner python3 scripts/p2_campaign.py event --manifest docs/p2-campaign.json \
+              --event /tmp/p2-campaign-event.json --output p2-campaign-plan.json
+          else
+            run_planner python3 scripts/p2_operator.py "$OPERATION" \
+              --manifest docs/p2-campaign.json --checkpoint-step "${CHECKPOINT_STEP:-latest}" \
+              > p2-campaign-plan.json
+            cat p2-campaign-plan.json
+          fi
+      - name: Upload dry-run decision artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2-campaign-plan
+          path: p2-campaign-plan.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  operator-evaluate:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'evaluate' && !inputs.dry_run }}
+    runs-on: [self-hosted, colab-driver-lv1]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch isolated evaluation through the shared operator
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/p2_operator.py evaluate --dispatch \
+            --manifest docs/p2-campaign.json --checkpoint-step "${{ inputs.checkpoint_step }}"
+
+  operator-training:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'train' && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail closed until campaign approval and V2 full-training path are ready
+        run: |
+          python3 scripts/p2_operator.py train --dispatch --manifest docs/p2-campaign.json

@@ -1,0 +1,34 @@
+name: Collect Finhay P2a source data
+
+on:
+  push:
+    branches: [review/p2-async-evaluation]
+    paths:
+      - '.github/workflows/p2a-finhay-collect.yml'
+      - 'scripts/fetch_p2a_finhay.py'
+      - 'scripts/p2a_relabel.py'
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/p2-async-evaluation
+      - name: Fetch Finhay market histories and events
+        env:
+          FINHAY_API_KEY: ${{ secrets.FINHAY_API_KEY }}
+        run: python3 scripts/fetch_p2a_finhay.py --output data/p2a-label-v2
+      - name: Upload generated source snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-finhay-source-data
+          path: data/p2a-label-v2/
+          if-no-files-found: ignore
+          retention-days: 14
+          compression-level: 0

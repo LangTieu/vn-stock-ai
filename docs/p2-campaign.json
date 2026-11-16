@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "campaign_id": "p2a-v2-full",
+  "ref": "review/p2-async-evaluation",
+  "training_approval": {
+    "status": "pending",
+    "approval_reference": null
+  },
+  "training_workflow_ready": false,
+  "dataset": {
+    "label_version": 2,
+    "source_label_run_id": 43691791091,
+    "train_sha256": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+    "label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
+    "flat_band_pct": 2.0,
+    "training_policy": "exclude FLAT and censored rows from binary supervised training",
+    "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+    "revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+    "signing_public_key_b64": "MdeU+L0PVEh91aXpWfKzciLVDi74huVPMhuYmx1Ieyw=",
+    "files": {
+      "train-v2.jsonl": {
+        "sha256": "aaa239c33f7d6891bdc0dc5dd8cace00ff72075cf230bfeaa35aafac6a4978fe"
+      },
+      "validation-v2.jsonl": {
+        "sha256": "5ab54b64d5576eeeea2ffe849baaa1f494028916f1bac209a00ec38638e3f175"
+      }
+    },
+    "full_validation": {
+      "status": "pending",
+      "approval_reference": null,
+      "repo_id": "Jerlob/vn-stock-ai-p2a-v2",
+      "revision": null,
+      "file": "validation-v2.jsonl",
+      "sha256": null
+    },
+    "file_md5": {
+      "train-v2.jsonl": "1217076cfb92e5100ef83369abc9ae46",
+      "validation-v2.jsonl": "8e23f329deeed26fdf031bed17ff0632"
+    }
+  },
+  "limits": {
+    "max_sessions": 1,
+    "steps_per_session": 50,
+    "max_total_steps": 50
+  },
+  "profiles": {
+    "training_order": [
+      "train_tk4",
+      "train_tk5",
+      "train_tk1"
+    ],
+    "training_fallback_only_on": "confirmed /tun/m/assign HTTP 503",
+    "evaluation_order": [
+      "eval_tk2",
+      "eval_tk5"
+    ],
+    "evaluation_fallback_only_on": "confirmed /tun/m/assign HTTP 503"
+  },
+  "state": {
+    "sessions": [],
+    "seen_source_run_ids": [],
+    "dispatch_intents": []
+  }
+}

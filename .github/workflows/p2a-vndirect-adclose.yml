@@ -1,0 +1,69 @@
+name: Audit VNDirect Finfo adjusted-close coverage
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_use_approved:
+        description: "Confirm Liaison has documented permission for this Finfo data collection"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: inputs.source_use_approved == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/p2-async-evaluation
+      - name: Download real P1 and observed-price sources
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/p2a-finfo/raw /tmp/p2a-finfo/p1
+          curl -fLsS --retry 3 'https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/resolve/main/p1_train.jsonl.gz' -o /tmp/p2a-finfo/p1/p1_train.jsonl.gz
+          curl -fLsS --retry 3 'https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/resolve/main/p1_holdout.jsonl' -o /tmp/p2a-finfo/p1/p1_holdout.jsonl
+          for exchange in HOSE HNX UPCOM OTC; do
+            curl -fLsS --retry 3 "https://huggingface.co/datasets/Jerlob/vn-stock-ai-p1/resolve/main/raw-2014-2026/train_2014_2026_${exchange}.json" -o "/tmp/p2a-finfo/raw/${exchange}.json"
+          done
+      - name: Build observed-only session calendar
+        run: |
+          python3 scripts/p2a_normalize_drive_ohlcv.py \
+            --hose /tmp/p2a-finfo/raw/HOSE.json \
+            --hnx /tmp/p2a-finfo/raw/HNX.json \
+            --upcom /tmp/p2a-finfo/raw/UPCOM.json \
+            --otc /tmp/p2a-finfo/raw/OTC.json \
+            --output-dir /tmp/p2a-finfo/normalized
+      - name: Fetch Finfo adClose at exact P1 endpoints
+        env:
+          VNDIRECT_DATA_LICENSE_CONFIRMED: ${{ inputs.source_use_approved }}
+        run: |
+          python3 scripts/p2a_finfo_adclose_audit.py \
+            --p1 /tmp/p2a-finfo/p1/p1_train.jsonl.gz \
+            --p1 /tmp/p2a-finfo/p1/p1_holdout.jsonl \
+            --sessions /tmp/p2a-finfo/normalized/exchange_sessions.csv.gz \
+            --output-dir /tmp/p2a-finfo/audit
+      - name: Build v2 labels from observed adClose endpoints
+        run: |
+          python3 scripts/p2a_build_finfo_v2.py \
+            --train /tmp/p2a-finfo/p1/p1_train.jsonl.gz \
+            --holdout /tmp/p2a-finfo/p1/p1_holdout.jsonl \
+            --sessions /tmp/p2a-finfo/normalized/exchange_sessions.csv.gz \
+            --endpoints /tmp/p2a-finfo/audit/finfo-adclose-endpoints.csv.gz \
+            --audit /tmp/p2a-finfo/audit/audit.json \
+            --output-dir /tmp/p2a-finfo/labels
+      - name: Upload coverage report and private v2 labels (never upload price endpoints)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p2a-vndirect-adclose-audit
+          path: |
+            /tmp/p2a-finfo/audit/audit.json
+            /tmp/p2a-finfo/labels/
+          if-no-files-found: ignore
+          retention-days: 14
+          compression-level: 0

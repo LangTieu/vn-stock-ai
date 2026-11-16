@@ -1,0 +1,772 @@
+{
+  "method": "dataset prevalence baselines only; no model loaded or evaluated",
+  "reports": [
+    {
+      "file": "p1_train_v2.jsonl",
+      "sha256": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+      "label_version": 2,
+      "label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
+      "flat_band_pct": 2.0,
+      "counts": {
+        "label_DOWN": 29934,
+        "label_FLAT": 5638,
+        "label_UP": 37357,
+        "status_censored": 11013,
+        "status_labeled": 72929
+      },
+      "majority_prevalence_coinflip_baseline": {
+        "n": 67291,
+        "class_counts": {
+          "DOWN": 29934,
+          "UP": 37357
+        },
+        "baselines": {
+          "class_counts": {
+            "UP": 37357,
+            "DOWN": 29934
+          },
+          "majority_class": "UP",
+          "majority_accuracy": 0.5551559643934553,
+          "majority_macro_f1": 0.3569776775475881,
+          "constant_prevalence_p_up": 0.5551559643934553,
+          "constant_prevalence_brier": 0.2469578195918279,
+          "coin_flip_expected_accuracy": 0.5
+        }
+      },
+      "by_asof_year": {
+        "2014": {
+          "n": 716,
+          "class_counts": {
+            "DOWN": 317,
+            "UP": 399
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 399,
+              "DOWN": 317
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5572625698324022,
+            "majority_macro_f1": 0.357847533632287,
+            "constant_prevalence_p_up": 0.5572625698324022,
+            "constant_prevalence_brier": 0.24672099809618928,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2015": {
+          "n": 3901,
+          "class_counts": {
+            "DOWN": 1660,
+            "UP": 2241
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2241,
+              "DOWN": 1660
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.574468085106383,
+            "majority_macro_f1": 0.36486486486486486,
+            "constant_prevalence_p_up": 0.574468085106383,
+            "constant_prevalence_brier": 0.2444545043005885,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2016": {
+          "n": 4785,
+          "class_counts": {
+            "DOWN": 1917,
+            "UP": 2868
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2868,
+              "DOWN": 1917
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5993730407523511,
+            "majority_macro_f1": 0.3747549980399843,
+            "constant_prevalence_p_up": 0.5993730407523511,
+            "constant_prevalence_brier": 0.24012499877163157,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2017": {
+          "n": 5207,
+          "class_counts": {
+            "DOWN": 2265,
+            "UP": 2942
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2942,
+              "DOWN": 2265
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5650086422124064,
+            "majority_macro_f1": 0.3610258927475764,
+            "constant_prevalence_p_up": 0.5650086422124064,
+            "constant_prevalence_brier": 0.24577387643769932,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2018": {
+          "n": 5740,
+          "class_counts": {
+            "DOWN": 3062,
+            "UP": 2678
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2678,
+              "DOWN": 3062
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.5334494773519164,
+            "majority_macro_f1": 0.347875482844808,
+            "constant_prevalence_p_up": 0.4665505226480836,
+            "constant_prevalence_brier": 0.24888113246488364,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2019": {
+          "n": 6233,
+          "class_counts": {
+            "DOWN": 3626,
+            "UP": 2607
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2607,
+              "DOWN": 3626
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.581742339162522,
+            "majority_macro_f1": 0.3677857794908206,
+            "constant_prevalence_p_up": 0.41825766083747795,
+            "constant_prevalence_brier": 0.2433181899882392,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2020": {
+          "n": 7475,
+          "class_counts": {
+            "DOWN": 1448,
+            "UP": 6027
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 6027,
+              "DOWN": 1448
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.8062876254180602,
+            "majority_macro_f1": 0.44637831432380387,
+            "constant_prevalence_p_up": 0.8062876254180602,
+            "constant_prevalence_brier": 0.15618789051576604,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2021": {
+          "n": 9392,
+          "class_counts": {
+            "DOWN": 2754,
+            "UP": 6638
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 6638,
+              "DOWN": 2754
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.7067717206132879,
+            "majority_macro_f1": 0.4140985651902682,
+            "constant_prevalence_p_up": 0.7067717206132879,
+            "constant_prevalence_brier": 0.20724545555462043,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2022": {
+          "n": 9988,
+          "class_counts": {
+            "DOWN": 7216,
+            "UP": 2772
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2772,
+              "DOWN": 7216
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.7224669603524229,
+            "majority_macro_f1": 0.4194373401534527,
+            "constant_prevalence_p_up": 0.2775330396475771,
+            "constant_prevalence_brier": 0.2005084515515535,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2023": {
+          "n": 9456,
+          "class_counts": {
+            "DOWN": 3503,
+            "UP": 5953
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 5953,
+              "DOWN": 3503
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.6295473773265652,
+            "majority_macro_f1": 0.3863326627295736,
+            "constant_prevalence_p_up": 0.6295473773265652,
+            "constant_prevalence_brier": 0.23321747702780854,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2024": {
+          "n": 4398,
+          "class_counts": {
+            "DOWN": 2166,
+            "UP": 2232
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2232,
+              "DOWN": 2166
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5075034106412005,
+            "majority_macro_f1": 0.33665158371040727,
+            "constant_prevalence_p_up": 0.5075034106412005,
+            "constant_prevalence_brier": 0.2499436988287495,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        }
+      },
+      "by_exchange": {
+        "HNX": {
+          "n": 18790,
+          "class_counts": {
+            "DOWN": 8377,
+            "UP": 10413
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 10413,
+              "DOWN": 8377
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5541777541245343,
+            "majority_macro_f1": 0.3565729548334075,
+            "constant_prevalence_p_up": 0.5541777541245343,
+            "constant_prevalence_brier": 0.2470647709580215,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "HOSE": {
+          "n": 31943,
+          "class_counts": {
+            "DOWN": 13967,
+            "UP": 17976
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 17976,
+              "DOWN": 13967
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5627524027173403,
+            "majority_macro_f1": 0.36010336745527755,
+            "constant_prevalence_p_up": 0.5627524027173403,
+            "constant_prevalence_brier": 0.24606213595320076,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "UPCOM": {
+          "n": 16558,
+          "class_counts": {
+            "DOWN": 7590,
+            "UP": 8968
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 8968,
+              "DOWN": 7590
+            },
+            "majority_class": "UP",
+            "majority_accuracy": 0.5416113057132504,
+            "majority_macro_f1": 0.3513280576666928,
+            "constant_prevalence_p_up": 0.5416113057132504,
+            "constant_prevalence_brier": 0.2482684992368384,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        }
+      },
+      "censored_by_exchange_reason": {
+        "HNX:missing_start_adjusted_close": 362,
+        "HOSE:missing_endpoint_adjusted_close": 62,
+        "HOSE:missing_start_adjusted_close": 2978,
+        "UPCOM:missing_endpoint_adjusted_close": 10,
+        "UPCOM:missing_start_adjusted_close": 7601
+      },
+      "censored_by_ticker_reason": {
+        "AAA:missing_start_adjusted_close": 26,
+        "AAV:missing_start_adjusted_close": 66,
+        "ABR:missing_start_adjusted_close": 14,
+        "ABT:missing_endpoint_adjusted_close": 4,
+        "ABT:missing_start_adjusted_close": 4,
+        "ACB:missing_start_adjusted_close": 77,
+        "ACG:missing_start_adjusted_close": 5,
+        "ACM:missing_start_adjusted_close": 70,
+        "ADG:missing_start_adjusted_close": 4,
+        "ADP:missing_start_adjusted_close": 51,
+        "AFX:missing_start_adjusted_close": 69,
+        "AGF:missing_start_adjusted_close": 59,
+        "AGM:missing_start_adjusted_close": 108,
+        "ALV:missing_start_adjusted_close": 44,
+        "ANT:missing_start_adjusted_close": 46,
+        "APC:missing_start_adjusted_close": 117,
+        "APG:missing_start_adjusted_close": 24,
+        "APP:missing_start_adjusted_close": 47,
+        "ART:missing_endpoint_adjusted_close": 5,
+        "ART:missing_start_adjusted_close": 45,
+        "ASG:missing_start_adjusted_close": 3,
+        "ATA:missing_start_adjusted_close": 29,
+        "ATG:missing_start_adjusted_close": 42,
+        "BAB:missing_start_adjusted_close": 28,
+        "BCM:missing_start_adjusted_close": 21,
+        "BLF:missing_start_adjusted_close": 36,
+        "BSI:missing_endpoint_adjusted_close": 5,
+        "BSI:missing_start_adjusted_close": 4,
+        "BSR:missing_start_adjusted_close": 70,
+        "BT6:missing_start_adjusted_close": 13,
+        "BTW:missing_start_adjusted_close": 18,
+        "BVB:missing_start_adjusted_close": 41,
+        "BVG:missing_start_adjusted_close": 6,
+        "C47:missing_endpoint_adjusted_close": 1,
+        "C92:missing_start_adjusted_close": 39,
+        "CAR:missing_start_adjusted_close": 13,
+        "CCM:missing_start_adjusted_close": 11,
+        "CCR:missing_start_adjusted_close": 6,
+        "CDO:missing_start_adjusted_close": 31,
+        "CHP:missing_start_adjusted_close": 24,
+        "CMI:missing_start_adjusted_close": 41,
+        "CMT:missing_start_adjusted_close": 41,
+        "CST:missing_start_adjusted_close": 31,
+        "CT6:missing_start_adjusted_close": 8,
+        "CTD:missing_endpoint_adjusted_close": 1,
+        "CTR:missing_start_adjusted_close": 44,
+        "CTS:missing_start_adjusted_close": 33,
+        "CTX:missing_start_adjusted_close": 54,
+        "CVN:missing_start_adjusted_close": 110,
+        "CVT:missing_start_adjusted_close": 37,
+        "DAG:missing_start_adjusted_close": 114,
+        "DBC:missing_start_adjusted_close": 59,
+        "DBD:missing_start_adjusted_close": 8,
+        "DBT:missing_start_adjusted_close": 59,
+        "DC4:missing_start_adjusted_close": 46,
+        "DCS:missing_start_adjusted_close": 57,
+        "DCT:missing_start_adjusted_close": 7,
+        "DDG:missing_start_adjusted_close": 60,
+        "DGC:missing_start_adjusted_close": 63,
+        "DIC:missing_start_adjusted_close": 73,
+        "DID:missing_start_adjusted_close": 9,
+        "DLR:missing_start_adjusted_close": 2,
+        "DNM:missing_start_adjusted_close": 69,
+        "DPC:missing_start_adjusted_close": 39,
+        "DPG:missing_start_adjusted_close": 7,
+        "DPR:missing_endpoint_adjusted_close": 1,
+        "DSC:missing_start_adjusted_close": 62,
+        "DTC:missing_endpoint_adjusted_close": 5,
+        "DTC:missing_start_adjusted_close": 31,
+        "DTG:missing_start_adjusted_close": 18,
+        "DTL:missing_endpoint_adjusted_close": 1,
+        "DVG:missing_start_adjusted_close": 28,
+        "EFI:missing_start_adjusted_close": 19,
+        "ELC:missing_endpoint_adjusted_close": 1,
+        "EVF:missing_start_adjusted_close": 33,
+        "EVS:missing_start_adjusted_close": 1,
+        "FIT:missing_start_adjusted_close": 10,
+        "FTM:missing_start_adjusted_close": 56,
+        "G20:missing_start_adjusted_close": 18,
+        "GDW:missing_start_adjusted_close": 13,
+        "GEE:missing_start_adjusted_close": 18,
+        "GEG:missing_start_adjusted_close": 20,
+        "GEX:missing_start_adjusted_close": 18,
+        "GHC:missing_start_adjusted_close": 109,
+        "GMC:missing_start_adjusted_close": 115,
+        "GTT:missing_start_adjusted_close": 19,
+        "GVR:missing_start_adjusted_close": 15,
+        "HAC:missing_start_adjusted_close": 14,
+        "HAP:missing_endpoint_adjusted_close": 3,
+        "HAP:missing_start_adjusted_close": 3,
+        "HBC:missing_start_adjusted_close": 121,
+        "HHG:missing_start_adjusted_close": 105,
+        "HHP:missing_start_adjusted_close": 22,
+        "HHV:missing_start_adjusted_close": 11,
+        "HKB:missing_start_adjusted_close": 57,
+        "HLA:missing_start_adjusted_close": 4,
+        "HLY:missing_start_adjusted_close": 11,
+        "HNA:missing_start_adjusted_close": 47,
+        "HNG:missing_start_adjusted_close": 102,
+        "HNM:missing_start_adjusted_close": 45,
+        "HOT:missing_start_adjusted_close": 45,
+        "HTG:missing_start_adjusted_close": 61,
+        "HTL:missing_endpoint_adjusted_close": 1,
+        "HTT:missing_start_adjusted_close": 26,
+        "HTV:missing_endpoint_adjusted_close": 1,
+        "HU3:missing_start_adjusted_close": 84,
+        "HVA:missing_start_adjusted_close": 36,
+        "HVN:missing_start_adjusted_close": 19,
+        "HVX:missing_start_adjusted_close": 85,
+        "ICF:missing_start_adjusted_close": 50,
+        "IDC:missing_start_adjusted_close": 15,
+        "IPA:missing_start_adjusted_close": 30,
+        "ITA:missing_start_adjusted_close": 118,
+        "KLB:missing_start_adjusted_close": 73,
+        "KOS:missing_start_adjusted_close": 10,
+        "KPF:missing_start_adjusted_close": 90,
+        "KSQ:missing_start_adjusted_close": 119,
+        "KSV:missing_start_adjusted_close": 16,
+        "KTT:missing_start_adjusted_close": 51,
+        "KVC:missing_start_adjusted_close": 92,
+        "L35:missing_start_adjusted_close": 44,
+        "L43:missing_start_adjusted_close": 33,
+        "L61:missing_start_adjusted_close": 55,
+        "L62:missing_start_adjusted_close": 36,
+        "LAF:missing_endpoint_adjusted_close": 5,
+        "LAF:missing_start_adjusted_close": 4,
+        "LCM:missing_start_adjusted_close": 98,
+        "LEC:missing_start_adjusted_close": 68,
+        "LM3:missing_start_adjusted_close": 2,
+        "LM7:missing_start_adjusted_close": 51,
+        "LMH:missing_start_adjusted_close": 11,
+        "LO5:missing_start_adjusted_close": 26,
+        "LPB:missing_start_adjusted_close": 29,
+        "LTC:missing_start_adjusted_close": 32,
+        "LUT:missing_start_adjusted_close": 77,
+        "MCG:missing_start_adjusted_close": 104,
+        "MCH:missing_start_adjusted_close": 83,
+        "MCM:missing_start_adjusted_close": 34,
+        "MEC:missing_start_adjusted_close": 48,
+        "MHL:missing_start_adjusted_close": 35,
+        "MIC:missing_start_adjusted_close": 45,
+        "MIG:missing_start_adjusted_close": 36,
+        "MLS:missing_start_adjusted_close": 2,
+        "MPC:missing_start_adjusted_close": 5,
+        "MPT:missing_start_adjusted_close": 57,
+        "MTG:missing_start_adjusted_close": 8,
+        "MVB:missing_start_adjusted_close": 13,
+        "NAB:missing_start_adjusted_close": 33,
+        "NAF:missing_endpoint_adjusted_close": 1,
+        "NHA:missing_start_adjusted_close": 70,
+        "NHH:missing_start_adjusted_close": 12,
+        "NHT:missing_start_adjusted_close": 31,
+        "NSC:missing_endpoint_adjusted_close": 6,
+        "NSC:missing_start_adjusted_close": 5,
+        "NT2:missing_start_adjusted_close": 7,
+        "NTC:missing_start_adjusted_close": 85,
+        "ORS:missing_start_adjusted_close": 78,
+        "PAN:missing_endpoint_adjusted_close": 5,
+        "PAN:missing_start_adjusted_close": 5,
+        "PCG:missing_start_adjusted_close": 67,
+        "PDC:missing_start_adjusted_close": 48,
+        "PDV:missing_start_adjusted_close": 47,
+        "PFL:missing_start_adjusted_close": 7,
+        "PGD:missing_endpoint_adjusted_close": 1,
+        "PGV:missing_start_adjusted_close": 29,
+        "PHC:missing_start_adjusted_close": 47,
+        "PHH:missing_start_adjusted_close": 10,
+        "PHP:missing_start_adjusted_close": 72,
+        "PIA:missing_start_adjusted_close": 16,
+        "PIC:missing_start_adjusted_close": 2,
+        "PIV:missing_start_adjusted_close": 41,
+        "POM:missing_start_adjusted_close": 107,
+        "POW:missing_start_adjusted_close": 1,
+        "PPI:missing_start_adjusted_close": 57,
+        "PPT:missing_start_adjusted_close": 3,
+        "PVE:missing_start_adjusted_close": 54,
+        "PVL:missing_start_adjusted_close": 103,
+        "PVP:missing_start_adjusted_close": 48,
+        "PVR:missing_start_adjusted_close": 25,
+        "PVV:missing_start_adjusted_close": 57,
+        "PVX:missing_start_adjusted_close": 70,
+        "PXA:missing_start_adjusted_close": 45,
+        "PXI:missing_start_adjusted_close": 89,
+        "PXL:missing_start_adjusted_close": 19,
+        "PXS:missing_start_adjusted_close": 96,
+        "PXT:missing_start_adjusted_close": 82,
+        "QBS:missing_start_adjusted_close": 104,
+        "QNC:missing_start_adjusted_close": 45,
+        "RIC:missing_start_adjusted_close": 79,
+        "S12:missing_start_adjusted_close": 5,
+        "S74:missing_start_adjusted_close": 47,
+        "SCD:missing_start_adjusted_close": 98,
+        "SCJ:missing_start_adjusted_close": 44,
+        "SCL:missing_start_adjusted_close": 50,
+        "SCR:missing_start_adjusted_close": 26,
+        "SCS:missing_start_adjusted_close": 3,
+        "SD2:missing_start_adjusted_close": 89,
+        "SD4:missing_start_adjusted_close": 79,
+        "SD6:missing_start_adjusted_close": 114,
+        "SD7:missing_start_adjusted_close": 38,
+        "SDA:missing_start_adjusted_close": 107,
+        "SDD:missing_start_adjusted_close": 57,
+        "SDP:missing_start_adjusted_close": 46,
+        "SDT:missing_start_adjusted_close": 110,
+        "SDY:missing_start_adjusted_close": 9,
+        "SFI:missing_endpoint_adjusted_close": 1,
+        "SGN:missing_start_adjusted_close": 17,
+        "SGR:missing_start_adjusted_close": 11,
+        "SGT:missing_endpoint_adjusted_close": 1,
+        "SHA:missing_start_adjusted_close": 25,
+        "SHB:missing_start_adjusted_close": 87,
+        "SHP:missing_endpoint_adjusted_close": 1,
+        "SII:missing_start_adjusted_close": 74,
+        "SIP:missing_start_adjusted_close": 42,
+        "SJF:missing_start_adjusted_close": 64,
+        "SMB:missing_start_adjusted_close": 40,
+        "SPC:missing_start_adjusted_close": 21,
+        "SPI:missing_start_adjusted_close": 111,
+        "SRB:missing_start_adjusted_close": 15,
+        "SSC:missing_endpoint_adjusted_close": 4,
+        "SSC:missing_start_adjusted_close": 4,
+        "STG:missing_endpoint_adjusted_close": 1,
+        "STT:missing_start_adjusted_close": 27,
+        "TAR:missing_start_adjusted_close": 46,
+        "TCD:missing_start_adjusted_close": 78,
+        "TCI:missing_start_adjusted_close": 37,
+        "TCT:missing_start_adjusted_close": 17,
+        "TDM:missing_start_adjusted_close": 6,
+        "TDP:missing_start_adjusted_close": 1,
+        "TEG:missing_start_adjusted_close": 18,
+        "TGG:missing_start_adjusted_close": 51,
+        "TH1:missing_start_adjusted_close": 15,
+        "TIE:missing_start_adjusted_close": 50,
+        "TNA:missing_start_adjusted_close": 112,
+        "TOT:missing_start_adjusted_close": 18,
+        "TST:missing_start_adjusted_close": 52,
+        "TTB:missing_start_adjusted_close": 90,
+        "TTZ:missing_start_adjusted_close": 91,
+        "TV1:missing_start_adjusted_close": 32,
+        "TV2:missing_start_adjusted_close": 52,
+        "TVB:missing_endpoint_adjusted_close": 5,
+        "TVB:missing_start_adjusted_close": 33,
+        "UDC:missing_start_adjusted_close": 105,
+        "VAB:missing_start_adjusted_close": 28,
+        "VAF:missing_start_adjusted_close": 76,
+        "VBB:missing_start_adjusted_close": 51,
+        "VBH:missing_start_adjusted_close": 11,
+        "VCA:missing_start_adjusted_close": 59,
+        "VCG:missing_start_adjusted_close": 78,
+        "VCR:missing_start_adjusted_close": 63,
+        "VDS:missing_start_adjusted_close": 30,
+        "VE9:missing_start_adjusted_close": 70,
+        "VFG:missing_endpoint_adjusted_close": 4,
+        "VFG:missing_start_adjusted_close": 3,
+        "VFR:missing_start_adjusted_close": 22,
+        "VFS:missing_start_adjusted_close": 28,
+        "VGC:missing_start_adjusted_close": 34,
+        "VHG:missing_start_adjusted_close": 57,
+        "VIB:missing_start_adjusted_close": 38,
+        "VIE:missing_start_adjusted_close": 14,
+        "VIF:missing_start_adjusted_close": 14,
+        "VIX:missing_start_adjusted_close": 76,
+        "VKC:missing_start_adjusted_close": 105,
+        "VMD:missing_endpoint_adjusted_close": 1,
+        "VNA:missing_start_adjusted_close": 30,
+        "VND:missing_endpoint_adjusted_close": 6,
+        "VND:missing_start_adjusted_close": 40,
+        "VNE:missing_start_adjusted_close": 122,
+        "VNH:missing_start_adjusted_close": 30,
+        "VNI:missing_start_adjusted_close": 5,
+        "VPC:missing_start_adjusted_close": 7,
+        "VPD:missing_start_adjusted_close": 12,
+        "VRC:missing_endpoint_adjusted_close": 1,
+        "VST:missing_start_adjusted_close": 7,
+        "VTJ:missing_start_adjusted_close": 13,
+        "VTP:missing_start_adjusted_close": 56,
+        "VXB:missing_start_adjusted_close": 19
+      },
+      "model_evaluation_run": false
+    },
+    {
+      "file": "p1_holdout_v2.jsonl",
+      "sha256": "c2ca1795044c7cf43f420fdc5a8328358e0bb859f392f3a772de83acaebab839",
+      "label_version": 2,
+      "label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
+      "flat_band_pct": 2.0,
+      "counts": {
+        "label_DOWN": 6800,
+        "label_FLAT": 1481,
+        "label_UP": 5289,
+        "non_bulk": 200,
+        "status_censored": 254,
+        "status_labeled": 13570
+      },
+      "majority_prevalence_coinflip_baseline": {
+        "n": 12089,
+        "class_counts": {
+          "DOWN": 6800,
+          "UP": 5289
+        },
+        "baselines": {
+          "class_counts": {
+            "UP": 5289,
+            "DOWN": 6800
+          },
+          "majority_class": "DOWN",
+          "majority_accuracy": 0.5624948300107536,
+          "majority_macro_f1": 0.35999788236539787,
+          "constant_prevalence_p_up": 0.43750516998924643,
+          "constant_prevalence_brier": 0.246094396221927,
+          "coin_flip_expected_accuracy": 0.5
+        }
+      },
+      "by_asof_year": {
+        "2025": {
+          "n": 9376,
+          "class_counts": {
+            "DOWN": 4716,
+            "UP": 4660
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 4660,
+              "DOWN": 4716
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.5029863481228669,
+            "majority_macro_f1": 0.33465796196423503,
+            "constant_prevalence_p_up": 0.4970136518771331,
+            "constant_prevalence_brier": 0.24999108172488904,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "2026": {
+          "n": 2713,
+          "class_counts": {
+            "DOWN": 2084,
+            "UP": 629
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 629,
+              "DOWN": 2084
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.7681533357906377,
+            "majority_macro_f1": 0.4344381905357515,
+            "constant_prevalence_p_up": 0.23184666420936234,
+            "constant_prevalence_brier": 0.1780937885043535,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        }
+      },
+      "by_exchange": {
+        "HNX": {
+          "n": 2752,
+          "class_counts": {
+            "DOWN": 1510,
+            "UP": 1242
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 1242,
+              "DOWN": 1510
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.5486918604651163,
+            "majority_macro_f1": 0.3542937587986861,
+            "constant_prevalence_p_up": 0.45130813953488375,
+            "constant_prevalence_brier": 0.24762910272444566,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "HOSE": {
+          "n": 5532,
+          "class_counts": {
+            "DOWN": 3153,
+            "UP": 2379
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 2379,
+              "DOWN": 3153
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.5699566160520607,
+            "majority_macro_f1": 0.3630397236614853,
+            "constant_prevalence_p_up": 0.4300433839479393,
+            "constant_prevalence_brier": 0.24510607187054456,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        },
+        "UPCOM": {
+          "n": 3805,
+          "class_counts": {
+            "DOWN": 2137,
+            "UP": 1668
+          },
+          "baselines": {
+            "class_counts": {
+              "UP": 1668,
+              "DOWN": 2137
+            },
+            "majority_class": "DOWN",
+            "majority_accuracy": 0.5616294349540079,
+            "majority_macro_f1": 0.35964321777179403,
+            "constant_prevalence_p_up": 0.4383705650459921,
+            "constant_prevalence_brier": 0.24620181274724967,
+            "coin_flip_expected_accuracy": 0.5
+          }
+        }
+      },
+      "censored_by_exchange_reason": {
+        "HNX:missing_start_adjusted_close": 3,
+        "HOSE:missing_start_adjusted_close": 163,
+        "UPCOM:missing_start_adjusted_close": 88
+      },
+      "censored_by_ticker_reason": {
+        "AAV:missing_start_adjusted_close": 17,
+        "AFX:missing_start_adjusted_close": 12,
+        "AGM:missing_start_adjusted_close": 2,
+        "ANT:missing_start_adjusted_close": 13,
+        "BVB:missing_start_adjusted_close": 16,
+        "CST:missing_start_adjusted_close": 1,
+        "DDG:missing_start_adjusted_close": 10,
+        "DSH:missing_start_adjusted_close": 2,
+        "DTC:missing_start_adjusted_close": 2,
+        "ECO:missing_start_adjusted_close": 8,
+        "GHC:missing_start_adjusted_close": 13,
+        "GMC:missing_start_adjusted_close": 1,
+        "HVX:missing_start_adjusted_close": 14,
+        "KLB:missing_start_adjusted_close": 13,
+        "KSQ:missing_start_adjusted_close": 5,
+        "MCH:missing_start_adjusted_close": 12,
+        "MIC:missing_start_adjusted_close": 2,
+        "MZG:missing_start_adjusted_close": 9,
+        "NTC:missing_start_adjusted_close": 9,
+        "PCG:missing_start_adjusted_close": 1,
+        "PDV:missing_start_adjusted_close": 10,
+        "SDA:missing_start_adjusted_close": 6,
+        "TAL:missing_start_adjusted_close": 6,
+        "TCD:missing_start_adjusted_close": 4,
+        "TSA:missing_start_adjusted_close": 9,
+        "VAB:missing_start_adjusted_close": 6,
+        "VAF:missing_start_adjusted_close": 10,
+        "VBB:missing_start_adjusted_close": 16,
+        "VNE:missing_start_adjusted_close": 16,
+        "VVS:missing_start_adjusted_close": 9
+      },
+      "model_evaluation_run": false
+    }
+  ],
+  "passes": true,
+  "source_audit_date": "2026-11-15",
+  "feature_scope_version": "v2-ohlcv-indicators-only-v1",
+  "feature_scope_gate_passes": true,
+  "population_scope_limit": "P1-observed sample; no claim of complete market-wide historical universe.",
+  "external_holdout_independence": "potentially exposed to cancelled ablation run 43700761631; data-only baseline remains descriptive, but do not use holdout for future hyperparameter selection or claim it is untouched."
+}

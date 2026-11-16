@@ -4,7 +4,7 @@ Port `p2a_train.py` sang Modal (`scripts/modal_p2a.py`): smoke 2 bước trên T
 dữ liệu từ Volume `p2-train-vol` (tarball `p1-dataset.tar.gz`, sha256
 `8839f5d8c2ce637ce46e1ff83f5fb635107c73054809b6cb756dee8811b72aec`).
 
-## Kết quả — PASS 3/3
+## Kết quả — tiến trình thoát thành công 3/3, nhưng kiểm tra số học chưa đạt
 
 | | Lần A (file cũ) | Lần B (file cũ) | Lần C (file đã sửa) |
 |---|---|---|---|
@@ -22,6 +22,8 @@ dữ liệu từ Volume `p2-train-vol` (tarball `p1-dataset.tar.gz`, sha256
 | train_runtime | 539,30 s → **269,65 s/step** | 382,93 s → **191,47 s/step** | 410,82 s → **205,41 s/step** |
 | TRAIN_EXIT / WALL | 0 / 752,86 s | 0 / 453,21 s | 0 / 466,07 s |
 | ADAPTER_SHA256 | `0f374bbcaa259b3f7cb1be73b3ae617bbecc9ffd7f1a19edfc691240377edc47` | `0f374bbc…` (giống hệt) | `0f374bbc…` (giống hệt) |
+
+Các tiến trình đều thoát mã 0, nhưng mọi lần có gradient norm NaN ở bước 1; vì vậy đây **không phải smoke gate sạch** và không chứng minh cập nhật tham số hữu hạn ở bước đó. Bộ guard mới dừng trước optimizer update khi loss/gradient không hữu hạn; chưa chạy lại guard trên GPU. Không dùng các lần cũ làm bằng chứng rằng vấn đề gradient đã sửa.
 
 Trung bình 3 lần: **222,18 s/step**, ngang Colab chunk-4 (219,73 s/step);
 dao động giữa các lần 191–270 s/step (khác host T4 thì khác tốc độ).

@@ -1,0 +1,232 @@
+{
+  "reports": [
+    {
+      "file": "p1_train.jsonl",
+      "bytes": 1067870491,
+      "sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "rows": {
+        "rows": 83942,
+        "kind_bulk": 83942
+      },
+      "labels": {
+        "DOWN": 40251,
+        "UP": 42896,
+        "FLAT": 795
+      },
+      "tickers": 1280,
+      "max_rows_per_ticker": 122,
+      "ticker_rows_p50_p90": [
+        64,
+        121
+      ],
+      "duplicate_ticker_asof_rows": 0,
+      "duplicate_prompt_rows": 0,
+      "endpoint_gap_days": {
+        "count": 83942,
+        "min": 169,
+        "p10": 171,
+        "p50": 181,
+        "p90": 310,
+        "max": 2821
+      },
+      "exchange_counts": {
+        "HNX": {
+          "bulk": 20718,
+          "label_DOWN": 9850,
+          "gap_gt_200": 7887,
+          "gap_gt_250": 4819,
+          "gap_gt_365": 2091,
+          "label_UP": 10639,
+          "label_FLAT": 229,
+          "gap_gt_730": 287,
+          "gap_gt_1000": 107
+        },
+        "HOSE": {
+          "bulk": 37719,
+          "label_DOWN": 17759,
+          "label_UP": 19740,
+          "gap_gt_200": 4122,
+          "label_FLAT": 220,
+          "gap_gt_250": 1549,
+          "gap_gt_365": 253
+        },
+        "UPCOM": {
+          "bulk": 25505,
+          "label_DOWN": 12642,
+          "gap_gt_200": 10607,
+          "gap_gt_250": 6918,
+          "label_UP": 12517,
+          "gap_gt_365": 3547,
+          "label_FLAT": 346,
+          "gap_gt_730": 916,
+          "gap_gt_1000": 287
+        }
+      },
+      "tickers_with_gap_gt_200": 927,
+      "tickers_with_gap_gt_365": 571,
+      "date_range": [
+        "2014-10-27",
+        "2024-07-12"
+      ],
+      "industry_sector_fields": [],
+      "future_prompt_date_examples": [],
+      "token_lengths": {
+        "tokenizer": "Qwen/Qwen2.5-14B-Instruct",
+        "max_length": 4096,
+        "transform_version": "compact-coverage-date-lists-v1",
+        "before_transform": {
+          "eligible_rows": 83147,
+          "rows_over_4096": 515,
+          "rows_over_4096_pct": 0.619,
+          "rows_over_4000": 528,
+          "p50": 1489,
+          "p90": 1510,
+          "p95": 1514,
+          "p99": 3073,
+          "max": 7217,
+          "over_4096_by_direction": {
+            "UP": 301,
+            "DOWN": 214
+          }
+        },
+        "after_transform": {
+          "eligible_rows": 83147,
+          "rows_compacted": 1439,
+          "rows_compacted_pct": 1.731,
+          "chars_saved": 3732820,
+          "max_input_chars": 3500,
+          "effective_token_lengths": {
+            "p50": 1489,
+            "p90": 1510,
+            "p99": 1552,
+            "max": 1669
+          },
+          "rows_over_4096": 0
+        },
+        "method": "Exact tokenizer + training chat template + supervised target tokens",
+        "tokenizer_files_sha256": {
+          "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "tokenizer_config.json": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "config.json": "0f2085dbbe2ee251bd6a6a0797d84a6ce34436044d629aa3cba793b43d311a9e"
+        },
+        "transform_method": "scripts/p2a_train.py: messages() -> compact_input() -> tokenizer.apply_chat_template -> target tokens + EOS"
+      }
+    },
+    {
+      "file": "p1_holdout.jsonl",
+      "bytes": 181247973,
+      "sha256": "ee24f977e7cb592f81923dfd1c8a426348ac7a7efaa20332c1591872793afc4d",
+      "rows": {
+        "rows": 14024,
+        "kind_handwritten": 200,
+        "kind_bulk": 13824
+      },
+      "labels": {
+        "missing": 200,
+        "DOWN": 7683,
+        "UP": 5958,
+        "FLAT": 183
+      },
+      "tickers": 1105,
+      "max_rows_per_ticker": 17,
+      "ticker_rows_p50_p90": [
+        16,
+        17
+      ],
+      "duplicate_ticker_asof_rows": 0,
+      "duplicate_prompt_rows": 0,
+      "endpoint_gap_days": {
+        "count": 13824,
+        "min": 170,
+        "p10": 172,
+        "p50": 179,
+        "p90": 251,
+        "max": 653
+      },
+      "exchange_counts": {
+        "HNX": {
+          "bulk": 3110,
+          "label_UP": 1354,
+          "gap_gt_200": 780,
+          "gap_gt_250": 390,
+          "gap_gt_365": 106,
+          "label_DOWN": 1698,
+          "label_FLAT": 58
+        },
+        "HOSE": {
+          "bulk": 6325,
+          "label_DOWN": 3559,
+          "label_UP": 2737,
+          "gap_gt_200": 497,
+          "gap_gt_250": 153,
+          "gap_gt_365": 25,
+          "label_FLAT": 29
+        },
+        "UPCOM": {
+          "bulk": 4389,
+          "label_DOWN": 2426,
+          "gap_gt_200": 1601,
+          "gap_gt_250": 850,
+          "gap_gt_365": 239,
+          "label_UP": 1867,
+          "label_FLAT": 96
+        }
+      },
+      "tickers_with_gap_gt_200": 548,
+      "tickers_with_gap_gt_365": 203,
+      "date_range": [
+        "2025-01-02",
+        "2026-05-19"
+      ],
+      "industry_sector_fields": [],
+      "future_prompt_date_examples": [],
+      "token_lengths": {
+        "tokenizer": "Qwen/Qwen2.5-14B-Instruct",
+        "max_length": 4096,
+        "transform_version": "compact-coverage-date-lists-v1",
+        "before_transform": {
+          "eligible_rows": 13641,
+          "rows_over_4096": 261,
+          "rows_over_4096_pct": 1.913,
+          "rows_over_4000": 272,
+          "p50": 1498,
+          "p90": 1515,
+          "p95": 1527,
+          "p99": 5533,
+          "max": 6906,
+          "over_4096_by_direction": {
+            "UP": 151,
+            "DOWN": 110
+          }
+        },
+        "after_transform": {
+          "eligible_rows": 13641,
+          "rows_compacted": 621,
+          "rows_compacted_pct": 4.552,
+          "chars_saved": 1858958,
+          "max_input_chars": 3508,
+          "effective_token_lengths": {
+            "p50": 1498,
+            "p90": 1515,
+            "p99": 1645,
+            "max": 1676
+          },
+          "rows_over_4096": 0
+        },
+        "method": "Exact tokenizer + training chat template + supervised target tokens",
+        "tokenizer_files_sha256": {
+          "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+          "tokenizer_config.json": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583",
+          "config.json": "0f2085dbbe2ee251bd6a6a0797d84a6ce34436044d629aa3cba793b43d311a9e"
+        },
+        "transform_method": "scripts/p2a_train.py: messages() -> compact_input() -> tokenizer.apply_chat_template -> target tokens + EOS"
+      }
+    }
+  ],
+  "cross_split_overlaps": {
+    "0:1": {
+      "ticker_asof": 0,
+      "prompt_hash": 0
+    }
+  }
+}
