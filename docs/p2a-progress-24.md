@@ -2,6 +2,10 @@
 
 Updated 2026-11-15. The current conversation describes the 24 issues by five workstreams, but does not include the original 24 individually numbered items; this report records only verified progress and does not claim all items are complete.
 
+## Decided P2 merge-back plan (Henrry approval, 2026-11-16 10:53 ICT)
+
+Henrry approved this two-stage plan at 10:53 ICT on 2026-11-16; it is decided policy, not a proposal. **Stage 1:** evaluator infrastructure PR #1 (`review/p2-async-evaluation-infra` → `main`) remains review-only and may merge only after a separate explicit approval from Henrry. **Stage 2:** all remaining P2 training code, v2 labels, guards, and coordinator merge via PR(s) only after full training completes and per-checkpoint evaluation proves the model. Until Stage 2 evidence exists, `main` remains the clean proven line. Recording this plan does not authorize any merge, dispatch, or training.
+
 | Workstream | Progress | Evidence / remaining gate |
 | --- | --- | --- |
 | 1. Labels, leakage, excluded rows | **V2 label data gate passed with exact-match censoring; feature-level survivorship gate closed by Liaison scope.** Exact Finfo adjusted endpoint pairs exist for 72,929/83,942 train and 13,570/13,824 holdout rows; 11,013/254 rows are censored without substituting later prices. The full v2 datasets and hashes are in [[file:docs/p2a-finfo-adclose-coverage.json]]. No raw adjusted-price table was published. P1 population remains a known representativeness limit. |

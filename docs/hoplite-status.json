@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T03:08:35.135636Z",
+  "updated_at": "2026-11-16T03:54:08.514183Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,9 +9,9 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Full training is not approved and the v2 full-training workflow is not certified ready. No training dispatch or merge is authorized by the current work.",
+  "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
   "questions": [],
-  "next_step": "Items 1-2 are committed; evaluator infrastructure PR #1 is open and unmerged. Item 3 has a manifest-backed fail-closed planner, event-plan workflow, named profile interface, and local dry-run fixture rehearsal. It is not an active auto-chain: durable state/checkpoint handoff and a safe full-V2 training data-transfer/resume workflow are still missing, so training readiness stays false. Keep the 20-minute liaison cron disabled but intact. Do not dispatch training or merge; Henrry approval remains required.",
+  "next_step": "Henrry's decided merge-back plan is recorded in docs/hoplite-directives.md, docs/p2a-progress-24.md, and merge_plan in this file: Stage 1 evaluator PR #1 may merge only after separate explicit approval; Stage 2 all remaining P2 work merges via PR(s) only after full training completes and per-checkpoint eval proves the model. Keep main clean/proven until then. No merge/dispatch/training in this turn.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -308,5 +308,23 @@
       "merge_performed": false
     },
     "chain_reference_audit_commit": "cf27ab2"
+  },
+  "merge_plan": {
+    "state": "decided_by_henrry",
+    "decision_time": "2026-11-16 10:53 ICT",
+    "stage_1": {
+      "pr": 1,
+      "head": "review/p2-async-evaluation-infra",
+      "base": "main",
+      "action": "review only; merge only after separate explicit Henrry approval",
+      "merged": false
+    },
+    "stage_2": {
+      "scope": "all remaining P2 training code, v2 labels, guards, and coordinator",
+      "action": "merge through PR(s) only after full training completes and per-checkpoint evaluation proves the model",
+      "merged": false
+    },
+    "main_policy": "keep main the clean proven line until Stage 2 proof is satisfied",
+    "current_turn_effect": "record decision only; no merge, dispatch, or training"
   }
 }
