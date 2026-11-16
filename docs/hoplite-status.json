@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T06:20:47Z",
+  "updated_at": "2026-11-16T06:21:03Z",
   "current_item": 4,
   "done": [
     1,
@@ -13,7 +13,7 @@
   "questions": [
     "After review-branch integration, confirm GitHub Actions contents:write can persist docs/p2-campaign-ledger-v2.json under the main-branch protection policy; the ledger job fails closed if commit/push is rejected."
   ],
-  "next_step": "Liaison-authenticated private V2 verify/fetch is confirmed; legacy p2-overnight-chain cron has been disabled since 2026-11-14. The schema-v2 paused ledger, main-only ref guard and workflow persistence are now committed on review/p2-async-evaluation (0b6f4f2, a5d8d42). They are not active on main until reviewed/integrated. After integration, verify contents:write under branch protection with two completed workflow events and duplicate replay, without dispatch. Then complete an untouched broader validation and establish real workflow readiness; training remains paused and needs Henrry’s separate explicit order.",
+  "next_step": "Liaison-authenticated private V2 verify/fetch is confirmed; legacy p2-overnight-chain cron has been disabled since 2026-11-14. The schema-v2 paused ledger, main-only ref guard and workflow persistence are committed on review/p2-async-evaluation (0b6f4f2, a5d8d42). They are not active on main: main still has campaign ref and workflow_run filter set to the old feature branch and lacks ledger persistence. After the review changes are integrated, verify contents:write under branch protection with two completed workflow events and duplicate replay, without dispatch. Then complete untouched broader validation and establish real workflow readiness; training remains paused and needs Henrry’s separate explicit order.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -357,7 +357,7 @@
       "repo_work": "Implemented on review/p2-async-evaluation: paused schema-v2 ledger, atomic append-only event records, source-run deduplication, main-ref enforcement, legacy cutoff, and cross-process rehearsal. Workflow persists ledger-only updates to main using contents:write with serialized FIFO concurrency (queue max 100); this reconciliation must first be integrated.",
       "liaison_work": "Liaison confirms legacy p2-overnight-chain cron disabled since 2026-11-14. Confirm main branch protection permits the workflow GITHUB_TOKEN contents:write ledger commit; do not re-enable legacy cron.",
       "not_exactly_once": "Treat event delivery as at-least-once and reconcile; do not claim cross-service transactional exactly-once.",
-      "event_workflow_activation": "Workflow is on main; verify branch filter and durable schema-v2 state before any non-dry automation.",
+      "event_workflow_activation": "Main has the older planner workflow, but its filter/state are not reconciled: it still targets review/p2-async-evaluation and does not persist schema-v2 ledger state. The updated main-only durable writer is on the review branch and awaits integration.",
       "required_campaign_ref": "main; active planner rejects any other ref.",
       "dry_run_rehearsal": "Passed locally across two independent CLI processes and a replay: revision 0->1->2, both source IDs/SHA persisted, duplicate rejected, no dispatch intents.",
       "remaining_blocker": "training_workflow_ready remains false; no explicit training approval reference; confirmatory validation required for any predictive-skill claim.",
@@ -492,6 +492,9 @@
     "coordinator_ledger_implementation_commits": [
       "0b6f4f2",
       "a5d8d42"
-    ]
+    ],
+    "review_branch_campaign_ref": "main",
+    "main_current_campaign_ref": "review/p2-async-evaluation until reconciliation commit is integrated",
+    "main_current_coordinator": "p2-campaign.yml still filters workflow_run to the feature branch and does not yet persist the new ledger; the ref/ledger integration changes are review-branch-only."
   }
 }
