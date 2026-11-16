@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T21:59:14Z",
+  "updated_at": "2026-11-16T23:37:51Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,12 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Session 4 run 43963242543 is actively training on main in its Colab notebook step; this task has not touched it. Session-2 eval artifact proves only the wrapper failure (CalledProcessError from p2a_eval.py); the remote child stdout/stderr were not captured or packaged, so the underlying evaluator error cannot be diagnosed retroactively. New stderr-preservation fix and tests are on review/p2-async-evaluation, pending Liaison integration before any later evaluation run.",
+  "blocked": "Session 5 retry:2 failed at Colab assignment with explicit HTTP 503 Service Unavailable on TK5; the profile itself verified and all preflight gates passed. A session-5 retry intent is prepared on review using next rotation profile TK1 and verified checkpoint-200, but it must not dispatch until Liaison verifies TK1 and merges. Checkpoint-150 eval run 43968499583 failed before p2a_eval.py: generated HF dataset URL had empty revision (/resolve//validation-v2.jsonl), causing HTTP 404 and LocalEntryNotFoundError. The fixed revision pin is on review. No evaluation metrics were produced.",
   "questions": [
-    "Liaison: review/merge the evaluator diagnostics patch on review/p2-async-evaluation. It leaves training/evaluation behavior and data unchanged, writes remote child stdout/stderr to a sibling diagnostics directory included in the downloaded eval archive and runner artifact, and avoids uploading diagnostics into the HF evaluation folder. Session 4 run 43963242543 remains active and was not touched."
+    "Liaison: verify train_tk1 readiness on LV1 and review/merge prepared retry intent p2a-v2-full:43963242543:retry:1. It resumes checkpoint-200 to max_steps=250 on TK1, same approval/data, and is not dispatched by this agent.",
+    "Liaison: review/merge explicit pinned revision fix for p2-eval. After it lands, a separate eval can retry checkpoint-150; current eval died before p2a_eval.py so child-stderr preservation did not apply."
   ],
-  "next_step": "Session 3 run 43940798695 succeeded on TK5 through step 150; auto-chain worked. Session 4 run 43963242543 was auto-dispatched and at 2026-11-16T21:59:14Z its Run notebook on Colab T4 (vncolab) step was still in progress. This task did not interfere with the active run. Session-2 eval run 43920577717 remote evaluator executed generated p2a_eval.py via subprocess.run(cmd, check=True), but child output/stderr were inherited by the notebook process rather than captured as files. Jupyter result recorded CalledProcessError only, and the download path archived /content/p2-eval step output without any child stderr. Thus the original p2a_eval root exception cannot be determined from existing logs/artifacts; do not claim a specific cause. Fix on review: execute child with capture_output=True,text=True, persist p2a_eval.stdout.log and p2a_eval.stderr.log under /content/p2-eval/diagnostics/step-N/mode (outside the uploaded-to-HF evaluation output directory), raise CalledProcessError carrying stdout/stderr, and download /content/p2-eval root so diagnostics are included in the private Actions artifact. Runner extracts the named diagnostics files for convenient artifact inspection on remote evaluation failure. Regression tests verify capture/persistence and safe extraction. Verification: 128 tests pass (one optional cryptography test skipped); compileall, workflow YAML, JSON/notebook parsing and git diff checks pass. Change is on review/p2-async-evaluation; no evaluation retried and no training dispatched. Liaison must merge before subsequent evaluation runs can include stderr diagnostics.",
+  "next_step": "Run 43978202977: explicit POST /tun/m/assign HTTP 503 Service Unavailable on train_tk5, with empty endpoint/accelerator response. PROFILE_VERIFIED and approval/campaign/V2 gates passed; failure occurred before notebook. Per training profile rotation order TK4 -> TK5 -> TK1, prepared session5 retry p2a-v2-full:43963242543:retry:1 from verified checkpoint-200 to max_steps=250, save_steps=25, train_tk1, lv1/T4, same approval/dataset. Ledger validate passes on simulated dispatching copy; intent remains prepared and awaits Liaison fresh TK1 profile verification, review/merge; no dispatch by this agent. Run 43968499583 step-150 eval artifact and log show HTTP 404 for https://huggingface.co/datasets/Jerlob/vn-stock-ai-p2a-v2/resolve//validation-v2.jsonl; generated remote script embedded dataset_revision=\"\" because build_remote_job read P2A_V2_DATASET_REVISION from env absent from p2-eval.yml. This causes HfHubHTTPError followed by LocalEntryNotFoundError before invoking p2a_eval.py. Fix on review takes explicit revision argument from validated dataset manifest and requires 40-character immutable SHA before generating job. Tests cover correct pinned revision and invalid blank/tag values. Remote evaluator stderr capture is working but no child stderr exists because child was never started; wrapper eval.log preserves the 404. No metrics. Verification: 129 tests pass, one optional cryptography test skipped; compileall, JSON/YAML/notebook parse and diff checks pass. Retry profile TK1 freshness remains for Liaison to verify on LV1.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +482,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "3d508aee9cb49c55fcfc650bf7e09196039446b1",
+    "verified_remote_main": "2da3b37737e4e59741ee371a7adbedc1aec017c3",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +504,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main 3d508ae recorded successful session 3 and auto-dispatched session 4 run 43963242543. Session-4 Colab notebook step was active at last check; evaluator stderr-capture changes remain on review only.",
+    "main_current_coordinator": "Main 2da3b37 ledger records session4 completion at step200 and session5 failure 43978202977 (TK5 POST assignment 503), paused at checkpoint-200. Review prepares a TK1 retry and fixes checkpoint-eval revision propagation.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -668,7 +669,15 @@
         "hf_privacy": "diagnostic logs stay outside out folder uploaded to checkpoint HF repo",
         "original_session2_error": "CalledProcessError is known; the underlying p2a_eval stderr was never saved and cannot now be recovered",
         "regression_tests": "mocked subprocess captures and persists stdout/stderr; ZIP extraction limits to expected diagnostic paths",
-        "status": "prepared for Liaison review/merge; no evaluation rerun"
+        "status": "merged on main 172c0f3; tested, but step-150 eval failed pre-child at HF dataset fetch"
+      },
+      "revision_pin_fix": {
+        "branch": "review/p2-async-evaluation",
+        "root_cause": "p2-eval workflow does not inject P2A_V2_DATASET_REVISION into runner env; build_remote_job used env fallback and emitted empty revision",
+        "evidence": "Run 43968499583 eval.log shows HF URL /resolve//validation-v2.jsonl, 404 then LocalEntryNotFoundError before child evaluator",
+        "fix": "Explicitly pass validated dataset[revision] to build_remote_job; require immutable 40-char SHA and embed it directly",
+        "tests": "generated job includes exact pinned revision; blank, main, and short strings rejected before Colab job creation",
+        "dispatch": "not performed"
       }
     },
     "training_run_43909652724": {
@@ -763,7 +772,13 @@
     "coordinator_replay_fix": {
       "branch": "review/p2-async-evaluation",
       "changes": "configure bot identity before event write/chain planning; install pinned huggingface_hub based on normalized source event conclusion and exact run_id/head_sha context match; replay test for recorded event with missing session",
-      "session3_intent": "p2a-v2-full:43920577717",
+      "session3_intent": {
+        "intent_id": "p2a-v2-full:43920577717",
+        "status": "completed",
+        "checkpoint": "checkpoint-100",
+        "target_max_steps": 150,
+        "profile": "train_tk5"
+      },
       "status": "prepared",
       "checkpoint": "checkpoint-100",
       "max_steps": 150,
@@ -802,13 +817,82 @@
     "training_run_43963242543": {
       "ref": "main",
       "head_sha": "97f881c588449f6648686f668b0518825829ec0a",
-      "status": "in_progress",
+      "conclusion": "success",
+      "steps_completed": 200,
       "profile": "train_tk5",
-      "resume_checkpoint": "checkpoint-150",
-      "max_steps": 200,
-      "last_observed_at": "2026-11-16T21:59:14Z",
-      "last_observed_step": "Run notebook on Colab T4 (vncolab) in_progress",
-      "interference_by_this_task": false
+      "checkpoint_175_and_200": "Liaison verified complete with V2 manifest; 10 files each",
+      "loss_step_200": 0.1721,
+      "loss_steps_198_200": [
+        0.1738,
+        0.1697,
+        0.1721
+      ],
+      "optimizer_training_succeeded": true
+    },
+    "checkpoint_150_eval_run_43968499583": {
+      "ref": "main",
+      "head_sha": "172c0f386289334a92af050982b78722156c5ddb",
+      "conclusion": "failure",
+      "profile": "tk2",
+      "checkpoint_step": 150,
+      "exception": "HfHubHTTPError 404 then LocalEntryNotFoundError for dataset URL /resolve//validation-v2.jsonl",
+      "root_cause": "build_remote_job read absent P2A_V2_DATASET_REVISION environment variable and embedded empty string",
+      "p2a_eval_started": false,
+      "child_stderr_file": false,
+      "diagnostics": "eval.log preserved HF 404; no p2a_eval child stderr exists because subprocess never started",
+      "metrics": null
+    },
+    "training_run_43978202977": {
+      "ref": "main",
+      "head_sha": "f722b0acdc99ef430402ba86a00d2010f5f461fb",
+      "conclusion": "failure",
+      "failure_step": "Colab runtime assignment before notebook start",
+      "exception": "ColabRequestError: POST /tun/m/assign -> 503 Service Unavailable",
+      "response": "endpoint empty; outcome=2; accelerator empty",
+      "preflight": "approval, bounded campaign validation, V2 dataset verification, and train_tk5 PROFILE_VERIFIED passed",
+      "notebook_started": false,
+      "optimizer_steps": 0,
+      "checkpoint_uploaded": false,
+      "classification": "explicit assignment service/capacity response; switch to next ordered profile TK1",
+      "retry_intent": "p2a-v2-full:43963242543:retry:1",
+      "retry_profile": "train_tk1",
+      "retry_checkpoint": "checkpoint-200",
+      "retry_max_steps": 250,
+      "retry_state": "prepared on review, not dispatched; profile verification required before merge"
+    },
+    "session5_retry_intent": {
+      "intent_id": "p2a-v2-full:43963242543:retry:1",
+      "status": "prepared",
+      "parent_run_id": 43963242543,
+      "failed_child_run_id": 43978202977,
+      "profile": "train_tk1",
+      "resume_checkpoint": "checkpoint-200",
+      "target_max_steps": 250,
+      "save_steps": 25,
+      "executor": "lv1",
+      "gpu": "T4",
+      "training_approval_ref": "henrry-train-approval-2026-11-16-1446-ict",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "profile_verified_currently_by_this_agent": false,
+      "profile_verification_needed_before_merge_dispatch": true,
+      "dispatch_by_this_agent": false
+    },
+    "session5_retry_prepared": {
+      "intent_id": "p2a-v2-full:43963242543:retry:1",
+      "parent_run_id": 43963242543,
+      "failed_run_id": 43978202977,
+      "status": "prepared",
+      "profile": "train_tk1",
+      "checkpoint": "checkpoint-200",
+      "max_steps": 250,
+      "save_steps": 25,
+      "executor": "lv1",
+      "gpu": "T4",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "validator": "passes on simulated dispatching transition",
+      "dispatch_by_this_agent": false,
+      "profile_verification": "Liaison LV1 check required before merge/dispatch"
     }
   },
   "training_workflow_ready": false,
