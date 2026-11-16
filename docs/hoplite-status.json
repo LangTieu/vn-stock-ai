@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-15T23:15:20.946723Z",
+  "updated_at": "2026-11-16T01:51:12.092707Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,9 +9,9 @@
     5
   ],
   "in_progress": null,
-  "blocked": null,
+  "blocked": "Any full training dispatch remains paused pending Henrry approval. Checkpoint-150 should not be resumed for v2; clean restart from the base model is recommended after approval.",
   "questions": [],
-  "next_step": "Item 4 ablation is complete as a bounded exploratory comparison. Baseline configuration ranked highest within the three trials, but all were below simple direction-accuracy and Brier baselines on this tiny internal validation slice. Do not start full training from these results; full training remains paused for separate Liaison selection and Henrry approval. The external holdout remains compromised for pristine-test claims.",
+  "next_step": "Preparation complete only. If Henrry approves training, dispatch run-colab.yml with ref=review/p2-async-evaluation, resume_checkpoint empty (start from base model), and verified v2 train/validation inputs so integrated asynchronous checkpoint evaluation is active (TK2 first, TK5 only on assignment HTTP 503). No merge is needed for this ref-based run-colab dispatch. Do not dispatch until explicit approval.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -143,5 +143,66 @@
     "tk5_fallback": "not used; all three trials ran on TK2 and no assignment HTTP 503 occurred",
     "full_training_started": false
   },
-  "latest_ablation_run_id": 43725322373
+  "latest_ablation_run_id": 43725322373,
+  "checkpoint_resume_preparation": {
+    "checkpoint": "Jerlob/vn-stock-ai-p2a-checkpoints/checkpoints/checkpoint-150",
+    "checkpoint_manifest_verdict": "not v2-compatible; do not resume optimizer/adapter state; recommend clean restart from the Qwen2.5-14B base model after Henrry approval",
+    "manifest_access_limit": "HF_TOKEN is absent in this workspace; HF API requests for model metadata, repo tree, and checkpoint-150/p2a_training_manifest.json returned HTTP 401 (Invalid username or password). The manifest was not independently downloaded.",
+    "checkpoint_provenance_evidence": {
+      "actions_run_id": 43580242658,
+      "run_ref": "main",
+      "run_head_sha": "5301343fdc54767df02e1ac43076c7670b7bc07a",
+      "run_conclusion": "cancelled after checkpoint-150 upload",
+      "training_source": "notebooks/p2a_train.ipynb default TRAIN_URL points to p1_train.jsonl.gz (legacy P1); main training source at that ref has no p2a_training_manifest writer or v2 label gate",
+      "dataset_md5_from_run_log": "f6273e8a12e35fe1027f29ca2127b9c0",
+      "checkpoint_upload_log": "CHECKPOINT_UPLOADED checkpoints/checkpoint-150; verified_files=6; old uploader verified optimizer/scheduler/trainer/RNG plus adapter files, not a v2 data manifest",
+      "checkpoint_125_download_log": "the resumed checkpoint file listing had no p2a_training_manifest.json"
+    },
+    "v1_vs_v2_evidence": {
+      "legacy_v1_audit_label_version": "legacy P1 v1; diagnostic only; no model evaluated",
+      "legacy_v1_train_sha256": "3d0c89e130986d3e5a9837f3c1d94e091504e70570492f6ed32226342311bc40",
+      "legacy_run_train_md5": "f6273e8a12e35fe1027f29ca2127b9c0",
+      "v2_label_version": 2,
+      "v2_label_method": "adjusted_total_return_close; 120 exchange sessions after as_of",
+      "v2_flat_band_pct": 2.0,
+      "v2_train_sha256": "39eb61ceaba559bfff07df0242f5834598565ed33d83ceca661a32c6aa5c7ccf",
+      "v2_counts": {
+        "UP": 37357,
+        "DOWN": 29934,
+        "FLAT": 5638,
+        "censored": 11013
+      },
+      "v2_semantics": "unavailable exact endpoints are censored; training parser excludes FLAT and censored rows from binary supervised training"
+    },
+    "resume_guard_evidence": {
+      "manifest_required": "scripts/p2a_train.py validate_resume_manifest refuses a checkpoint without p2a_training_manifest.json and instructs starting from the base model",
+      "compared_fields": [
+        "label_version",
+        "train_sha256",
+        "max_length",
+        "model_id",
+        "system_prompt_sha256",
+        "input_transform_version",
+        "population_scope",
+        "flat_band_pct",
+        "lora",
+        "target_modules",
+        "training",
+        "epochs",
+        "seed",
+        "trainer_code_sha256",
+        "numerics_code_sha256"
+      ],
+      "data_gate": "current training requires label_version 2; legacy v1 is rejected before training"
+    },
+    "dispatch_ref_recommendation": {
+      "ref": "review/p2-async-evaluation",
+      "workflow": "run-colab.yml with workflow_dispatch ref set to the feature branch",
+      "why": "the feature ref enables P2_EVAL_ENABLED=1, contains the vncolab checkpoint-trigger hook and p2a_eval_async.py account order TK2 then TK5 only on TK2 assignment HTTP 503, and stages evaluation results; main run-colab does not set this flag or contain that hook",
+      "merge_required_before_run_colab_dispatch": false,
+      "separate_manual_eval_workflow": "p2-eval.yml is absent from main; merging it would be needed only to dispatch that standalone workflow from the default-branch workflow list, not for the feature-ref run-colab integrated evaluator"
+    },
+    "training_dispatch": "not dispatched; training remains paused pending Henrry approval",
+    "recommendation": "Do not resume from checkpoint-150: its provenance is legacy v1 and it has no verified v2 manifest; current resume guard rejects missing manifests and mismatched label version/data hashes. If approved later, restart from base model, not checkpoint-150."
+  }
 }
