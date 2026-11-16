@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T03:54:08.514183Z",
+  "updated_at": "2026-11-16T04:10:23.802082Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
   "questions": [],
-  "next_step": "Henrry's decided merge-back plan is recorded in docs/hoplite-directives.md, docs/p2a-progress-24.md, and merge_plan in this file: Stage 1 evaluator PR #1 may merge only after separate explicit approval; Stage 2 all remaining P2 work merges via PR(s) only after full training completes and per-checkpoint eval proves the model. Keep main clean/proven until then. No merge/dispatch/training in this turn.",
+  "next_step": "Proposal-only readiness solutions are in docs/p2-solutions-not-ready.md. Key blockers: archive/reset the liaison ledger only while its poller is disabled and fix ref=review/p2-async-evaluation in the Liaison-owned copy; establish an authorized private V2 dataset transport with SHA/manifest checks and a durable campaign state artifact/ledger; make PR #1 V2-eval-compatible (it currently uses legacy P1 holdout, which the evaluator label-version guard rejects for V2). PR #1 mergeability is not approval. No chain edits/run, no dispatch, no code change, no merge, no training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -326,5 +326,43 @@
     },
     "main_policy": "keep main the clean proven line until Stage 2 proof is satisfied",
     "current_turn_effect": "record decision only; no merge, dispatch, or training"
+  },
+  "not_ready_solutions": {
+    "mode": "proposal_only",
+    "chain_reset_ref_fix": {
+      "liaison_side_only": true,
+      "keep_old_cron_disabled": true,
+      "archive_old_chain_state": "Preserve all 8 historic dispatches; do not clear chained_from while the old poller exists, because null can trigger another automatic dispatch.",
+      "new_paused_ledger": "schema_version=2, campaign_id=p2a-v2-full, status=paused, approved=false, ref=review/p2-async-evaluation, legacy_cutoff_run_id=43580242658, empty new event/session/intent lists",
+      "code_ref_change": "Replace chain_next.py hardcoded ref=main with required campaign_ref=review/p2-async-evaluation in the Liaison-owned copy only; no repo reference changes.",
+      "safe_verification": "Do not execute old poller. Use a copy/fixture-only dry-run and mocked API/HF calls; assert exact feature ref and zero POST/Colab calls."
+    },
+    "v2_data_transfer": {
+      "recommendation": "After data-use/retention approval, privately pin only V2 labeled train/validation JSONL plus manifest to an immutable HF dataset revision; authenticate download with HF_TOKEN; validate SHA, label_version=2, adjusted-return horizon/FLAT/censor policy and checkpoint manifest each session.",
+      "fallback": "Pinned private Actions artifact by run ID plus bounded authenticated chunk/stream transfer and end-to-end SHA rehearsal; less preferred due size/reliability.",
+      "repo_work": "Implement source selector, authenticated downloader/transfer, V2 validators and resume manifest compatibility.",
+      "liaison_work": "Authorize private storage/retention and provision HF read access; no raw adjusted-price table.",
+      "training": "checkpoint-150 is legacy and not resumable; restart from base model only after separate approval."
+    },
+    "campaign_state": {
+      "recommendation": "Per-campaign serialized workflow, append-only state artifact with retention beyond campaign, source run/ref/SHA/dataset revision/checkpoint hashes/approval/caps/decision, source-run idempotency, pre-dispatch intent and API acceptance reconciliation; expired/missing state fails closed.",
+      "repo_work": "Implement schema/migration, artifact read/write, concurrency, dedup/reconcile, fixture tests.",
+      "liaison_work": "Choose/provision durable retention/state store and Actions permissions; event workflow activation requires Stage 1 PR/default-branch review/approval.",
+      "not_exactly_once": "Treat event delivery as at-least-once and reconcile; do not claim cross-service transactional exactly-once."
+    },
+    "pr_1_readiness": {
+      "current_state": "open and mergeable is not equivalent to approved or checks green",
+      "blocker": "async evaluator currently defaults to legacy P1 p1_holdout.jsonl; eval code rejects train/holdout label-version mismatch, so V2 checkpoint evaluation must use a pinned V2 compatible internal validation source before PR can substantiate V2 per-checkpoint proof.",
+      "checks": "focused green tests/review, no secrets/data, instrumentation-only training changes, checkpoint completeness, 50-step cadence/milestone policy, TK2/TK5 503-only fallback, visible non-fatal evaluator failure",
+      "order": "PR1 checks/review then Stage1 only on separate Henrry approval; complete V2 transfer/coordinator then separate training approval; per-checkpoint eval; Stage2 PR(s) only after full training and model proof."
+    },
+    "no_operations_performed": {
+      "chain_script_executed": false,
+      "chain_reference_edited": false,
+      "workflow_dispatched": false,
+      "training_started": false,
+      "pr_merged": false,
+      "code_changed": false
+    }
   }
 }
