@@ -13,6 +13,7 @@ from p2_operator import gh_dispatch_args
 class CampaignPlannerTests(unittest.TestCase):
     def setUp(self):
         self.manifest = json.loads((ROOT / 'docs/p2-campaign.json').read_text())
+        self.manifest['training_approval'] = {'status': 'pending', 'approval_reference': None}
         self.manifest['dataset'].update({
             'revision': 'a' * 40,
             'signing_public_key_b64': 'dGVzdC1rZXk=',
@@ -34,6 +35,8 @@ class CampaignPlannerTests(unittest.TestCase):
                 'dataset_revision': self.manifest['dataset']['revision'],
                 'label_method': self.manifest['dataset']['label_method'],
                 'flat_band_pct': self.manifest['dataset']['flat_band_pct'],
+                'campaign_id': 'p2a-v2-full',
+                'training_approval_ref': 'HENRRY-OK',
             },
         }
 
@@ -63,11 +66,11 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertFalse(plan['full_holdout'])
 
     def test_checkpoint_requires_structural_and_v2_manifest_match(self):
-        ok, _ = checkpoint_is_v2_compatible(self.compatible_checkpoint(), self.manifest['dataset'])
+        ok, _ = checkpoint_is_v2_compatible(self.compatible_checkpoint(), self.manifest['dataset'], 'HENRRY-OK')
         self.assertTrue(ok)
         old = self.compatible_checkpoint()
         old['training_manifest']['label_version'] = 1
-        ok, reason = checkpoint_is_v2_compatible(old, self.manifest['dataset'])
+        ok, reason = checkpoint_is_v2_compatible(old, self.manifest['dataset'], 'HENRRY-OK')
         self.assertFalse(ok)
         self.assertIn('label_version', reason)
 
@@ -100,8 +103,9 @@ class CampaignPlannerTests(unittest.TestCase):
     def test_event_planner_requires_matching_checkpoint_after_session(self):
         self.manifest['training_approval'] = {'status': 'approved', 'approval_reference': 'HENRRY-OK'}
         self.manifest['training_workflow_ready'] = True
-        self.manifest['limits']['max_sessions'] = 2
-        self.manifest['limits']['max_total_steps'] = 100
+        self.manifest['limits']['max_sessions'] = 104
+        self.manifest['limits']['steps_per_session'] = 50
+        self.manifest['limits']['max_total_steps'] = 5198
         self.manifest['state']['sessions'] = [{'steps': 50}]
         event = {'run_id': 2, 'status': 'completed', 'conclusion': 'success',
                  'head_branch': self.manifest['ref']}
@@ -115,7 +119,9 @@ class CampaignPlannerTests(unittest.TestCase):
     def test_session_and_total_caps_block_training(self):
         self.manifest['training_approval'] = {'status': 'approved', 'approval_reference': 'HENRRY-OK'}
         self.manifest['training_workflow_ready'] = True
-        self.manifest['state']['sessions'] = [{'steps': 50}]
+        self.manifest['limits']['max_sessions'] = 104
+        self.manifest['limits']['max_total_steps'] = 5198
+        self.manifest['state']['sessions'] = [{'steps': 50} for _ in range(104)]
         self.manifest['state']['latest_checkpoint'] = self.compatible_checkpoint()
         self.assertIn('max_sessions cap reached', plan_operation(self.manifest, 'train')['blocked_reasons'])
 
@@ -143,6 +149,41 @@ class CampaignPlannerTests(unittest.TestCase):
         self.assertIn('git push origin HEAD:main', workflow)
         self.assertIn('docs/p2-campaign-ledger-v2.json', workflow)
         self.assertIn('queue: max', workflow)
+        self.assertIn('p2_campaign_chain.py plan', workflow)
+        self.assertIn('p2_campaign_chain.py dispatch', workflow)
+        self.assertIn('p2-campaign-chain-plan.json', workflow)
+        self.assertIn('Download non-secret source run context artifact', workflow)
+        self.assertLess(workflow.index('git push origin HEAD:main', workflow.index('p2_campaign_chain.py plan')),
+                        workflow.index('p2_campaign_chain.py dispatch'))
+        self.assertLess(workflow.index('p2_campaign_chain.py mark-dispatching'),
+                        workflow.index('p2_campaign_chain.py dispatch'))
+        self.assertIn('training_approval_ref', workflow)
+
+    def test_colab_workflow_always_installs_hf_verification_client_and_uploads_context(self):
+        workflow = (ROOT / '.github/workflows/run-colab.yml').read_text()
+        self.assertIn('"google-auth>=2.49.1"', workflow)
+        self.assertIn('"jupyter-kernel-client==0.9.0"', workflow)
+        self.assertIn('"huggingface_hub==0.30.2"', workflow)
+        self.assertIn('name: Upload non-secret campaign run context', workflow)
+        self.assertIn('campaign_chain_source_run_id', workflow)
+        self.assertIn('P2_TRAIN_APPROVAL_REF: ${{ inputs.training_approval_ref }}', workflow)
+        self.assertIn('out.write(\'\\n\')', workflow)
+        self.assertIn('Validate bounded P2a campaign session and continuation intent', workflow)
+        self.assertIn('p2_campaign_ledger.py validate-dispatch', workflow)
+        self.assertIn('Validate bounded P2a campaign session and continuation intent', workflow)
+        self.assertIn('p2_campaign_ledger.py validate-dispatch', workflow)
+
+    def test_chain_workflow_only_dispatches_after_committed_intent(self):
+        workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        self.assertIn('HF_TOKEN: ${{ secrets.HF_TOKEN }}', workflow)
+        self.assertIn('Download non-secret source run context artifact', workflow)
+        plan = workflow.index('p2_campaign_chain.py plan')
+        intent_push = workflow.index('git push origin HEAD:main', plan)
+        dispatch = workflow.index('p2_campaign_chain.py dispatch', plan)
+        self.assertLess(intent_push, dispatch)
+        self.assertIn('p2_campaign_chain.py mark-submitted', workflow)
+        self.assertIn("[ \"$WORKFLOW_RUN_CONCLUSION\" = success ]", workflow)
+        self.assertIn('dispatch_intents', (ROOT / 'scripts/p2_campaign_chain.py').read_text())
 
     def test_dispatch_argv_is_all_strings_and_uses_main_ref(self):
         plan = plan_operation(self.manifest, 'evaluate', 50)

@@ -10,6 +10,9 @@ REQUIRED_CHECKPOINT_FILES = {
 }
 ADAPTER_FILES = {'adapter_model.safetensors', 'adapter_model.bin'}
 CAMPAIGN_REF = 'main'
+CAMPAIGN_MAX_SESSION_STEPS = 50
+CAMPAIGN_MAX_TOTAL_STEPS = 5198
+CAMPAIGN_MAX_SESSIONS = 104
 
 
 def load_json(path):
@@ -30,6 +33,10 @@ def validate_manifest(manifest):
     if not all(isinstance(limits.get(key), int) and limits[key] > 0
                for key in ('max_sessions', 'steps_per_session', 'max_total_steps')):
         raise ValueError('positive max_sessions, steps_per_session, and max_total_steps are required')
+    if limits != {'max_sessions': CAMPAIGN_MAX_SESSIONS,
+                  'steps_per_session': CAMPAIGN_MAX_SESSION_STEPS,
+                  'max_total_steps': CAMPAIGN_MAX_TOTAL_STEPS}:
+        raise ValueError('campaign limits must remain 104 sessions, 50 steps/session, 5,198 total')
     profiles = manifest.get('profiles') or {}
     for key, expected in (('training_order', ['train_tk4', 'train_tk5', 'train_tk1']),
                           ('evaluation_order', ['eval_tk2', 'eval_tk5'])):
@@ -40,7 +47,7 @@ def validate_manifest(manifest):
     return True
 
 
-def checkpoint_is_v2_compatible(checkpoint, dataset):
+def checkpoint_is_v2_compatible(checkpoint, dataset, approval_reference=None):
     if not checkpoint:
         return False, 'no checkpoint supplied'
     files = set(checkpoint.get('files') or [])
@@ -55,7 +62,10 @@ def checkpoint_is_v2_compatible(checkpoint, dataset):
         'dataset_revision': dataset.get('revision'),
         'label_method': dataset.get('label_method'),
         'flat_band_pct': dataset.get('flat_band_pct'),
+        'campaign_id': 'p2a-v2-full',
     }
+    if approval_reference:
+        checks['training_approval_ref'] = approval_reference
     mismatches = [key for key, expected in checks.items() if manifest.get(key) != expected]
     if mismatches:
         return False, 'checkpoint training manifest mismatch: ' + ', '.join(mismatches)
@@ -130,12 +140,16 @@ def plan_operation(manifest, operation, checkpoint_step=None):
     requested = min(limits['steps_per_session'], remaining)
     checkpoint = state.get('latest_checkpoint')
     if sessions:
-        compatible, reason = checkpoint_is_v2_compatible(checkpoint, manifest['dataset'])
+        compatible, reason = checkpoint_is_v2_compatible(
+            checkpoint, manifest['dataset'],
+            (manifest.get('training_approval') or {}).get('approval_reference'))
         if not compatible:
             plan.update({'decision': 'blocked', 'blocked_reasons': [reason]})
             return plan
     elif checkpoint:
-        compatible, reason = checkpoint_is_v2_compatible(checkpoint, manifest['dataset'])
+        compatible, reason = checkpoint_is_v2_compatible(
+            checkpoint, manifest['dataset'],
+            (manifest.get('training_approval') or {}).get('approval_reference'))
         if not compatible:
             plan.update({'decision': 'blocked', 'blocked_reasons': [reason]})
             return plan
@@ -210,7 +224,9 @@ def plan_event(manifest, event, checkpoint=None):
         base.update({'decision': 'cap_reached', 'blocked_reasons': ['max_sessions cap reached']})
         return base
     if checkpoint is not None:
-        compatible, reason = checkpoint_is_v2_compatible(checkpoint, manifest['dataset'])
+        compatible, reason = checkpoint_is_v2_compatible(
+            checkpoint, manifest['dataset'],
+            (manifest.get('training_approval') or {}).get('approval_reference'))
         if not compatible:
             base.update({'decision': 'checkpoint_rejected', 'blocked_reasons': [reason]})
             return base

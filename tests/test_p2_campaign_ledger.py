@@ -8,8 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'scripts/p2_campaign_ledger.py'
 sys.path.insert(0, str(ROOT / 'scripts'))
-from p2_campaign_ledger import (LEGACY_CUTOFF_RUN_ID, initial_ledger,
-                                record_event, validate_ledger)
+from p2_campaign_ledger import (DATASET_REVISION, LEGACY_CUTOFF_RUN_ID,
+                                MAX_SESSIONS, MAX_SESSION_STEPS, MAX_TOTAL_STEPS,
+                                initial_ledger, record_event, validate_ledger,
+                                validate_training_dispatch)
 
 
 class CampaignLedgerTests(unittest.TestCase):
@@ -19,6 +21,9 @@ class CampaignLedgerTests(unittest.TestCase):
         self.assertEqual(ledger['schema_version'], 2)
         self.assertEqual(ledger['campaign_ref'], 'main')
         self.assertEqual(ledger['legacy_cutoff_run_id'], 43580242658)
+        self.assertEqual(ledger['max_sessions'], MAX_SESSIONS)
+        self.assertEqual(ledger['steps_per_session'], MAX_SESSION_STEPS)
+        self.assertEqual(ledger['max_total_steps'], MAX_TOTAL_STEPS)
         self.assertEqual(ledger['status'], 'paused')
         self.assertFalse(ledger['approved'])
         self.assertEqual(ledger['dispatch_intents'], [])
@@ -71,12 +76,73 @@ class CampaignLedgerTests(unittest.TestCase):
     def test_ledger_validation_refuses_unpaused_state_or_dispatch_intent(self):
         ledger = initial_ledger()
         ledger['status'] = 'active'
-        with self.assertRaisesRegex(ValueError, 'paused and unapproved'):
+        with self.assertRaisesRegex(ValueError, 'active campaign requires'):
             validate_ledger(ledger)
         ledger = initial_ledger()
-        ledger['dispatch_intents'].append({'source_run_id': 43730000001})
-        with self.assertRaisesRegex(ValueError, 'dispatch intents are disabled'):
+        ledger['seen_source_run_ids'] = [43730000001]
+        ledger['events'] = [{'source_run_id': 43730000001}]
+        ledger['ledger_revision'] = ledger['state_revision'] = 1
+        ledger['dispatch_intents'].append({
+            'intent_id': 'p2a-v2-full:test',
+            'source_run_id': 43730000001,
+            'dataset_revision': ledger['dataset_revision'],
+            'approval_reference': None,
+            'status': 'prepared',
+        })
+        with self.assertRaisesRegex(ValueError, 'cannot dispatch until approved'):
             validate_ledger(ledger)
+
+    def test_dispatch_inputs_allow_only_initial_run_or_committed_intent(self):
+        ledger = initial_ledger()
+        ledger.update({
+            'approved': True,
+            'approval_reference': 'henrry-train-approval-2026-11-16-1446-ict',
+            'approved_by': 'Henrry',
+            'approved_at': '2026-11-16 14:46 ICT',
+            'approval_recorded_at': '2026-11-16T07:00:00Z',
+        })
+        initial = {
+            'campaign_id': 'p2a-v2-full',
+            'training_approval_ref': ledger['approval_reference'],
+            'p2a_v2_dataset_revision': DATASET_REVISION,
+            'max_steps': '50', 'resume_checkpoint': '', 'campaign_chain_source_run_id': '',
+            'notebook': 'notebooks/p2a_train.ipynb', 'mode': 'full',
+            'executor': 'lv1', 'gpu': 'T4', 'train_profile': 'train_tk1',
+            'save_steps': '25', 'timeout': '28800',
+        }
+        self.assertEqual(validate_training_dispatch(ledger, initial)['session_kind'], 'initial')
+        ledger['training_workflow_ready'] = True
+        ledger['status'] = 'active'
+        source_id = 43830000001
+        ledger['seen_source_run_ids'] = [source_id]
+        ledger['events'] = [{'source_run_id': source_id}]
+        ledger['ledger_revision'] = ledger['state_revision'] = 1
+        ledger['sessions'] = [{
+            'source_run_id': source_id, 'start_step': 0, 'end_step': 50, 'steps': 50,
+            'dataset_revision': DATASET_REVISION,
+            'approval_reference': ledger['approval_reference'],
+        }]
+        intent_inputs = {
+            'campaign_id': 'p2a-v2-full',
+            'training_approval_ref': ledger['approval_reference'],
+            'p2a_v2_dataset_revision': DATASET_REVISION,
+            'max_steps': '100', 'resume_checkpoint': 'checkpoint-50',
+            'campaign_chain_source_run_id': str(source_id),
+            'notebook': 'notebooks/p2a_train.ipynb', 'mode': 'full',
+            'executor': 'lv1', 'gpu': 'T4', 'train_profile': 'train_tk1',
+            'save_steps': '25', 'timeout': '28800',
+        }
+        ledger['dispatch_intents'] = [{
+            'intent_id': f'p2a-v2-full:{source_id}', 'source_run_id': source_id,
+            'dataset_revision': DATASET_REVISION,
+            'approval_reference': ledger['approval_reference'],
+            'status': 'dispatching', 'inputs': intent_inputs,
+        }]
+        self.assertEqual(validate_training_dispatch(ledger, intent_inputs)['session_kind'],
+                         'continuation')
+        tampered = dict(intent_inputs, max_steps='150')
+        with self.assertRaisesRegex(ValueError, 'continuation input mismatch'):
+            validate_training_dispatch(ledger, tampered)
 
 
 if __name__ == '__main__':
