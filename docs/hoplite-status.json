@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T19:21:40Z",
+  "updated_at": "2026-11-16T19:40:31Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Session 2 is verified successful to checkpoint-100 on TK5. Session-3 auto-chain failed twice in coordinator event handling (not in training): repository_dispatch skipped huggingface_hub installation because it checked the empty workflow_run conclusion field; the duplicate workflow_run replay then generated a correct prepared intent but failed commit because bot Git identity was only set when a new event was recorded. The fixes are on review/p2-async-evaluation; session-3 is prepared there, not yet integrated on main. Session-2 evaluation yielded no metrics: p2a_eval subprocess failed with CalledProcessError and artifact did not retain the child stderr or metrics JSON.",
+  "blocked": "Session-3 run 43940798695 was dispatched from main and is still queued with zero jobs at the latest check (updated_at remains creation time). Per Liaison/Henrry instruction, do not duplicate or redispatch it while the ledger intent is already dispatching. The eval-metrics investigation is intentionally deferred until session 3 is confirmed running at the Colab notebook/kernel step.",
   "questions": [
-    "Liaison: independently review/merge the coordinator replay fix and prepared session-3 intent on review/p2-async-evaluation. Intent p2a-v2-full:43920577717 is checkpoint-100 -> max_steps=150, train_tk5, with approval and dataset pins unchanged. Do not dispatch before merge/verification."
+    "Monitor run 43940798695 until a run-colab job is created and the Colab notebook step starts. Only after that confirmation, diagnose the session-2 remote p2a_eval.py CalledProcessError and add stderr capture/tests; do not investigate/fix eval before the training session is confirmed running."
   ],
-  "next_step": "Run 43936005631 root cause: event was repository_dispatch for source run 43920577717. gh run view yielded source conclusion success, but WORKFLOW_RUN_CONCLUSION (workflow_run-only payload field) was empty; the HF install condition skipped, then chain planning failed ModuleNotFoundError: No module named huggingface_hub. Run 43936025227 was the duplicate workflow_run success event. Ledger record returned duplicate=true / recorded=false, then planner successfully generated session-3 intent from checkpoint-100/max_steps=150. Its later ledger commit failed Author identity unknown / fatal empty ident name because Git bot identity was only configured in the new-record branch. The events were duplicate deliveries processed in serialized coordinator jobs; there is no evidence of simultaneous ledger-write race. Fix in the review workspace: configure bot author before event record or replay planning, and derive source conclusion from the normalized event JSON for both event types; only install the pinned HF dependency if the context run ID and SHA match that event and the fetched conclusion is success. Added workflow regression assertions and a CLI plan replay test where event is already persisted but successful session is absent. Review ledger replayed the duplicate successful run and validated checkpoint-100 from the authenticated session2 artifact: session2 recorded 50->100; retry:2 marked completed; prepared session3 intent p2a-v2-full:43920577717 resumes checkpoint-100 to max_steps=150 on train_tk5, executor lv1, T4, save_steps 25; same approval and V2 revision. It remains prepared (not dispatching). Simulated dispatching transition plus validate_training_dispatch succeeds. Do not dispatch; await Liaison review/merge. Session 2 p2-evaluations artifact was inspected. Step-100 evaluation generated command passed argv string validation, but remote p2a_eval.py returned nonzero and outer job raised CalledProcessError; archive contains only validation slice/manifest, no metrics JSON or predictions. The child evaluator stderr/root return reason was not preserved, so direction accuracy, macro-F1 and Brier cannot be reported. Step-50 artifact also has no metrics. No additional evaluation/training dispatch by this agent. Full suite: 126 passed, one optional cryptography test skipped; compileall, JSON/YAML/notebook parsing and git diff check pass.",
+  "next_step": "At 2026-11-16T19:40:31Z, GitHub API reports run 43940798695 status=queued with jobs=[] and updatedAt equal to creation time. Main ledger commit cd82d6d has session-3 intent p2a-v2-full:43920577717 already marked dispatching. Do not re-dispatch; Liaison is watching the known 0-job queued pattern. Once job exists and Run notebook on Colab T4 (vncolab) is running/has entered the notebook, proceed to diagnose session-2 evaluation: downloaded p2-evaluations step-100 artifact has CalledProcessError but no child stderr/metrics. Improve remote evaluator to capture child stdout/stderr and preserve failure logs in artifact, with regression tests. Update docs/hoplite-status.json after confirmed session-3 startup and evaluation fix; no training dispatch by this agent.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "103adedad63f1ecf225d78fe66e51cca9a5859722",
+    "verified_remote_main": "cd82d6da247ba04be0002ea5bf6f8cd45d11a995",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main 103aded has a success event for run 43920577717 but has not committed session 2/session-3 intent. Coordinator dispatch and workflow_run handlers both ran; repository_dispatch skipped the HF dependency, and duplicate workflow_run failed its chain-plan commit due missing Git identity. Review branch fixes replay and records session2 plus prepared session3.",
+    "main_current_coordinator": "Main cd82d6d has session-3 intent p2a-v2-full:43920577717 marked dispatching; run 43940798695 was queued with zero jobs at 19:40:31Z. No duplicate dispatch.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -772,6 +772,22 @@
       "cause": "duplicate workflow_run event planned session3 successfully but commit failed because bot identity was configured only when event was newly recorded",
       "source_event_recorded": false,
       "intent_commit": false
+    },
+    "training_run_43940798695": {
+      "ref": "main",
+      "head_sha": "cd82d6da247ba04be0002ea5bf6f8cd45d11a995",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": [],
+      "intent_id": "p2a-v2-full:43920577717",
+      "profile": "train_tk5",
+      "resume_checkpoint": "checkpoint-100",
+      "max_steps": 150,
+      "save_steps": 25,
+      "last_observed_at": "2026-11-16T19:40:31Z",
+      "updated_at_frozen_at_creation": true,
+      "dispatch_by_this_agent": false,
+      "next_action": "wait; do not duplicate dispatch; after Colab notebook step begins, start session-2 eval stderr investigation"
     }
   },
   "training_workflow_ready": false,
