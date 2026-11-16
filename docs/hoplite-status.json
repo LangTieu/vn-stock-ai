@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T06:19:54Z",
+  "updated_at": "2026-11-16T06:20:47Z",
   "current_item": 4,
   "done": [
     1,
@@ -13,7 +13,7 @@
   "questions": [
     "After review-branch integration, confirm GitHub Actions contents:write can persist docs/p2-campaign-ledger-v2.json under the main-branch protection policy; the ledger job fails closed if commit/push is rejected."
   ],
-  "next_step": "Liaison authenticated verify/fetch and confirmed private V2 revision 4e00aefe775509fdd69fe1e70c6232468d4041d8, valid signature, matching manifest, file hashes, label semantics and temporal split; no repeat fetch is needed from this sandbox. Liaison also confirms the legacy cron disabled since 2026-11-14. Schema-v2 paused ledger migration is implemented/rehearsed on review/p2-async-evaluation; it persists completed-run ID/ref/SHA/conclusion/decision to a tracked file with atomic writes and serialized workflow commits, but is not active on main until reviewed/integrated. After integration, confirm Actions contents:write can persist ledger commits under branch protection and run the workflow-level two-event rehearsal without dispatch. The FIFO queue holds up to 100 pending runs; overflow cancellation requires manual reconciliation. Then complete untouched broader validation and workflow readiness evidence; training still requires a distinct explicit Henrry order. No training dispatched.",
+  "next_step": "Liaison-authenticated private V2 verify/fetch is confirmed; legacy p2-overnight-chain cron has been disabled since 2026-11-14. The schema-v2 paused ledger, main-only ref guard and workflow persistence are now committed on review/p2-async-evaluation (0b6f4f2, a5d8d42). They are not active on main until reviewed/integrated. After integration, verify contents:write under branch protection with two completed workflow events and duplicate replay, without dispatch. Then complete an untouched broader validation and establish real workflow readiness; training remains paused and needs Henrry’s separate explicit order.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -69,7 +69,9 @@
     "448dbfe",
     "ca439a5",
     "a4bc534",
-    "a3a7462"
+    "a3a7462",
+    "0b6f4f2",
+    "a5d8d42"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -480,12 +482,16 @@
     "live_private_hf_verify_fetch": "Liaison-authenticated verification confirmed on 2026-11-16 13:14 ICT: private repo, Ed25519 signature valid, manifest byte-identical to prepared manifest, both file SHA-256 values/row counts and label/split checks match pins; this sandbox lacks HF_TOKEN.",
     "pr_1": "closed as superseded; evaluator V2 code included in main per supplied handoff",
     "no_merge_or_training_this_turn": true,
-    "coordinator_ref_enforced_in_review_changes": "main",
-    "coordinator_durable_state": "Schema-v2 ledger and atomic event recorder implemented on review/p2-async-evaluation; two separate CLI event invocations persist and deduplicate in rehearsal. Main workflow serializes ledger writes with a FIFO queue (up to 100 pending), commits ledger-only updates using contents:write, and never auto-dispatches. Not active on main until this review change is integrated; branch protection must permit the workflow commit.",
+    "coordinator_ref_enforced_in_review_changes": "main in manifest, planner, ledger, and workflow_run filter; event workflow explicitly checks out latest main before serialized ledger commits",
+    "coordinator_durable_state": "Paused schema-v2 ledger at docs/p2-campaign-ledger-v2.json and atomic append-only event recorder are committed on review/p2-async-evaluation. Cross-process two-event rehearsal and duplicate replay passed. On integration, main workflow serializes writes (FIFO queue up to 100), checks out latest main, records only completed run metadata, and commits ledger updates; no auto-dispatch or dispatch intents. Still needs review/integration and a real workflow-level persistence rehearsal under branch protection.",
     "training_recommendation": "not justified as a predictive-skill run by n=64 ablation below majority/Brier baselines; confirm on untouched broader V2 validation first",
     "training_dispatched": false,
     "legacy_poller_cron": "Liaison confirms p2-overnight-chain cron disabled since 2026-11-14; legacy cutoff 43580242658 is preserved in new schema-v2 ledger.",
     "coordinator_ledger_path": "docs/p2-campaign-ledger-v2.json",
-    "coordinator_dry_run": "Two completed events recorded across separate CLI processes, ledger revision advanced 0->1->2, restart read preserved IDs/SHA, replay was deduplicated, dispatch_intents remained empty."
+    "coordinator_dry_run": "Two completed events recorded across separate CLI processes, ledger revision advanced 0->1->2, restart read preserved IDs/SHA, replay was deduplicated, dispatch_intents remained empty.",
+    "coordinator_ledger_implementation_commits": [
+      "0b6f4f2",
+      "a5d8d42"
+    ]
   }
 }
