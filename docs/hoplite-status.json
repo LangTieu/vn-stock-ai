@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T04:10:23.802082Z",
+  "updated_at": "2026-11-16T04:23:00Z",
   "current_item": 4,
   "done": [
     1,
@@ -11,7 +11,7 @@
   "in_progress": null,
   "blocked": "Full training/dispatch remains paused pending Henrry's separate explicit training approval. Stage 1 merge of evaluator infrastructure PR #1 also requires separate explicit approval; no merge was performed.",
   "questions": [],
-  "next_step": "Proposal-only readiness solutions are in docs/p2-solutions-not-ready.md. Key blockers: archive/reset the liaison ledger only while its poller is disabled and fix ref=review/p2-async-evaluation in the Liaison-owned copy; establish an authorized private V2 dataset transport with SHA/manifest checks and a durable campaign state artifact/ledger; make PR #1 V2-eval-compatible (it currently uses legacy P1 holdout, which the evaluator label-version guard rejects for V2). PR #1 mergeability is not approval. No chain edits/run, no dispatch, no code change, no merge, no training.",
+  "next_step": "Full static P2 v1-contamination audit is recorded in docs/p2-v1-audit.md for Liaison verification. Summary: notebook embedded scripts byte-match standalone files; current trainer blocks V1 before model loading and resume guard rejects missing/V1 manifests, but legacy P1 notebook defaults, async evaluator P1 holdout plus missing-manifest bypass, generic full workflow not wired to V2 artifacts, and Modal P1 tar smoke remain RISK. V2 smoke/ablation jobs consume private V2 artifacts. Repo data/docs correctly identify V1 provenance and V2 outputs; P3 LiteLLM configs have no P1 dataset refs. Audit is static only; private remote artifacts/Modal volume were not inspected. No code changes, dispatch, merge, or training.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -66,7 +66,8 @@
     "cf27ab2",
     "448dbfe",
     "ca439a5",
-    "a4bc534"
+    "a4bc534",
+    "a3a7462"
   ],
   "last_ablation_attempt": {
     "run_id": 43725322373,
@@ -364,5 +365,32 @@
       "pr_merged": false,
       "code_changed": false
     }
+  },
+  "p2_v1_contamination_audit": {
+    "audit_ref": "review/p2-async-evaluation",
+    "audit_head": "a3a7462",
+    "main_comparison": "5301343",
+    "overall": "RISK: no evidence of successful mixed-version current training, but three legacy default/consumer paths remain",
+    "items": {
+      "1_notebook_embedded_parity": "CLEAN: train/eval/validation/numerics embedded source byte-identical to standalone; defaults remain P1 and are detailed in item 6",
+      "2_async_eval": "RISK: P1 holdout default; version mismatch blocks if V2 manifest exists, but missing-manifest bypass allows legacy eval; checkpoint enumerator does not require V2 manifest",
+      "3_workflow_jobs": "RISK: smoke/ablation source V2 artifact; generic P2 full path is not wired to V2 data and inherits P1 notebook defaults; trainer gate aborts V1 before model load",
+      "4_resume": "CLEAN for current trainer: V1/missing manifest rejected and dataset hash/version/config compared; checkpoint-150 legacy, not resumable",
+      "5_data_docs": "CLEAN: repository data only calendar file; V1 baseline explicitly diagnostic; V2 reports distinctly named/hash-labeled and provenance inputs explicitly P1",
+      "6_hf_p1_refs": "RISK: notebook default P1 train/holdout, async evaluator P1 holdout and legacy MD5s persist in P2 paths",
+      "7_modal": "RISK: helper points at P1 volume/archive and P1 MD5s; current trainer guard should abort but path is stale, not V2 smoke",
+      "8_p3_litellm": "CLEAN: no P1 dataset/P2a checkpoint/version refs in targeted gateway configs"
+    },
+    "embedded_script_sha256": {
+      "scripts/p2a_train.py": "05d2fce7db5021327e199f63542176ebe58049d23d908fe96e4d3f1c5a59774c",
+      "scripts/p2a_eval.py": "ea290b516090a9ca8b8ee91bab08ec3c96122c25721e45674225ac3d21aaaa76",
+      "scripts/p2a_validation.py": "1dc014f6e95d560e905039f9293d530a97fcadef627a6d0ef4b5170ae76306d8",
+      "scripts/p2a_numerics.py": "e5af0fe580ebb51221d2e30545829df26050f362209b64f1cd7d491d0f6b111a"
+    },
+    "private_artifacts_or_modal_volume_inspected": false,
+    "code_changed": false,
+    "workflow_dispatched": false,
+    "merged": false,
+    "training_started": false
   }
 }
