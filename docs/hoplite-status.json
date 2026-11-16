@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T17:23:42Z",
+  "updated_at": "2026-11-16T17:41:06Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Retry:2 profile has been changed to train_tk5 per Henrry order and is prepared on the sole review branch. This checkout is not the LV1 Actions runner and has no local train_tk5 token or P2_TRAIN_TK5_EMAIL environment variable; scripts/p2_profile_check.py --kind train --profile train_tk5 fails here with FileNotFoundError. The GitHub App cannot read repository Actions variables (403 Resource not accessible by integration), so current LV1 profile identity/readiness cannot be freshly verified in this run. Earlier Liaison-reported installation/PROFILE_VERIFIED is historical, not a current check. Do not dispatch from this task; Liaison should run the profile checker on LV1 before merge/dispatch.",
+  "blocked": "Session-2 retry:2 run 43920577717 is in progress on main at the Colab notebook/assignment step after approval, V2 verification and bounded campaign validation passed. TK5 profile was freshly verified on LV1 per Liaison. No assignment response/runtime-start evidence is available yet because the run is still active; logs are not published until the job completes. Retry:2 must not be dispatched again or duplicated.",
   "questions": [
-    "Liaison: please verify train_tk5 on LV1 with scripts/p2_profile_check.py --kind train --profile train_tk5 (expected output PROFILE_VERIFIED kind=train profile=train_tk5) before merging/dispatching the prepared retry:2. This checkout cannot access LV1 credential files or repo Actions variables."
+    "Continue monitoring run 43920577717. If it completes/fails, inspect full job log and artifacts, record whether POST /tun/m/assign succeeded and whether the notebook/kernel started; update this status on review/p2-async-evaluation. No additional training dispatch."
   ],
-  "next_step": "Henrry ordered session-2 retry profile TK4 -> TK5. On review/p2-async-evaluation, prepared intent p2a-v2-full:43881234317:retry:2 has been changed to train_tk5; resume checkpoint-50, max_steps=100, save_steps=25, lv1/T4, approval henrry-train-approval-2026-11-16-1446-ict and V2 dataset revision 4e00aefe775509fdd69fe1e70c6232468d4041d8 are unchanged. Intent remains prepared (no dispatch). Ledger and a simulated dispatching copy pass campaign validation. Profile readiness cannot be freshly verified from this checkout: /home/hoplite/.config/vncolab/train_tk5/token.json is absent; P2_TRAIN_TK5_EMAIL is not injected; the Actions variables API returned HTTP 403 Resource not accessible by integration. The prescribed local profile check fails with FileNotFoundError: credential profile train_tk5 is not installed. Liaison previously reported TK5 installed and PROFILE_VERIFIED at 21:1x ICT, but that is historical and does not confirm it remains valid now. Liaison must rerun scripts/p2_profile_check.py --kind train --profile train_tk5 on LV1 before merging/dispatching. No training dispatch made. Earlier three assignment POST ReadTimeouts justify TK5 per Henrry order as the next profile-specific test; if TK5 also times out, keep the campaign on hold pending endpoint recovery. The independent checkpoint-50 eval run 43909652724 also failed at assignment with the same 120s ReadTimeout (no 412/503, no notebook, no metrics); no further evaluator dispatch.",
+  "next_step": "Fast-failing run 43919909754 root cause was a ledger-state validation gate: retry:2 was still prepared when validate_training_dispatch requires dispatching/submitted. Liaison marked the same intent dispatching, validated exact inputs (dispatch_allowed=true), committed that ledger state on main and dispatched run 43920577717. This was fixed without changing training inputs. Current run 43920577717 is in_progress on main head 6af3e4922c6fc91505f3d2e266bd5452a9ae8802; approval, bounded continuation validation and pinned V2 dataset verification passed. Run notebook on Colab T4 (vncolab) step began at 17:39:11Z and remains in progress at last check. Liaison freshly verified train_tk5 on LV1 before dispatch. No conclusion/runtime/step outcome yet; GitHub withholds logs until step/job completes. No retry or duplicate dispatch. Watch run 43920577717. On completion inspect logs/artifacts and verify assignment success, notebook entered, checkpoint 75/100 lineage and any new error before further action. If assignment POST times out on TK5, it will be a fourth attempt across TK4 x2/TK2/TK5 and strengthens shared endpoint instability; hold campaign for recovery. No training was dispatched by this monitor task.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "bfe2a9aa2ff755718838ac11da59989b651b058c",
+    "verified_remote_main": "6af3e4922c6fc91505f3d2e266bd5452a9ae8802",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main bfe2a9a has retry:2 as prepared with train_tk4; this review branch updates the prepared profile to train_tk5 per Henrry order. No dispatch until Liaison verifies the LV1 profile and merges.",
+    "main_current_coordinator": "Main 6af3e49 has retry:2 (TK5) marked dispatching; run 43920577717 is active at the Colab notebook/assignment step after preflight gates passed.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -703,6 +703,36 @@
         "dispatch_by_this_agent": false,
         "profile_verification": "not freshly verified in current workspace; LV1 check required before merge/dispatch"
       }
+    },
+    "training_run_43920577717": {
+      "ref": "main",
+      "head_sha": "6af3e4922c6fc91505f3d2e266bd5452a9ae8802",
+      "status": "in_progress",
+      "conclusion": null,
+      "intent_id": "p2a-v2-full:43881234317:retry:2",
+      "profile": "train_tk5",
+      "profile_verification": "PROFILE_VERIFIED fresh on LV1 per Liaison",
+      "resume_checkpoint": "checkpoint-50",
+      "max_steps": 100,
+      "save_steps": 25,
+      "approval_gate": "passed",
+      "campaign_validation": "passed",
+      "pinned_v2_dataset_verification": "passed",
+      "colab_step_started_at": "2026-11-16T17:39:11Z",
+      "colab_assignment_result": null,
+      "notebook_started": null,
+      "last_observed_at": "2026-11-16T17:41:06Z",
+      "log_availability": "run is active; provider has not exposed job logs yet",
+      "dispatch_by_this_task": false
+    },
+    "training_run_43919909754": {
+      "ref": "main",
+      "conclusion": "failure",
+      "failure_step": "Validate bounded P2a campaign session and continuation intent",
+      "root_cause": "retry:2 intent was prepared; validate_training_dispatch requires its status be dispatching or submitted",
+      "fix": "Liaison transitioned retry:2 from prepared to dispatching, reran exact-input validation successfully, committed ledger state, then dispatched 43920577717",
+      "colab_assignment_started": false,
+      "training_started": false
     }
   },
   "training_workflow_ready": false,
