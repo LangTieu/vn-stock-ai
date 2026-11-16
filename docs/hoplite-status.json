@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T07:06:49Z",
+  "updated_at": "2026-11-16T07:07:37Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Training remains blocked: campaign is intentionally paused/unapproved, no explicit training approval reference is recorded, and training_workflow_ready is false. The requested GitHub workflow-level ledger persistence test cannot be performed without dispatching source workflow events; the user explicitly prohibited dispatch. Additionally, GitHub reports main is not branch-protected, so the specific “under branch protection” condition does not exist.",
+  "blocked": "Training remains blocked: ledger is deliberately paused and unapproved, training_workflow_ready is false, and no explicit training approval reference is recorded. The requested GitHub Actions persistence verification under branch protection is unresolved because GitHub returns 404 Branch not protected and no source workflow events were dispatched.",
   "questions": [
-    "Liaison/Henrry: enable appropriate main branch protection for workflow ledger commits, then authorize a safe non-training method to produce completed source workflow events (or approve another workflow-owned fixture-event entry point) for GitHub Actions persistence/replay verification. No such test was run because dispatch was prohibited."
+    "Liaison/Henrry: please configure main branch protection appropriate for the coordinator ledger contents:write commit and authorize a non-training source workflow event or fixture-event entry point so GitHub Actions persistence and duplicate replay can be verified without training."
   ],
-  "next_step": "Main is 31b4eb3 (parents 8488d1c and f38f81b); campaign ref/filter and the paused schema-v2 ledger are present on main. Ledger starts at revision 0 with legacy cutoff 43580242658, no seen runs, no approvals, and no dispatch intents. Local cross-process persistence/replay tests pass, but GitHub Actions workflow-level GITHUB_TOKEN persistence was not tested: no source workflow events were dispatched per instruction, and no completed p2-campaign workflow runs exist. The main branch is not protected (GitHub API returned 404 Branch not protected), so the requested under-branch-protection verification cannot be satisfied as configured. Before auto-continuation, configure protection and use authorized non-training workflow events to verify the job; keep campaign paused and training_workflow_ready false.",
+  "next_step": "Liaison merge 31b4eb3 is verified: main has parents 8488d1c and f38f81b, campaign ref/filter main, and the paused schema-v2 ledger with cutoff 43580242658. Four local ledger tests pass across separate processes and duplicate replay. GitHub Actions persistence is not verified: the main branch has no protection (GET returned 404 Branch not protected), and no p2-campaign workflow runs/events exist; no source event was generated because dispatch was forbidden. Configure branch protection and authorize a safe non-training event rehearsal to verify the actual GITHUB_TOKEN ledger commit and replay behavior. Keep ledger paused, training_workflow_ready false, and do not train until readiness and separate explicit approval.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -320,14 +320,17 @@
     "chain_reference_audit_commit": "cf27ab2"
   },
   "merge_plan": {
-    "state": "superseded_by_main_v2_merge",
+    "state": "superseded_by_main_v2_merge_and_ledger_integration",
     "superseded_decision_time": "2026-11-16 12:58 ICT",
     "previous_two_stage_plan": "Superseded by Henrry direct order; do not apply.",
     "main": {
-      "commit": "8488d1cd1de5d0b15d51f3be19d8dbd5694cea37",
-      "campaign_parent": "e4ed66ee63838f678228f116804885c6231c242d",
-      "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
-      "state": "active V2 campaign source of truth"
+      "commit": "31b4eb3e5a5a856732b9616e51936e7ea3c20c5b",
+      "parents": [
+        "8488d1cd1de5d0b15d51f3be19d8dbd5694cea37",
+        "f38f81bef151cb58cb53373873f4d2fc79da5b4f"
+      ],
+      "state": "active V2 line with schema-v2 coordinator ledger",
+      "merge_base_of_two_parents": "e4ed66ee63838f678228f116804885c6231c242d"
     },
     "pr_1": {
       "number": 1,
@@ -336,7 +339,14 @@
       "required_evaluator_content": "included in main V2 line per Henrry/Liaison handoff"
     },
     "campaign_ref": "main",
-    "additional_merge_or_dispatch_this_turn": false
+    "additional_merge_or_dispatch_this_turn": false,
+    "ledger_integration": {
+      "merged_by": "Liaison",
+      "commit": "31b4eb3e5a5a856732b9616e51936e7ea3c20c5b",
+      "review_branch_commit": "f38f81bef151cb58cb53373873f4d2fc79da5b4f",
+      "tree_check": "campaign ref main; workflow_run filter main; paused schema-v2 ledger present",
+      "workflow_persistence": "not verified; no source events or workflow dispatch in this turn"
+    }
   },
   "not_ready_solutions": {
     "mode": "historical_proposal_with_remaining_coordinator_blockers",
@@ -357,15 +367,15 @@
     },
     "campaign_state": {
       "recommendation": "Per-campaign serialized workflow, append-only state artifact with retention beyond campaign, source run/ref/SHA/dataset revision/checkpoint hashes/approval/caps/decision, source-run idempotency, pre-dispatch intent and API acceptance reconciliation; expired/missing state fails closed.",
-      "repo_work": "Implemented on review/p2-async-evaluation: paused schema-v2 ledger, atomic append-only event records, source-run deduplication, main-ref enforcement, legacy cutoff, and cross-process rehearsal. Workflow persists ledger-only updates to main using contents:write with serialized FIFO concurrency (queue max 100); this reconciliation must first be integrated.",
-      "liaison_work": "Legacy cron disabled per Liaison. Main is currently not branch-protected (GitHub returned 404 Branch not protected); configure protection for GITHUB_TOKEN contents:write ledger commits before expecting protected durable persistence.",
+      "repo_work": "Schema-v2 paused ledger and atomic event recorder integrated to main at 31b4eb3; main-only ref validation, legacy cutoff, event ID/ref/SHA/conclusion/decision, duplicate detection, and no dispatch intents. Local separate-process rehearsal passes.",
+      "liaison_work": "Liaison confirms legacy cron disabled. GitHub API reports main is not branch-protected (404); enable required protection if persistence must be verified under protection.",
       "not_exactly_once": "Treat event delivery as at-least-once and reconcile; do not claim cross-service transactional exactly-once.",
-      "event_workflow_activation": "Merged to main at 31b4eb3; workflow filter is main and schema-v2 ledger is present. The real event-driven ledger job has not yet run; no source workflow events were dispatched.",
+      "event_workflow_activation": "On main at 31b4eb3. Workflow filter is main, checkout is main, concurrency queue max is serialized, and completed-run path records then attempts ledger-only contents:write commit. No real workflow-run event has exercised this path.",
       "required_campaign_ref": "main; active planner rejects any other ref.",
-      "dry_run_rehearsal": "Passed locally across two independent CLI processes and a replay: revision 0->1->2, both source IDs/SHA persisted, duplicate rejected, no dispatch intents.",
-      "remaining_blocker": "Workflow-level persistence under branch protection remains unverified; training_workflow_ready false and no explicit training approval reference; confirmatory validation still required.",
-      "auto_chain": "Disabled. The workflow records completed source events only; it never dispatches training or creates dispatch intents.",
-      "persistence_verification": "Local two-process state/replay test passed; GitHub Actions workflow-level GITHUB_TOKEN write/push is unverified because no event/dispatch was permitted and no workflow runs exist."
+      "dry_run_rehearsal": "Local tests: 4/4 passed; two independent CLI processes recorded events, revision 0→1→2, persisted IDs/SHA, replay deduplicated, no dispatch intents.",
+      "remaining_blocker": "Enable branch protection and authorize a non-training source event/rehearsal to prove Actions contents:write persistence and duplicate replay. Training readiness remains false; no explicit training approval; untouched validation confirmation remains required.",
+      "auto_chain": "Disabled. Current coordinator only records completed source events and does not create dispatch intents or dispatch training.",
+      "persistence_verification": "GitHub Actions workflow-level GITHUB_TOKEN commit/push remains unverified: main branch protection GET returns 404 Branch not protected; no p2-campaign runs exist and no event-generating dispatch was allowed."
     },
     "pr_1_readiness": {
       "current_state": "closed as superseded after Henrry direct order; evaluator content included in main V2 line per supplied handoff",
@@ -384,7 +394,8 @@
       "cross_process_ledger_rehearsal": true,
       "workflow_run_events_dispatched": false,
       "workflow_ledger_persistence_verified": false,
-      "main_branch_protection_present": false
+      "main_branch_protection_present": false,
+      "coordinator_merge_by_liaison_this_turn": true
     }
   },
   "p2_v1_contamination_audit": {
@@ -489,8 +500,8 @@
     "live_private_hf_verify_fetch": "Liaison-authenticated verification confirmed on 2026-11-16 13:14 ICT: private repo, Ed25519 signature valid, manifest byte-identical to prepared manifest, both file SHA-256 values/row counts and label/split checks match pins; this sandbox lacks HF_TOKEN.",
     "pr_1": "closed as superseded; evaluator V2 code included in main per supplied handoff",
     "no_merge_or_training_this_turn": true,
-    "coordinator_ref_enforced_in_review_changes": "main in manifest, planner, ledger, and workflow_run filter; event workflow explicitly checks out latest main before serialized ledger commits",
-    "coordinator_durable_state": "Paused schema-v2 ledger at docs/p2-campaign-ledger-v2.json and atomic append-only event recorder are committed on review/p2-async-evaluation. Cross-process two-event rehearsal and duplicate replay passed. On integration, main workflow serializes writes (FIFO queue up to 100), checks out latest main, records only completed run metadata, and commits ledger updates; no auto-dispatch or dispatch intents. Still needs review/integration and a real workflow-level persistence rehearsal under branch protection.",
+    "coordinator_ref_enforced_in_review_changes": "integrated to main at 31b4eb3: campaign manifest, planner, ledger, and workflow filter all require main.",
+    "coordinator_durable_state": "Schema-v2 paused ledger and atomic append-only recorder are present on main at 31b4eb3. Four local ledger tests pass, including separate CLI processes, append persistence, duplicate replay, fail-closed ref/cutoff, and no dispatch intents. Actual GitHub Actions GITHUB_TOKEN persistence is unverified.",
     "training_recommendation": "not justified as a predictive-skill run by n=64 ablation below majority/Brier baselines; confirm on untouched broader V2 validation first",
     "training_dispatched": false,
     "legacy_poller_cron": "Liaison confirms p2-overnight-chain cron disabled since 2026-11-14; legacy cutoff 43580242658 is preserved in new schema-v2 ledger.",
@@ -501,8 +512,8 @@
       "a5d8d42"
     ],
     "review_branch_campaign_ref": "main",
-    "main_current_campaign_ref": "review/p2-async-evaluation until reconciliation commit is integrated",
-    "main_current_coordinator": "p2-campaign.yml still filters workflow_run to the feature branch and does not yet persist the new ledger; the ref/ledger integration changes are review-branch-only.",
+    "main_current_campaign_ref": "main",
+    "main_current_coordinator": "p2-campaign.yml filters workflow_run to main, checks out main, and persists append-only ledger updates with serialized concurrency and contents:write; no auto-dispatch.",
     "merge_parent_previous_main": "8488d1cd1de5d0b15d51f3be19d8dbd5694cea37",
     "main_campaign_ref": "main",
     "main_campaign_workflow_run_filter": [
@@ -519,15 +530,15 @@
       "seen_source_run_ids": [],
       "dispatch_intents": []
     },
-    "main_merge_status": "Liaison merged campaign branch at 31b4eb3; two parents 8488d1c and f38f81b; verified by remote ref and tree.",
-    "branch_protection_check": "GitHub API GET repos/LangTieu/vn-stock-ai/branches/main/protection returned 404: Branch not protected.",
+    "main_merge_status": "Liaison merge at 31b4eb3; parents 8488d1c and f38f81b; remote head and tree independently inspected.",
+    "branch_protection_check": "GitHub API GET repos/LangTieu/vn-stock-ai/branches/main/protection returned 404 Branch not protected; requested under-protection verification cannot be exercised because no protection is configured.",
     "workflow_persistence_verification": {
-      "status": "not performed against GitHub Actions workflow",
+      "status": "not run; cannot meet requested under-branch-protection condition",
       "workflow_run_events_on_main": 0,
-      "reason": "No workflow dispatch/event generation allowed in this turn; no completed workflow_run events available to drive the main ledger job.",
+      "reason": "No source workflow events were available and user required no dispatch; main is not branch-protected.",
       "duplicate_replay_on_actions": false,
       "contents_write_under_branch_protection": false,
-      "local_cross_process_cli_rehearsal": "passed earlier: two sequential CLI process invocations persisted revision 0->1->2; duplicate replay did not append; dispatch_intents stayed empty. This is not proof of Actions GITHUB_TOKEN persistence or branch-protection behavior."
+      "local_cross_process_cli_rehearsal": "4 focused tests pass; separate process events persist revision 0→1→2, replay deduplicates, and dispatch intents remain empty. This does not test GitHub Actions GITHUB_TOKEN push or branch protection."
     },
     "branch_protection_enabled": false,
     "training_workflow_ready": false,
@@ -537,7 +548,8 @@
       "additional_merge_this_turn": false,
       "p2_campaign_workflow_dispatched": false,
       "source_workflow_events_generated": false
-    }
+    },
+    "merge_base_for_ledger_integration": "e4ed66ee63838f678228f116804885c6231c242d"
   },
   "training_workflow_ready": false
 }
