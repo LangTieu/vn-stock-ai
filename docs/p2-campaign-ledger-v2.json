@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "campaign_id": "p2a-v2-full",
-  "status": "paused",
+  "status": "active",
   "approved": true,
   "campaign_ref": "main",
   "legacy_cutoff_run_id": 43580242658,
@@ -81,16 +81,59 @@
       "recorded_at": "2026-11-16T15:32:28Z"
     }
   ],
-  "dispatch_intents": [],
-  "sessions": [],
-  "latest_v2_compatible_checkpoint": null,
+  "dispatch_intents": [
+    {
+      "intent_id": "p2a-v2-full:43881234317",
+      "source_run_id": 43881234317,
+      "source_sha": "66669bda2b5702d8ee2607e635ad7d8946c45cfb",
+      "target_max_steps": 100,
+      "resume_checkpoint": "checkpoint-50",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "status": "prepared",
+      "inputs": {
+        "notebook": "notebooks/p2a_train.ipynb",
+        "mode": "full",
+        "training_approval_ref": "henrry-train-approval-2026-11-16-1446-ict",
+        "gpu": "T4",
+        "timeout": "28800",
+        "max_steps": "100",
+        "resume_checkpoint": "checkpoint-50",
+        "p2a_v2_dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+        "save_steps": "25",
+        "executor": "lv1",
+        "train_profile": "train_tk4",
+        "campaign_id": "p2a-v2-full",
+        "campaign_chain_source_run_id": "43881234317"
+      },
+      "prepared_at": "2026-11-16T15:32:33Z"
+    }
+  ],
+  "sessions": [
+    {
+      "source_run_id": 43881234317,
+      "source_sha": "66669bda2b5702d8ee2607e635ad7d8946c45cfb",
+      "start_step": 0,
+      "end_step": 50,
+      "steps": 50,
+      "checkpoint_name": "checkpoint-50",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "campaign_chain_source_run_id": null,
+      "profile": "train_tk4"
+    }
+  ],
+  "latest_v2_compatible_checkpoint": {
+    "name": "checkpoint-50",
+    "step": 50
+  },
   "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
   "approved_by": "Henrry",
   "approved_at": "2026-11-16 14:46 ICT",
   "approval_recorded_at": "2026-11-16T08:34:05Z",
-  "training_workflow_ready": false,
+  "training_workflow_ready": true,
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 9
+  "state_revision": 10
 }
