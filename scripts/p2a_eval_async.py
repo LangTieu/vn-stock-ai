@@ -173,8 +173,10 @@ def preserve_remote_eval_logs(archive, output_dir):
 
 
 def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha256, train_sha256,
-                     full_validation_approval_ref=''):
+                     dataset_revision, full_validation_approval_ref=''):
     train_sha256 = train_sha256_pin(train_sha256)
+    if not isinstance(dataset_revision, str) or not re.fullmatch(r'[0-9a-f]{40}', dataset_revision):
+        raise ValueError('pinned V2 dataset revision must be a 40-character immutable SHA')
     train_src = Path(__file__).with_name('p2a_train.py').read_text(encoding='utf-8')
     numerics_src = Path(__file__).with_name('p2a_numerics.py').read_text(encoding='utf-8')
     eval_src = Path(__file__).with_name('p2a_eval.py').read_text(encoding='utf-8')
@@ -201,7 +203,7 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         f"repo={REPO_ID!r}",
         f"dataset_repo={V2_DATASET_REPO!r}",
         f"train_sha256={train_sha256!r}",
-        f"dataset_revision={os.environ.get('P2A_V2_DATASET_REVISION', '')!r}",
+        f"dataset_revision={dataset_revision!r}",
         f"validation_sha256={validation_sha256!r}",
         f"validation_md5={validation_md5!r}",
         f"full_validation_approval_ref={full_validation_approval_ref!r}",
@@ -328,6 +330,7 @@ def run_colab_eval_staged(step, full_holdout, profile, home, validation, full_va
                                         validation['validation_md5'],
                                         validation['validation_sha256'],
                                         train_sha256_pin(validation['dataset']['files']['train-v2.jsonl']),
+                                        dataset['revision'],
                                         full_validation_approval_ref), encoding='utf-8')
     archive = out_dir / 'colab-eval.zip'
     result_json = out_dir / 'vncolab-result.json'

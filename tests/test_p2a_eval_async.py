@@ -13,12 +13,16 @@ from scripts.p2a_eval_async import (
     train_sha256_pin,
 )
 
+DATASET_REVISION = '4e00aefe775509fdd69fe1e70c6232468d4041d8'
+
 
 class AsyncEvalBundleTests(unittest.TestCase):
     def test_remote_eval_bundle_uses_pinned_v2_validation_not_public_p1(self):
-        source = build_remote_job(50, False, '/tmp/p2-eval', 'md5', 'sha256', 'train-sha')
+        source = build_remote_job(50, False, '/tmp/p2-eval', 'md5', 'sha256', 'train-sha',
+                                  DATASET_REVISION)
         self.assertIn("filename='validation-v2.jsonl'", source)
-        self.assertIn('dataset_revision=', source)
+        self.assertIn(f'dataset_revision={DATASET_REVISION!r}', source)
+        self.assertNotIn("dataset_revision=''", source)
         self.assertIn('pinned V2 validation SHA-256 mismatch', source)
         self.assertIn("'--expected-dataset-repo'", source)
         self.assertNotIn('vn-stock-ai-p1', source)
@@ -26,7 +30,7 @@ class AsyncEvalBundleTests(unittest.TestCase):
     def test_train_hash_object_is_normalized_before_embedding_subprocess_argv(self):
         train_sha = 'a' * 64
         source = build_remote_job(50, False, '/tmp/p2-eval', 'md5', 'b' * 64,
-                                  {'sha256': train_sha})
+                                  {'sha256': train_sha}, DATASET_REVISION)
         self.assertIn(f'train_sha256={train_sha!r}', source)
         self.assertNotIn("train_sha256={'sha256':", source)
         self.assertIn('all(isinstance(arg, str) for arg in cmd)', source)
@@ -36,9 +40,14 @@ class AsyncEvalBundleTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'SHA-256'):
                 train_sha256_pin(value)
 
+    def test_invalid_dataset_revision_is_rejected_before_remote_job_generation(self):
+        for revision in ('', 'main', '4e00aefe'):
+            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, 'immutable SHA'):
+                build_remote_job(150, False, '/tmp/p2-eval', 'md5', 'sha', 'train-sha', revision)
+
     def test_remote_evaluator_captures_and_persists_child_stdout_and_stderr(self):
         source = build_remote_job(100, False, '/tmp/p2-eval', 'md5', 'b' * 64,
-                                  {'sha256': 'a' * 64})
+                                  {'sha256': 'a' * 64}, DATASET_REVISION)
         self.assertIn('subprocess.run(cmd, capture_output=True, text=True, check=False)', source)
         self.assertIn("diagnostics=Path('/content/p2-eval')/'diagnostics'", source)
         self.assertIn('\nrun_eval_command(cmd, diagnostics)\nmetrics=', source)
