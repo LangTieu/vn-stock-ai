@@ -195,7 +195,7 @@
         "p2a_v2_dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
         "save_steps": "25",
         "executor": "lv1",
-        "train_profile": "train_tk4",
+        "train_profile": "train_tk5",
         "campaign_id": "p2a-v2-full",
         "campaign_chain_source_run_id": "43881234317"
       },
@@ -230,5 +230,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 20
+  "state_revision": 21
 }
