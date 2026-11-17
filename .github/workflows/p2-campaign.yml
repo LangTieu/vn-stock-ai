@@ -88,9 +88,24 @@ jobs:
           PY
             elif [ "$EVENT_NAME" = "repository_dispatch" ]; then
               [[ "$WORKFLOW_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Invalid source run id in campaign event" >&2; exit 2; }
-              gh run view "$WORKFLOW_RUN_ID" --json databaseId,status,conclusion,headBranch,headSha \
-                | jq '{run_id: .databaseId, status: .status, conclusion: .conclusion,
-                      head_branch: .headBranch, head_sha: .headSha}' > /tmp/p2-campaign-event.json
+              source_run_json=''
+              for attempt in $(seq 1 12); do
+                source_run_json=$(gh run view "$WORKFLOW_RUN_ID" \
+                  --json databaseId,status,conclusion,headBranch,headSha)
+                source_status=$(jq -r '.status // ""' <<<"$source_run_json")
+                if [ "$source_status" = completed ]; then
+                  break
+                fi
+                echo "Source run $WORKFLOW_RUN_ID is $source_status; waiting before ledger processing ($attempt/12)"
+                sleep 5
+              done
+              if [ "$source_status" != completed ]; then
+                echo "Source run is still active; defer recording/chaining to its workflow_run completed event."
+                exit 0
+              fi
+              jq '{run_id: .databaseId, status: .status, conclusion: .conclusion,
+                   head_branch: .headBranch, head_sha: .headSha}' \
+                <<<"$source_run_json" > /tmp/p2-campaign-event.json
             fi
           if [ "$EVENT_NAME" = "workflow_run" ] || [ "$EVENT_NAME" = "repository_dispatch" ]; then
             git config user.name "github-actions[bot]"
