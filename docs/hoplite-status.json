@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17T01:37:23Z",
+  "updated_at": "2026-11-17T01:54:55Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Checkpoint-150 evaluation run 43983639137 failed in model loading, not assignment/revision: preserved p2a_eval.stderr.log shows Transformers ValueError “Unrecognized model” because the evaluator attempted to load tokenizer/config from the adapter-only checkpoint directory. Session 6 run 43994816307 remains active at the Colab notebook step; the fix is evaluator-only and did not alter it.",
+  "blocked": "Checkpoint-250 isolated evaluation run 43999104674 has been dispatched from main 2fb619f with full_holdout=false and is pending with zero jobs, expected behind session-6 run 43994816307 in the shared concurrency group. No metrics/stderr yet. Session 6 remains active and untouched.",
   "questions": [
-    "Liaison: review/merge the base-model-tokenizer fix and notebook parity update from review/p2-async-evaluation. After integration, an isolated checkpoint-150/200 eval may be dispatched when session 6’s shared Colab slot is free; no evaluation was dispatched by this task."
+    "Monitor eval run 43999104674 until completion. Report direction_accuracy, macro_f1, brier from metrics.json or exact preserved p2a_eval.stderr.log from p2-evaluation-trend. Do not dispatch another evaluation or training automatically."
   ],
-  "next_step": "Run 43983639137 preserved p2a_eval.stderr.log, giving exact failure: transformers.AutoTokenizer.from_pretrained(a.adapter) raised ValueError: Unrecognized model in the checkpoint-150 PEFT directory because adapter checkpoints have no config.json/model_type or tokenizer assets. Fix p2a_eval.load_eval_tokenizer to load tokenizer from base MODEL_ID Qwen/Qwen2.5-14B-Instruct; model PEFT adapter still loads from the selected checkpoint. Synchronize notebook-embedded p2a_eval.py with canonical script. Regression test asserts base MODEL_ID is used. Session 5 run 43983394555 succeeded on TK1 through global_step 250; checkpoint-250 verified by Liaison, loss step250=0.1714. Session 6 run 43994816307 remains in progress at Colab notebook step at 01:37:23Z (TK1, checkpoint-250 to max_steps=300). Evaluator-only changes did not touch it. No eval or training dispatch made. Full suite: 130 passed, one optional cryptography test skipped; compileall, YAML/JSON/notebook parsing and git diff check pass. Change committed to sole review branch, awaiting Liaison review/integration.",
+  "next_step": "Dispatched exactly one isolated p2-eval.yml run for checkpoint_step=250, full_holdout=false on main 2fb619f730d87f58846a0b362c54459d52a7e815. Run 43999104674 status pending with zero jobs at 2026-11-17T01:54:55Z; queued behind active session-6 run 43994816307. Do not duplicate. When complete, report direction accuracy, macro-F1 and Brier if metrics.json exists, otherwise diagnose preserved p2a_eval.stderr.log. Session 6 was not touched.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "acf71cb21fd3fef86d0e143ff15d1ee6f673d338",
+    "verified_remote_main": "2fb619f730d87f58846a0b362c54459d52a7e815",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main acf71cb has session 5 complete and session 6 run 43994816307 active. Review branch updates p2a_eval tokenizer source; not merged.",
+    "main_current_coordinator": "Main 2fb619f has base-model tokenizer eval fix. Session 6 run 43994816307 remains active; checkpoint-250 eval run 43999104674 is pending behind shared concurrency.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -926,7 +926,7 @@
       "profile": "train_tk1",
       "resume_checkpoint": "checkpoint-250",
       "max_steps": 300,
-      "last_observed_at": "2026-11-17T01:37:23Z",
+      "last_observed_at": "2026-11-17T01:54:55Z",
       "last_observed_step": "Run notebook on Colab T4 (vncolab) in progress",
       "interference_by_this_task": false
     },
@@ -939,6 +939,21 @@
       "regression": "fake AutoTokenizer records source and asserts MODEL_ID",
       "tests": "130 passed; one optional cryptography test skipped; compile/YAML/JSON/notebook/diff checks passed",
       "evaluation_dispatch": "none; await Liaison integration and session-6 concurrency slot"
+    },
+    "checkpoint_250_eval_run_43999104674": {
+      "ref": "main",
+      "head_sha": "2fb619f730d87f58846a0b362c54459d52a7e815",
+      "workflow": "p2-eval.yml",
+      "status": "pending",
+      "conclusion": null,
+      "checkpoint_step": 250,
+      "full_holdout": false,
+      "created_at": "2026-11-17T01:54:47Z",
+      "last_observed_at": "2026-11-17T01:54:55Z",
+      "metrics": null,
+      "artifact": "p2-evaluation-trend",
+      "queue_reason": "shared Colab concurrency held by session-6 run 43994816307",
+      "dispatched_by_this_task": true
     }
   },
   "training_workflow_ready": false,
