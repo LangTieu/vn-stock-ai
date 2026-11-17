@@ -96,6 +96,19 @@ class TrainingNotebookSyncTests(unittest.TestCase):
         self.assertIn('python3 -m pip install --quiet "huggingface_hub==0.30.2"', workflow)
         self.assertIn("(.run_id|tostring) == $run_id and .head_sha == $head_sha", workflow)
 
+    def test_repository_dispatch_waits_for_source_completion_before_recording(self):
+        workflow = (ROOT / '.github/workflows/p2-campaign.yml').read_text()
+        repo_event = workflow.split('elif [ "$EVENT_NAME" = "repository_dispatch" ]; then', 1)[1]
+        repo_event = repo_event.split('\n            fi', 1)[0]
+        wait_loop = repo_event.index('for attempt in $(seq 1 12)')
+        status_check = repo_event.index('if [ "$source_status" = completed ]')
+        event_write = repo_event.index('/tmp/p2-campaign-event.json')
+        self.assertLess(wait_loop, status_check)
+        self.assertLess(status_check, event_write)
+        self.assertIn('defer recording/chaining to its workflow_run completed event', repo_event)
+        self.assertIn('sleep 5', repo_event)
+        self.assertIn('for attempt in $(seq 1 12)', repo_event)
+
     def test_notebook_exposes_verified_dataset_hashes_and_ablation_settings(self):
         notebook = json.loads((ROOT / 'notebooks/p2a_train.ipynb').read_text())
         settings = ''.join(notebook['cells'][1]['source'])

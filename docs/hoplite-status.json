@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17T01:37:23Z",
+  "updated_at": "2026-11-17T03:00:59Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Checkpoint-150 evaluation run 43983639137 failed in model loading, not assignment/revision: preserved p2a_eval.stderr.log shows Transformers ValueError “Unrecognized model” because the evaluator attempted to load tokenizer/config from the adapter-only checkpoint directory. Session 6 run 43994816307 remains active at the Colab notebook step; the fix is evaluator-only and did not alter it.",
+  "blocked": "Coordinator repository_dispatch for session 6 was premature: source run 43994816307 was still in_progress when fetched, so the strict ledger recorder rejected it. Review fix waits up to 60s and defers still-active sources to the completed workflow_run event. Session-7 intent is prepared, not dispatched. Checkpoint-250 eval 43999104674 has now completed successfully; metrics are recorded and are below majority/constant-prevalence baselines for accuracy/Brier.",
   "questions": [
-    "Liaison: review/merge the base-model-tokenizer fix and notebook parity update from review/p2-async-evaluation. After integration, an isolated checkpoint-150/200 eval may be dispatched when session 6’s shared Colab slot is free; no evaluation was dispatched by this task."
+    "Liaison: independently review/merge repository_dispatch completion wait and prepared session-7 intent from review/p2-async-evaluation. Session-7 inputs are checkpoint-300 -> max_steps=350, train_tk1, same approval/dataset; no dispatch by this agent."
   ],
-  "next_step": "Run 43983639137 preserved p2a_eval.stderr.log, giving exact failure: transformers.AutoTokenizer.from_pretrained(a.adapter) raised ValueError: Unrecognized model in the checkpoint-150 PEFT directory because adapter checkpoints have no config.json/model_type or tokenizer assets. Fix p2a_eval.load_eval_tokenizer to load tokenizer from base MODEL_ID Qwen/Qwen2.5-14B-Instruct; model PEFT adapter still loads from the selected checkpoint. Synchronize notebook-embedded p2a_eval.py with canonical script. Regression test asserts base MODEL_ID is used. Session 5 run 43983394555 succeeded on TK1 through global_step 250; checkpoint-250 verified by Liaison, loss step250=0.1714. Session 6 run 43994816307 remains in progress at Colab notebook step at 01:37:23Z (TK1, checkpoint-250 to max_steps=300). Evaluator-only changes did not touch it. No eval or training dispatch made. Full suite: 130 passed, one optional cryptography test skipped; compileall, YAML/JSON/notebook parsing and git diff check pass. Change committed to sole review branch, awaiting Liaison review/integration.",
+  "next_step": "Session-6 coordinator 44005077476 exact root: repository_dispatch fired while source training run 43994816307 was still in_progress; coordinator passed that status to ledger.record_event, which correctly raised ValueError: only completed workflow events may be recorded. Fix waits up to 12*5 sec then no-ops (workflow_run completed trigger will process if still active). Failure did not arise from checkpoint verification or campaign inputs. Regression covers the wait/defer guard. Session6 completed successfully at step300 on TK1. Session7 is prepared on review ledger as p2a-v2-full:43994816307, checkpoint-300 -> max_steps=350/save_steps=25, TK1, same approval and dataset. Ledger includes session6 250->300, retry:1 completed, checkpoint-300; bounded validator passes on simulated dispatching copy. No session7 dispatch; Liaison merge/verification required. Checkpoint-250 isolated eval 43999104674 completed success using the fixed diagnostics/tokenizer path. Metrics on a balanced 64-row slice: direction_accuracy 0.4375, macro_f1 0.3454545455, brier 0.2608962298, ECE4 0.1120249445. Baselines: majority accuracy 0.50/macro-F1 0.33333; constant-prevalence Brier 0.25. Result is exploratory, accuracy below majority and Brier worse than prevalence baseline; not evidence of predictive skill. Verification for coordinator/eval fixes: 131 tests pass (one optional cryptography test skipped), compileall, JSON/YAML/notebook parsing and diff checks pass. No training dispatch by this agent.",
   "commits": [
     "855cad8",
     "baf7261",
@@ -481,7 +481,7 @@
     "verify_fetch_status": "confirmed by Liaison with HF_TOKEN; do not repeat from this sandbox"
   },
   "main_v2_reconciliation": {
-    "verified_remote_main": "acf71cb21fd3fef86d0e143ff15d1ee6f673d338",
+    "verified_remote_main": "2fb619f730d87f58846a0b362c54459d52a7e815",
     "merge_parent_campaign_branch": "e4ed66ee63838f678228f116804885c6231c242d",
     "merge_base": "5301343fdc54767df02e1ac43076c7670b7bc07a",
     "campaign_ref": "main",
@@ -503,7 +503,7 @@
     ],
     "review_branch_campaign_ref": "main",
     "main_current_campaign_ref": "main",
-    "main_current_coordinator": "Main acf71cb has session 5 complete and session 6 run 43994816307 active. Review branch updates p2a_eval tokenizer source; not merged.",
+    "main_current_coordinator": "Main 2fb619f has sessions through checkpoint-250 and session-6 run 43994816307 active at the last observed status (now confirmed successful by Liaison). Review branch records its checkpoint-300 success and prepared session-7 intent plus tokenizer fix.",
     "training_approval_recorded_on_review_branch": {
       "campaign": "p2a-v2-full",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
@@ -770,20 +770,14 @@
     },
     "coordinator_replay_fix": {
       "branch": "review/p2-async-evaluation",
-      "changes": "configure bot identity before event write/chain planning; install pinned huggingface_hub based on normalized source event conclusion and exact run_id/head_sha context match; replay test for recorded event with missing session",
-      "session3_intent": {
-        "intent_id": "p2a-v2-full:43920577717",
-        "status": "completed",
-        "checkpoint": "checkpoint-100",
-        "target_max_steps": 150,
-        "profile": "train_tk5"
-      },
-      "status": "prepared",
-      "checkpoint": "checkpoint-100",
-      "max_steps": 150,
-      "profile": "train_tk5",
-      "dispatch_by_this_agent": false,
-      "validation": "126 tests pass; validator passes on simulated dispatching copy"
+      "change": "repository_dispatch waits up to 60s for source run status completed; if still active exits cleanly so workflow_run completed event will persist/process it",
+      "regression": "workflow test asserts completion wait precedes event file write and record handler",
+      "session7_intent": "p2a-v2-full:43994816307",
+      "status": "tested on review; session 6 replayed, session 7 intent prepared; integration pending",
+      "checkpoint": "checkpoint-300",
+      "target_max_steps": 350,
+      "profile": "train_tk1",
+      "dispatch_by_this_agent": false
     },
     "training_run_43936005631": {
       "status": "failure",
@@ -922,23 +916,89 @@
     "training_run_43994816307": {
       "ref": "main",
       "head_sha": "abf18a8308c10092875d702077981197d2b16510",
-      "status": "in_progress",
+      "conclusion": "success",
+      "steps_completed": 300,
       "profile": "train_tk1",
-      "resume_checkpoint": "checkpoint-250",
-      "max_steps": 300,
-      "last_observed_at": "2026-11-17T01:37:23Z",
-      "last_observed_step": "Run notebook on Colab T4 (vncolab) in progress",
-      "interference_by_this_task": false
+      "checkpoint_275_and_300": "Liaison verified complete with V2 manifest, ten files each",
+      "loss_step_300": 0.1735,
+      "loss_steps_298_300": [
+        0.1696,
+        0.1672,
+        0.1735
+      ],
+      "training_succeeded": true,
+      "status": "success",
+      "checkpoint_300": "Liaison verified 10 files and V2 manifest",
+      "last_observed_at": "2026-11-17T03:00:13Z",
+      "this_task_interference": false
     },
     "eval_tokenizer_fix": {
       "branch": "review/p2-async-evaluation",
       "file": "scripts/p2a_eval.py",
-      "root_cause": "AutoTokenizer read adapter-only checkpoint folder missing base config/tokenizer files",
-      "fix": "load tokenizer from base MODEL_ID, keep PeftModel.from_pretrained(base, adapter)",
-      "notebook_embedded_script": "synchronized with canonical p2a_eval.py",
-      "regression": "fake AutoTokenizer records source and asserts MODEL_ID",
-      "tests": "130 passed; one optional cryptography test skipped; compile/YAML/JSON/notebook/diff checks passed",
-      "evaluation_dispatch": "none; await Liaison integration and session-6 concurrency slot"
+      "root_cause": "AutoTokenizer loaded from adapter-only PEFT checkpoint directory; it lacked config.json/model_type/tokenizer assets.",
+      "fix": "load tokenizer from configured base MODEL_ID and continue loading PEFT weights from checkpoint",
+      "notebook_embedded_script": "synchronized with canonical evaluator",
+      "regression": "fake loader asserts MODEL_ID is used",
+      "tests": "130 passed, one optional cryptography test skipped; compile/YAML/JSON/notebook/diff all pass",
+      "status": "committed on review; awaiting Liaison integration"
+    },
+    "checkpoint_250_eval_run_43999104674": {
+      "ref": "main",
+      "head_sha": "2fb619f730d87f58846a0b362c54459d52a7e815",
+      "workflow": "p2-eval.yml",
+      "status": "success",
+      "conclusion": "success",
+      "checkpoint_step": 250,
+      "full_holdout": false,
+      "profile": "TK2",
+      "row_count": 64,
+      "direction_accuracy": 0.4375,
+      "macro_f1": 0.34545454545454546,
+      "brier": 0.2608962298485342,
+      "ece_4_bins": 0.11202494450774494,
+      "baselines": {
+        "majority_accuracy": 0.5,
+        "majority_macro_f1": 0.3333333333333333,
+        "constant_prevalence_brier": 0.25
+      },
+      "artifact": "p2-evaluation-trend/step-250/slice/metrics.json",
+      "interpretation": "exploratory; accuracy below majority and Brier worse than constant prevalence, not predictive-skill evidence",
+      "metrics": {
+        "count": 64,
+        "direction_accuracy": 0.4375,
+        "macro_f1": 0.34545454545454546,
+        "brier": 0.2608962298485342,
+        "ece_4_bins": 0.11202494450774494
+      }
+    },
+    "coordinator_run_44005077476": {
+      "event": "repository_dispatch p2-campaign-run-completed",
+      "source_run_id": 43994816307,
+      "source_status_at_fetch": "in_progress",
+      "source_conclusion_at_fetch": null,
+      "exact_exception": "ValueError: only completed workflow events may be recorded",
+      "failure_location": "scripts/p2_campaign_ledger.py record_event",
+      "cause": "repository_dispatch fired from final workflow job before source run status transitioned to completed",
+      "ledger_event_recorded": false,
+      "session7_intent_prepared_by_this_run": false,
+      "training_dispatched": false,
+      "root_cause": "repository_dispatch source run 43994816307 was still in_progress; ledger recorder rejected event because only completed events may be recorded",
+      "fix": "repository_dispatch polls source completion up to 60 seconds then exits without recording so completed workflow_run trigger can process it"
+    },
+    "session7_intent_prepared": {
+      "intent_id": "p2a-v2-full:43994816307",
+      "status": "prepared",
+      "source_run_id": 43994816307,
+      "checkpoint": "checkpoint-300",
+      "target_max_steps": 350,
+      "profile": "train_tk1",
+      "save_steps": 25,
+      "executor": "lv1",
+      "gpu": "T4",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "validator": "passes on simulated dispatching copy",
+      "dispatch_by_this_agent": false
     }
   },
   "training_workflow_ready": false,
