@@ -1,0 +1,4 @@
+# Chỉ dùng khi chạy local (`npm run dev`). Sao chép thành .dev.vars — KHÔNG commit.
+SESSION_SECRET=thay-bang-chuoi-ngau-nhien-it-nhat-32-ky-tu
+DEV_LOGIN=1
+# RESEND_API_KEY=  (để trống thì nút Gửi báo "chưa cấu hình")
