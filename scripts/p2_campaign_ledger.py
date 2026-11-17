@@ -286,7 +286,7 @@ def validate_training_dispatch(ledger, inputs):
         raise ValueError('campaign dispatch must use the full P2a training notebook')
     if inputs.get('executor') != 'lv1' or inputs.get('gpu') != 'T4':
         raise ValueError('campaign dispatch must use the approved lv1/T4 profile')
-    if inputs.get('train_profile') not in {'train_tk4', 'train_tk5', 'train_tk1'}:
+    if inputs.get('train_profile') not in {'train_tk4', 'train_tk5', 'train_tk1', 'train_tk6'}:
         raise ValueError('campaign dispatch requires an approved named training profile')
     save_steps = str(inputs.get('save_steps'))
     if inputs.get('training_approval_ref') != ledger['approval_reference']:

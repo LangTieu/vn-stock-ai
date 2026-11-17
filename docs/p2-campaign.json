@@ -49,7 +49,8 @@
     "training_order": [
       "train_tk4",
       "train_tk5",
-      "train_tk1"
+      "train_tk1",
+      "train_tk6"
     ],
     "training_fallback_only_on": "confirmed /tun/m/assign HTTP 503",
     "evaluation_order": [
