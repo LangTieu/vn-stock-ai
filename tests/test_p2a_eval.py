@@ -3,7 +3,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from p2a_eval import calibration, validate_eval_label_versions
+from p2a_eval import calibration, load_eval_tokenizer, validate_eval_label_versions
+from p2a_train import MODEL_ID
 
 
 def record(truth, prediction='DOWN', p_up=0.5):
@@ -14,6 +15,18 @@ def record(truth, prediction='DOWN', p_up=0.5):
 
 
 class EvaluationBaselineTests(unittest.TestCase):
+    def test_adapter_evaluation_loads_tokenizer_from_base_model_not_lora_checkpoint(self):
+        calls = []
+
+        class TokenizerLoader:
+            @staticmethod
+            def from_pretrained(source):
+                calls.append(source)
+                return 'tokenizer'
+
+        self.assertEqual(load_eval_tokenizer(TokenizerLoader), 'tokenizer')
+        self.assertEqual(calls, [MODEL_ID])
+
     def test_train_and_holdout_label_versions_must_match(self):
         validate_eval_label_versions({'label_version': 2}, {'label_version': 2})
         with self.assertRaisesRegex(ValueError, 'version 2'):
