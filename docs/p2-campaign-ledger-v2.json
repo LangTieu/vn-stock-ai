@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "campaign_id": "p2a-v2-full",
-  "status": "active",
+  "status": "paused",
   "approved": true,
   "campaign_ref": "main",
   "legacy_cutoff_run_id": 43580242658,
@@ -990,7 +990,7 @@
       "resume_checkpoint": "checkpoint-550",
       "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
-      "status": "submitted",
+      "status": "failed",
       "inputs": {
         "notebook": "notebooks/p2a_train.ipynb",
         "mode": "full",
@@ -1008,7 +1008,10 @@
       },
       "prepared_at": "2026-11-17T14:26:02Z",
       "dispatching_at": "2026-11-17T14:26:03Z",
-      "submitted_at": "2026-11-17T14:26:07Z"
+      "submitted_at": "2026-11-17T14:26:07Z",
+      "child_run_id": 44103066731,
+      "child_conclusion": "failure",
+      "failed_at": "2026-11-17T14:26:49Z"
     }
   ],
   "sessions": [
@@ -1157,5 +1160,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 98
+  "state_revision": 99
 }
