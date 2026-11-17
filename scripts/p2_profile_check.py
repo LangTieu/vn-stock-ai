@@ -6,7 +6,7 @@ import stat
 from pathlib import Path
 
 ALLOWED = {
-    'train': ('train_tk4', 'train_tk5', 'train_tk1'),
+    'train': ('train_tk4', 'train_tk5', 'train_tk1', 'train_tk6'),
     'eval': ('eval_tk2', 'eval_tk5'),
 }
 

@@ -74,7 +74,7 @@ def _eligible_run_context(event, context, ledger):
         return False, 'source run save_steps differs from the 25-step or final-cap save rule'
     if _positive_int(context.get('timeout'), 'timeout') != 28800:
         return False, 'source run timeout differs from the approved 8-hour session cap'
-    if context.get('train_profile') not in {'train_tk4', 'train_tk5', 'train_tk1'}:
+    if context.get('train_profile') not in {'train_tk4', 'train_tk5', 'train_tk1', 'train_tk6'}:
         return False, 'source run does not identify an approved training profile'
     if not ledger.get('approved') or not ledger.get('approval_reference'):
         return False, 'campaign approval is not recorded'
@@ -355,7 +355,7 @@ def prepare_retry(ledger, parent_run_id, failed_run_id, train_profile=None):
 
     inputs = dict(parent.get('inputs') or {})
     profile = train_profile or inputs.get('train_profile')
-    if profile not in {'train_tk4', 'train_tk5', 'train_tk1'}:
+    if profile not in {'train_tk4', 'train_tk5', 'train_tk1', 'train_tk6'}:
         raise ValueError('retry requires an approved named training profile')
     target_step = _positive_int(inputs.get('max_steps'), 'target max_steps')
     current_step = session['end_step']

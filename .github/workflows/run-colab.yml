@@ -77,7 +77,7 @@ on:
       train_profile:
         description: "Liaison-installed named training credential profile (used only with executor=lv1)"
         type: choice
-        options: [train_tk4, train_tk5, train_tk1]
+        options: [train_tk4, train_tk5, train_tk1, train_tk6]
         required: true
         default: train_tk4
       drive_inventory:
@@ -375,7 +375,7 @@ jobs:
           "$PY" -m pip install -q "huggingface_hub==0.30.2" "cryptography>=44,<47"
           if [ "$EXECUTOR" = "lv1" ]; then
             case "$TRAIN_PROFILE" in
-              train_tk4|train_tk5|train_tk1) ;;
+              train_tk4|train_tk5|train_tk1|train_tk6) ;;
               *) echo "Unsupported named training profile" >&2; exit 2 ;;
             esac
             export VNCOLAB_HOME="$HOME/.config/vncolab/$TRAIN_PROFILE"
