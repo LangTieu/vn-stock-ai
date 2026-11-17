@@ -1,4 +1,18 @@
 {
+  "mail_web": {
+    "updated_at": "2026-11-17T05:45:00Z",
+    "path": "mail-web/",
+    "status": "code + local preview done; not deployed to Cloudflare",
+    "approach": "Cloudflare Email Routing -> Worker aistockvn-mail (store raw in R2, metadata in D1, then forward to skillshare01br@mail.com); send via Resend from admin@aistockvn.com; Google ID token verified server-side -> HttpOnly session cookie; host mail.aistockvn.com",
+    "verification": "13 unit tests + 5 local e2e smoke tests (wrangler dev, temp store), typecheck, mobile 390x844 browser check",
+    "needs_liaison": [
+      "v0: no v0 key in Hoplite sandbox -> Qoder runs `node mail-web/design/v0_generate.mjs /home/agentuser/.v0_api_key` on LV1 (or IB1 with its path) and shares design/v0-output",
+      "Cloudflare deploy: Hoplite has no Cloudflare token; run the README deploy steps (D1, R2, secrets RESEND_API_KEY from file, SESSION_SECRET, npm run deploy), then switch the admin@ Email Routing rule to Send to Worker aistockvn-mail",
+      "Google OAuth Web Client ID with origin https://mail.aistockvn.com; confirm admin@aistockvn.com is a Google account",
+      "Resend: confirm domain aistockvn.com is verified for sending",
+      "Repo: Hoplite cannot create LangTieu repos; create LangTieu/aistockvn-mail and connect it to Hoplite to move mail-web/ there"
+    ]
+  },
   "updated_at": "2026-11-17T04:00:22Z",
   "current_item": 4,
   "done": [
