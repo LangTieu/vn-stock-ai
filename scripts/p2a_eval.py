@@ -2,6 +2,7 @@
 import argparse
 import json
 import math
+import random
 from pathlib import Path
 from p2a_train import (MODEL_ID, LABELS, dataset_label_spec, dataset_path,
                        messages, rows)
@@ -27,7 +28,109 @@ def load_eval_tokenizer(auto_tokenizer=None):
     return auto_tokenizer.from_pretrained(MODEL_ID)
 
 
-def calibration(records):
+def direction_probability(model, tokenizer, row, torch):
+    prefix = tokenizer.apply_chat_template(messages(row), tokenize=True,
+                                           add_generation_prompt=True)
+    scores = []
+    for label in ('TĂNG', 'GIẢM'):
+        suffix = tokenizer.encode(label, add_special_tokens=False) + [tokenizer.eos_token_id]
+        ids = torch.tensor([prefix + suffix], device=model.device)
+        logits = model(ids).logits[0, len(prefix) - 1:-1].float()
+        scores.append(torch.log_softmax(logits, -1).gather(
+            1, torch.tensor(suffix, device=model.device)[:, None]).sum().item())
+    delta = max(-700, min(700, scores[1] - scores[0]))
+    return 1 / (1 + math.exp(delta))
+
+
+def _classification_metrics(records, prediction_key='prediction', probability_key='p_up'):
+    if not records:
+        raise ValueError('Cannot compute evaluation metrics for an empty sample')
+    confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
+                 for truth in ('UP', 'DOWN')}
+    for record in records:
+        truth, prediction = record['truth'], record[prediction_key]
+        if truth not in confusion or prediction not in confusion[truth]:
+            raise ValueError('Evaluation labels and predictions must be UP or DOWN')
+        confusion[truth][prediction] += 1
+    precision, recall, f1 = {}, {}, {}
+    for label in ('UP', 'DOWN'):
+        tp = confusion[label][label]
+        fp = sum(confusion[other][label] for other in ('UP', 'DOWN') if other != label)
+        fn = sum(confusion[label][other] for other in ('UP', 'DOWN') if other != label)
+        precision[label] = tp / (tp + fp) if tp + fp else 0.0
+        recall[label] = tp / (tp + fn) if tp + fn else 0.0
+        f1[label] = (2 * precision[label] * recall[label] /
+                     (precision[label] + recall[label])
+                     if precision[label] + recall[label] else 0.0)
+    n = len(records)
+    accuracy = sum(r[prediction_key] == r['truth'] for r in records) / n
+    brier = sum((r[probability_key] - (r['truth'] == 'UP')) ** 2 for r in records) / n
+    return {
+        'direction_accuracy': accuracy,
+        'macro_f1': sum(f1.values()) / 2,
+        'brier': brier,
+        'class_precision': precision,
+        'class_recall': recall,
+        'class_f1': f1,
+        'confusion_matrix': confusion,
+    }
+
+
+def _percentile(sorted_values, probability):
+    index = (len(sorted_values) - 1) * probability
+    lower = int(index)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    fraction = index - lower
+    return sorted_values[lower] * (1 - fraction) + sorted_values[upper] * fraction
+
+
+def bootstrap_confidence_intervals(records, resamples=1000, seed=42,
+                                   prediction_key='prediction', probability_key='p_up'):
+    if resamples < 1:
+        raise ValueError('bootstrap resamples must be positive')
+    if not records:
+        raise ValueError('Cannot bootstrap an empty evaluation sample')
+    rng = random.Random(seed)
+    n = len(records)
+    samples = {'direction_accuracy': [], 'macro_f1': [], 'brier': []}
+    for _ in range(resamples):
+        draw = [records[rng.randrange(n)] for _ in range(n)]
+        metrics = _classification_metrics(draw, prediction_key, probability_key)
+        for key in samples:
+            samples[key].append(metrics[key])
+    return {key: {
+        'lower': _percentile(sorted(values), 0.025),
+        'upper': _percentile(sorted(values), 0.975),
+        'level': 0.95,
+        'resamples': resamples,
+    } for key, values in samples.items()}
+
+
+def bootstrap_learning_signal(records, resamples=1000, seed=42):
+    if not records or not all('base_prediction' in r and 'base_p_up' in r for r in records):
+        raise ValueError('Paired base-model predictions are required for learning-signal intervals')
+    if resamples < 1:
+        raise ValueError('bootstrap resamples must be positive')
+    rng = random.Random(seed)
+    n = len(records)
+    differences = {'direction_accuracy_delta': [], 'macro_f1_delta': [], 'brier_delta': []}
+    for _ in range(resamples):
+        draw = [records[rng.randrange(n)] for _ in range(n)]
+        model = _classification_metrics(draw)
+        base = _classification_metrics(draw, 'base_prediction', 'base_p_up')
+        differences['direction_accuracy_delta'].append(model['direction_accuracy'] - base['direction_accuracy'])
+        differences['macro_f1_delta'].append(model['macro_f1'] - base['macro_f1'])
+        differences['brier_delta'].append(model['brier'] - base['brier'])
+    result = {}
+    for key, values in differences.items():
+        values.sort()
+        result[key] = {'lower': _percentile(values, .025), 'upper': _percentile(values, .975),
+                       'level': .95, 'resamples': resamples}
+    return result
+
+
+def calibration(records, bootstrap_resamples=1000, bootstrap_seed=42):
+    point = _classification_metrics(records)
     bins = []
     for level in range(4):
         group = [r for r in records if r['probability_level'] == level + 1]
@@ -35,19 +138,10 @@ def calibration(records):
                      'mean_p_up': sum(r['p_up'] for r in group) / len(group) if group else None,
                      'observed_up_rate': sum(r['truth'] == 'UP' for r in group) / len(group) if group else None})
     n = len(records)
-    confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
-                 for truth in ('UP', 'DOWN')}
-    for record in records:
-        confusion[record['truth']][record['prediction']] += 1
-    class_f1 = {}
-    for label in ('UP', 'DOWN'):
-        tp = confusion[label][label]
-        fp = sum(confusion[other][label] for other in ('UP', 'DOWN') if other != label)
-        fn = sum(confusion[label][other] for other in ('UP', 'DOWN') if other != label)
-        denom = 2 * tp + fp + fn
-        class_f1[label] = 2 * tp / denom if denom else 0.0
     class_counts = {label: sum(record['truth'] == label for record in records)
                     for label in ('UP', 'DOWN')}
+    if not all(class_counts.values()):
+        raise ValueError('Evaluation slice must contain both UP and DOWN labels')
     majority = 'UP' if class_counts['UP'] >= class_counts['DOWN'] else 'DOWN'
     prior_up = class_counts['UP'] / n
     baseline_confusion = {truth: {prediction: 0 for prediction in ('UP', 'DOWN')}
@@ -59,20 +153,22 @@ def calibration(records):
         tp = baseline_confusion[label][label]
         fp = baseline_confusion['DOWN' if label == 'UP' else 'UP'][label]
         fn = baseline_confusion[label]['DOWN' if label == 'UP' else 'UP']
-        denom = 2 * tp + fp + fn
-        baseline_f1[label] = 2 * tp / denom if denom else 0.0
-    return {'count': n,
-            'direction_accuracy': sum(r['prediction'] == r['truth'] for r in records) / n,
-            'macro_f1': sum(class_f1.values()) / len(class_f1),
-            'class_f1': class_f1,
-            'confusion_matrix': confusion,
-            'generation_accuracy': sum(r['generated_direction'] == LABELS[r['truth']] for r in records) / n,
-            'generation_invalid': sum(r['generated_direction'] not in LABELS.values() for r in records),
-            'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
-            'brier': sum((r['p_up'] - (r['truth'] == 'UP')) ** 2 for r in records) / n,
-            'ece_4_bins': sum(b['count'] / n * abs(b['mean_p_up'] - b['observed_up_rate'])
-                              for b in bins if b['count']), 'bins': bins,
-            'baselines': {
+        denominator = 2 * tp + fp + fn
+        baseline_f1[label] = 2 * tp / denominator if denominator else 0.0
+    result = {
+        'count': n,
+        'n': n,
+        **point,
+        'confidence_intervals': bootstrap_confidence_intervals(
+            records, bootstrap_resamples, bootstrap_seed),
+        'generation_accuracy': sum(r['generated_direction'] == LABELS[r['truth']] for r in records) / n,
+        'generation_invalid': sum(r['generated_direction'] not in LABELS.values() for r in records),
+        'invalid_output_rate': sum(r['raw_generation'] not in LABELS.values() for r in records) / n,
+        'exact_format_rate': sum(r['raw_generation'] in LABELS.values() for r in records) / n,
+        'brier': point['brier'],
+        'ece_4_bins': sum(b['count'] / n * abs(b['mean_p_up'] - b['observed_up_rate'])
+                          for b in bins if b['count']), 'bins': bins,
+        'baselines': {
                 'class_counts': class_counts,
                 'majority_class': majority,
                 'majority_accuracy': max(class_counts.values()) / n,
@@ -80,7 +176,59 @@ def calibration(records):
                 'constant_prevalence_p_up': prior_up,
                 'constant_prevalence_brier': prior_up * (1 - prior_up),
                 'coin_flip_expected_accuracy': 0.5,
-            }}
+        },
+    }
+    if all('base_prediction' in record and 'base_p_up' in record for record in records):
+        base = _classification_metrics(records, 'base_prediction', 'base_p_up')
+        base['confidence_intervals'] = bootstrap_confidence_intervals(
+            records, bootstrap_resamples, bootstrap_seed,
+            prediction_key='base_prediction', probability_key='base_p_up')
+        result['base_model'] = base
+        result['learning_signal'] = {
+            'direction_accuracy_delta': point['direction_accuracy'] - base['direction_accuracy'],
+            'macro_f1_delta': point['macro_f1'] - base['macro_f1'],
+            'brier_delta': point['brier'] - base['brier'],
+        }
+        result['learning_signal_confidence_intervals'] = bootstrap_learning_signal(
+            records, bootstrap_resamples, bootstrap_seed)
+    return result
+
+
+def trend_row(metrics):
+    intervals = metrics.get('confidence_intervals') or {}
+    base = metrics.get('base_model') or {}
+    base_ci = base.get('confidence_intervals') or {}
+    precision = metrics.get('class_precision') or {}
+    recall = metrics.get('class_recall') or {}
+    return {
+        'checkpoint_step': metrics.get('checkpoint_step'),
+        'full_holdout': metrics.get('full_holdout'),
+        'n': metrics.get('n', metrics.get('count')),
+        'direction_accuracy': metrics.get('direction_accuracy'),
+        'direction_accuracy_ci_lower': (intervals.get('direction_accuracy') or {}).get('lower'),
+        'direction_accuracy_ci_upper': (intervals.get('direction_accuracy') or {}).get('upper'),
+        'macro_f1': metrics.get('macro_f1'),
+        'macro_f1_ci_lower': (intervals.get('macro_f1') or {}).get('lower'),
+        'macro_f1_ci_upper': (intervals.get('macro_f1') or {}).get('upper'),
+        'brier': metrics.get('brier'),
+        'brier_ci_lower': (intervals.get('brier') or {}).get('lower'),
+        'brier_ci_upper': (intervals.get('brier') or {}).get('upper'),
+        'base_model_accuracy': base.get('direction_accuracy'),
+        'base_model_accuracy_ci_lower': (base_ci.get('direction_accuracy') or {}).get('lower'),
+        'base_model_accuracy_ci_upper': (base_ci.get('direction_accuracy') or {}).get('upper'),
+        'base_model_macro_f1': base.get('macro_f1'),
+        'base_model_brier': base.get('brier'),
+        'direction_accuracy_delta': (metrics.get('learning_signal') or {}).get('direction_accuracy_delta'),
+        'macro_f1_delta': (metrics.get('learning_signal') or {}).get('macro_f1_delta'),
+        'brier_delta': (metrics.get('learning_signal') or {}).get('brier_delta'),
+        'up_precision': precision.get('UP'),
+        'up_recall': recall.get('UP'),
+        'down_precision': precision.get('DOWN'),
+        'down_recall': recall.get('DOWN'),
+        'invalid_output_rate': metrics.get('invalid_output_rate'),
+        'ece_4_bins': metrics.get('ece_4_bins'),
+        'dataset_sha256': metrics.get('dataset_sha256'),
+    }
 
 
 def main():
@@ -132,15 +280,9 @@ def main():
     with Path(a.output).open('w') as stream, torch.inference_mode():
         for row in rows(holdout, a.limit):
             prefix = tok.apply_chat_template(messages(row), tokenize=True, add_generation_prompt=True)
-            scores = []
-            for label in ['TĂNG', 'GIẢM']:
-                suffix = tok.encode(label, add_special_tokens=False) + [tok.eos_token_id]
-                ids = torch.tensor([prefix + suffix], device=model.device)
-                logits = model(ids).logits[0, len(prefix)-1:-1].float()
-                scores.append(torch.log_softmax(logits, -1).gather(
-                    1, torch.tensor(suffix, device=model.device)[:, None]).sum().item())
-            delta = max(-700, min(700, scores[1] - scores[0]))
-            p_up = 1 / (1 + math.exp(delta))
+            with model.disable_adapter():
+                base_p_up = direction_probability(model, tok, row, torch)
+            p_up = direction_probability(model, tok, row, torch)
             ids = torch.tensor([prefix], device=model.device)
             generated = model.generate(ids, attention_mask=torch.ones_like(ids), max_new_tokens=16,
                 do_sample=False, pad_token_id=tok.eos_token_id)
@@ -151,6 +293,8 @@ def main():
             record = {'index': len(records), 'ticker': ticker, 'time_bucket': time_bucket,
                 'truth': row['metadata']['label']['future_direction_120'],
                 'prediction': 'UP' if p_up >= 0.5 else 'DOWN', 'p_up': p_up,
+                'base_prediction': 'UP' if base_p_up >= 0.5 else 'DOWN',
+                'base_p_up': base_p_up,
                 'probability_level': min(4, int(p_up * 4) + 1),
                 'generated_direction': gen_dir, 'raw_generation': raw_gen}
             records.append(record)

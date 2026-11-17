@@ -23,6 +23,21 @@ LOCK_ROOT = Path.home() / '.cache/vn-stock-ai/p2-eval'
 QUEUE_ROOT = LOCK_ROOT / 'queue'
 RESULT_ROOT = Path(os.environ.get('P2_EVAL_OUTPUT_DIR', str(Path.home() / 'p2-evaluations')))
 ACCOUNT_ORDER = ('tk2', 'tk5')
+EVAL_SLICE_PER_CLASS = 128
+TREND_CSV_COLUMNS = (
+    'checkpoint_step', 'full_holdout', 'n', 'direction_accuracy',
+    'direction_accuracy_ci_lower', 'direction_accuracy_ci_upper',
+    'macro_f1', 'macro_f1_ci_lower', 'macro_f1_ci_upper',
+    'brier', 'brier_ci_lower', 'brier_ci_upper',
+    'base_model_accuracy', 'base_model_accuracy_ci_lower', 'base_model_accuracy_ci_upper',
+    'base_model_macro_f1', 'base_model_brier',
+    'direction_accuracy_delta', 'macro_f1_delta', 'brier_delta',
+    'direction_accuracy_delta_ci_lower', 'direction_accuracy_delta_ci_upper',
+    'macro_f1_delta_ci_lower', 'macro_f1_delta_ci_upper',
+    'brier_delta_ci_lower', 'brier_delta_ci_upper',
+    'up_precision', 'up_recall', 'down_precision', 'down_recall',
+    'invalid_output_rate', 'ece_4_bins', 'dataset_sha256',
+)
 TKN = ('openid', 'https://www.googleapis.com/auth/userinfo.profile',
        'https://www.googleapis.com/auth/userinfo.email',
        'https://www.googleapis.com/auth/cloud-platform',
@@ -125,6 +140,46 @@ def checkpoint_complete(token, step, dataset):
             and training.get('campaign_id') == 'p2a-v2-full'
             and training.get('training_approval_ref') == (json.loads(
                 V2_CAMPAIGN_MANIFEST.read_text(encoding='utf-8')).get('training_approval') or {}).get('approval_reference'))
+
+
+def trend_csv_row(metrics):
+    intervals = metrics.get('confidence_intervals') or {}
+    base = metrics.get('base_model') or {}
+    base_intervals = base.get('confidence_intervals') or {}
+    precision = metrics.get('class_precision') or {}
+    recall = metrics.get('class_recall') or {}
+    row = {
+        'checkpoint_step': metrics.get('checkpoint_step'),
+        'full_holdout': metrics.get('full_holdout'),
+        'n': metrics.get('n', metrics.get('count')),
+        'direction_accuracy': metrics.get('direction_accuracy'),
+        'macro_f1': metrics.get('macro_f1'),
+        'brier': metrics.get('brier'),
+        'base_model_accuracy': base.get('direction_accuracy'),
+        'base_model_macro_f1': base.get('macro_f1'),
+        'base_model_brier': base.get('brier'),
+        'direction_accuracy_delta': (metrics.get('learning_signal') or {}).get('direction_accuracy_delta'),
+        'macro_f1_delta': (metrics.get('learning_signal') or {}).get('macro_f1_delta'),
+        'brier_delta': (metrics.get('learning_signal') or {}).get('brier_delta'),
+        'up_precision': precision.get('UP'), 'up_recall': recall.get('UP'),
+        'down_precision': precision.get('DOWN'), 'down_recall': recall.get('DOWN'),
+        'invalid_output_rate': metrics.get('invalid_output_rate'),
+        'ece_4_bins': metrics.get('ece_4_bins'),
+        'dataset_sha256': metrics.get('dataset_sha256'),
+    }
+    for metric in ('direction_accuracy', 'macro_f1', 'brier'):
+        interval = intervals.get(metric) or {}
+        row[f'{metric}_ci_lower'] = interval.get('lower')
+        row[f'{metric}_ci_upper'] = interval.get('upper')
+    signal_ci = metrics.get('learning_signal_confidence_intervals') or {}
+    for metric in ('direction_accuracy_delta', 'macro_f1_delta', 'brier_delta'):
+        interval = signal_ci.get(metric) or {}
+        row[f'{metric}_ci_lower'] = interval.get('lower')
+        row[f'{metric}_ci_upper'] = interval.get('upper')
+    base_accuracy_ci = base_intervals.get('direction_accuracy') or {}
+    row['base_model_accuracy_ci_lower'] = base_accuracy_ci.get('lower')
+    row['base_model_accuracy_ci_upper'] = base_accuracy_ci.get('upper')
+    return row
 
 
 def latest_complete_step(token, dataset):
@@ -235,7 +290,8 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         lines += [
             "eval_holdout=str(out/'validation-v2-slice.jsonl')",
             "manifest_path=str(out/'validation.manifest.json')",
-            "manifest=create_slice(validation_path, eval_holdout, manifest_path, per_class=32, seed=42)",
+            f"manifest=create_slice(validation_path, eval_holdout, manifest_path, per_class={EVAL_SLICE_PER_CLASS}, seed=42)",
+            f"if manifest['selected_count'] < {2 * EVAL_SLICE_PER_CLASS}: raise ValueError('fixed checkpoint evaluation slice must contain at least {2 * EVAL_SLICE_PER_CLASS} rows')",
             "eval_md5=manifest['slice_md5']",
             "dataset_sha=manifest['slice_sha256']",
         ]
@@ -251,6 +307,7 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         'run_eval_command(cmd, diagnostics)',
         "metrics=__import__('json').load(open(predictions_path+'.metrics.json'))",
         "metrics.update({'checkpoint_step':step,'checkpoint_path':remote,'full_holdout':full_holdout,'dataset_sha256':dataset_sha,'validation_source_sha256':validation_sha256})",
+        "metrics['evaluation_slice']={'seed':manifest.get('seed'),'per_class':manifest.get('per_class'),'selected_count':manifest.get('selected_count')} if manifest_path else {'full_holdout_rows':metrics.get('count')}",
         "Path(metrics_path).write_text(json.dumps(metrics, ensure_ascii=False, indent=2)+'\\n', encoding='utf-8')",
         '''def save_eval_to_hf():
     try:
@@ -276,13 +333,41 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         trend_json = Path('/content/p2-eval/trend.json')
         trend_csv = Path('/content/p2-eval/trend.csv')
         trend_json.write_text(json.dumps(history, ensure_ascii=False, indent=2) + '\\n', encoding='utf-8')
-        columns = ('checkpoint_step','full_holdout','count','direction_accuracy','macro_f1',
-                   'brier','ece_4_bins','dataset_sha256')
+        columns = %s
+        def trend_row(item):
+            ci = item.get('confidence_intervals') or {}
+            base = item.get('base_model') or {}
+            base_ci = base.get('confidence_intervals') or {}
+            precision, recall = item.get('class_precision') or {}, item.get('class_recall') or {}
+            row = {
+                'checkpoint_step': item.get('checkpoint_step'), 'full_holdout': item.get('full_holdout'),
+                'n': item.get('n', item.get('count')), 'direction_accuracy': item.get('direction_accuracy'),
+                'macro_f1': item.get('macro_f1'), 'brier': item.get('brier'),
+                'base_model_accuracy': base.get('direction_accuracy'),
+                'base_model_macro_f1': base.get('macro_f1'), 'base_model_brier': base.get('brier'),
+                'direction_accuracy_delta': (item.get('learning_signal') or {}).get('direction_accuracy_delta'),
+                'macro_f1_delta': (item.get('learning_signal') or {}).get('macro_f1_delta'),
+                'brier_delta': (item.get('learning_signal') or {}).get('brier_delta'),
+                'up_precision': precision.get('UP'), 'up_recall': recall.get('UP'),
+                'down_precision': precision.get('DOWN'), 'down_recall': recall.get('DOWN'),
+                'invalid_output_rate': item.get('invalid_output_rate'), 'ece_4_bins': item.get('ece_4_bins'),
+                'dataset_sha256': item.get('dataset_sha256')}
+            for metric in ('direction_accuracy', 'macro_f1', 'brier'):
+                interval = ci.get(metric) or {}
+                row[f'{metric}_ci_lower'], row[f'{metric}_ci_upper'] = interval.get('lower'), interval.get('upper')
+            accuracy_ci = base_ci.get('direction_accuracy') or {}
+            row['base_model_accuracy_ci_lower'] = accuracy_ci.get('lower')
+            row['base_model_accuracy_ci_upper'] = accuracy_ci.get('upper')
+            signal_ci = item.get('learning_signal_confidence_intervals') or {}
+            for metric in ('direction_accuracy_delta', 'macro_f1_delta', 'brier_delta'):
+                interval = signal_ci.get(metric) or {}
+                row[f'{metric}_ci_lower'], row[f'{metric}_ci_upper'] = interval.get('lower'), interval.get('upper')
+            return row
         with trend_csv.open('w', newline='', encoding='utf-8') as stream:
             writer = csv.DictWriter(stream, fieldnames=columns)
             writer.writeheader()
             for item in history:
-                writer.writerow({column:item.get(column) for column in columns})
+                writer.writerow(trend_row(item))
         api.upload_file(repo_id=repo, repo_type='model', path_or_fileobj=str(trend_json),
                         path_in_repo='evaluations/trend.json', commit_message='Update P2 eval trend')
         api.upload_file(repo_id=repo, repo_type='model', path_or_fileobj=str(trend_csv),
@@ -301,7 +386,7 @@ def build_remote_job(step, full_holdout, out_dir, validation_md5, validation_sha
         print(f'EVAL_METRICS_HF_UPLOAD_FAILED step={step} '
               f'{type(error).__name__}: {error}; runner backup will retain results', flush=True)
 
-save_eval_to_hf()''',
+save_eval_to_hf()'''.replace('        columns = %s', f'        columns = {TREND_CSV_COLUMNS!r}'),
         "print('P2_EVAL_RESULT '+json.dumps(metrics, ensure_ascii=False, sort_keys=True), flush=True)",
     ]
     return '\n'.join(lines) + '\n'
@@ -404,22 +489,25 @@ def load_v2_validation():
 
 def write_trend():
     RESULT_ROOT.mkdir(parents=True, exist_ok=True)
-    records = []
+    latest = {}
     for path in RESULT_ROOT.glob('step-*/**/metrics.json'):
         try:
-            records.append(json.loads(path.read_text(encoding='utf-8')))
+            item = json.loads(path.read_text(encoding='utf-8'))
+            key = (int(item['checkpoint_step']), bool(item.get('full_holdout')),
+                   item.get('validation_source_sha256') or item.get('dataset_sha256'))
+            latest[key] = item
         except (OSError, ValueError):
             continue
+    records = list(latest.values())
     records.sort(key=lambda item: (int(item['checkpoint_step']), bool(item.get('full_holdout'))))
     (RESULT_ROOT / 'trend.json').write_text(json.dumps(records, ensure_ascii=False,
                                                        indent=2) + '\n', encoding='utf-8')
-    columns = ('checkpoint_step', 'full_holdout', 'count', 'direction_accuracy', 'macro_f1',
-               'brier', 'ece_4_bins', 'dataset_sha256')
+    columns = TREND_CSV_COLUMNS
     with (RESULT_ROOT / 'trend.csv').open('w', newline='', encoding='utf-8') as stream:
         writer = csv.DictWriter(stream, fieldnames=columns)
         writer.writeheader()
         for item in records:
-            writer.writerow({key: item.get(key) for key in columns})
+            writer.writerow(trend_csv_row(item))
 
 
 def upload_results(metrics):

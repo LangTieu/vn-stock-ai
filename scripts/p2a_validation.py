@@ -46,7 +46,7 @@ def file_hash(path, algorithm='sha256'):
     return digest.hexdigest()
 
 
-def create_slice(source, output, manifest, per_class=32, seed=42):
+def create_slice(source, output, manifest, per_class=128, seed=42):
     if per_class < 1:
         raise ValueError('per_class must be positive')
     grouped = {label: defaultdict(list) for label in ('UP', 'DOWN')}
@@ -125,7 +125,7 @@ def main():
     parser.add_argument('--input', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--manifest', required=True)
-    parser.add_argument('--per-class', type=int, default=32)
+    parser.add_argument('--per-class', type=int, default=128)
     parser.add_argument('--seed', type=int, default=42)
     args = parser.parse_args()
     result = create_slice(args.input, args.output, args.manifest, args.per_class, args.seed)

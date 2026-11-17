@@ -1,5 +1,6 @@
 import sys
 import json
+import csv
 import subprocess
 import tempfile
 import types
@@ -9,7 +10,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.p2a_eval_async import (
-    REMOTE_EVAL_RUNNER, build_remote_job, preserve_remote_eval_logs,
+    EVAL_SLICE_PER_CLASS, REMOTE_EVAL_RUNNER, TREND_CSV_COLUMNS,
+    RESULT_ROOT, build_remote_job, preserve_remote_eval_logs, trend_csv_row, write_trend,
     train_sha256_pin,
 )
 
@@ -20,9 +22,15 @@ class AsyncEvalBundleTests(unittest.TestCase):
     def test_remote_eval_bundle_uses_pinned_v2_validation_not_public_p1(self):
         source = build_remote_job(50, False, '/tmp/p2-eval', 'md5', 'sha256', 'train-sha',
                                   DATASET_REVISION)
+        compile(source, '<generated-eval-job>', 'exec')
         self.assertIn("filename='validation-v2.jsonl'", source)
+        self.assertEqual(EVAL_SLICE_PER_CLASS, 128)
+        self.assertIn('per_class=128, seed=42', source)
+        self.assertIn("manifest['selected_count'] < 256", source)
+        self.assertIn('fixed checkpoint evaluation slice must contain at least 256 rows', source)
         self.assertIn(f'dataset_revision={DATASET_REVISION!r}', source)
         self.assertNotIn("dataset_revision=''", source)
+        self.assertIn("Path('/content/p2a_eval.py').write_text", source)
         self.assertIn('pinned V2 validation SHA-256 mismatch', source)
         self.assertIn("'--expected-dataset-repo'", source)
         self.assertNotIn('vn-stock-ai-p1', source)
@@ -87,6 +95,66 @@ class AsyncEvalBundleTests(unittest.TestCase):
             self.assertEqual((root / 'runner/p2a_eval.stderr.log').read_text(),
                              'specific evaluator failure')
             self.assertFalse((root / 'unrelated.txt').exists())
+
+    def test_trend_row_flattens_model_ci_and_base_comparison(self):
+        metrics = {
+            'checkpoint_step': 250, 'count': 256, 'full_holdout': False,
+            'direction_accuracy': .44, 'macro_f1': .43, 'brier': .26,
+            'confidence_intervals': {
+                'direction_accuracy': {'lower': .38, 'upper': .50},
+                'macro_f1': {'lower': .37, 'upper': .49},
+                'brier': {'lower': .24, 'upper': .28},
+            },
+            'base_model': {'direction_accuracy': .52, 'macro_f1': .51, 'brier': .24,
+                           'confidence_intervals': {'direction_accuracy': {'lower': .46, 'upper': .58}}},
+            'learning_signal': {'direction_accuracy_delta': -.08},
+            'learning_signal_confidence_intervals': {
+                'direction_accuracy_delta': {'lower': -.16, 'upper': 0.0}},
+            'class_precision': {'UP': .6, 'DOWN': .4},
+            'class_recall': {'UP': .5, 'DOWN': .5},
+            'invalid_output_rate': .03, 'ece_4_bins': .1,
+            'dataset_sha256': 'slice-hash',
+        }
+        row = trend_csv_row(metrics)
+        self.assertEqual(row['n'], 256)
+        self.assertEqual(row['direction_accuracy_ci_lower'], .38)
+        self.assertEqual(row['base_model_accuracy'], .52)
+        self.assertEqual(row['direction_accuracy_delta_ci_upper'], 0.0)
+        self.assertEqual(row['up_precision'], .6)
+        self.assertEqual(row['invalid_output_rate'], .03)
+        self.assertTrue(set(TREND_CSV_COLUMNS) <= set(row))
+
+    def test_trend_csv_contains_one_flat_comparison_row_per_checkpoint(self):
+        with tempfile.TemporaryDirectory() as temporary, patch(
+                'scripts.p2a_eval_async.RESULT_ROOT', Path(temporary)):
+            for step, accuracy in ((250, .44), (300, .48)):
+                path = Path(temporary) / f'step-{step}/slice/metrics.json'
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps({
+                    'checkpoint_step': step, 'full_holdout': False, 'count': 256,
+                    'direction_accuracy': accuracy, 'macro_f1': .4, 'brier': .26,
+                    'confidence_intervals': {
+                        'direction_accuracy': {'lower': accuracy - .05, 'upper': accuracy + .05},
+                        'macro_f1': {'lower': .35, 'upper': .45},
+                        'brier': {'lower': .24, 'upper': .28},
+                    },
+                    'base_model': {'direction_accuracy': .5, 'macro_f1': .42, 'brier': .25,
+                                   'confidence_intervals': {'direction_accuracy': {'lower': .44, 'upper': .56}}},
+                    'learning_signal': {'direction_accuracy_delta': accuracy - .5,
+                                        'macro_f1_delta': -.02, 'brier_delta': .01},
+                    'learning_signal_confidence_intervals': {
+                        'direction_accuracy_delta': {'lower': -.1, 'upper': .02}},
+                    'class_precision': {'UP': .5, 'DOWN': .5},
+                    'class_recall': {'UP': .5, 'DOWN': .5},
+                    'invalid_output_rate': .01, 'ece_4_bins': .05,
+                    'dataset_sha256': 'same-fixed-slice',
+                }))
+            write_trend()
+            with (Path(temporary) / 'trend.csv').open(newline='') as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual([int(row['checkpoint_step']) for row in rows], [250, 300])
+            self.assertEqual([row['base_model_accuracy'] for row in rows], ['0.5', '0.5'])
+            self.assertEqual(rows[1]['n'], '256')
 
     def test_modal_legacy_p1_smoke_is_retired_before_gpu_assignment(self):
         source = (Path(__file__).resolve().parents[1] / 'scripts/modal_p2a.py').read_text()

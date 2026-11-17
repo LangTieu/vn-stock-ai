@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17T03:00:59Z",
+  "updated_at": "2026-11-17T04:00:22Z",
   "current_item": 4,
   "done": [
     1,
@@ -9,11 +9,11 @@
     5
   ],
   "in_progress": null,
-  "blocked": "Coordinator repository_dispatch for session 6 was premature: source run 43994816307 was still in_progress when fetched, so the strict ledger recorder rejected it. Review fix waits up to 60s and defers still-active sources to the completed workflow_run event. Session-7 intent is prepared, not dispatched. Checkpoint-250 eval 43999104674 has now completed successfully; metrics are recorded and are below majority/constant-prevalence baselines for accuracy/Brier.",
+  "blocked": "Evaluator changes are complete on review/p2-async-evaluation. Session 7 run 44008832505 was last reported in progress; do not interrupt it. The post-session checkpoint evaluation remains blocked until session 7 completes and Liaison integrates/reviews the evaluator changes. No evaluation or training was dispatched.",
   "questions": [
-    "Liaison: independently review/merge repository_dispatch completion wait and prepared session-7 intent from review/p2-async-evaluation. Session-7 inputs are checkpoint-300 -> max_steps=350, train_tk1, same approval/dataset; no dispatch by this agent."
+    "Liaison: review/integrate the deterministic 256-row checkpoint evaluator changes from review/p2-async-evaluation. Confirm session 7 run 44008832505 has completed before authorizing the checkpoint-300 evaluation; do not dispatch training or evaluation before then."
   ],
-  "next_step": "Session-6 coordinator 44005077476 exact root: repository_dispatch fired while source training run 43994816307 was still in_progress; coordinator passed that status to ledger.record_event, which correctly raised ValueError: only completed workflow events may be recorded. Fix waits up to 12*5 sec then no-ops (workflow_run completed trigger will process if still active). Failure did not arise from checkpoint verification or campaign inputs. Regression covers the wait/defer guard. Session6 completed successfully at step300 on TK1. Session7 is prepared on review ledger as p2a-v2-full:43994816307, checkpoint-300 -> max_steps=350/save_steps=25, TK1, same approval and dataset. Ledger includes session6 250->300, retry:1 completed, checkpoint-300; bounded validator passes on simulated dispatching copy. No session7 dispatch; Liaison merge/verification required. Checkpoint-250 isolated eval 43999104674 completed success using the fixed diagnostics/tokenizer path. Metrics on a balanced 64-row slice: direction_accuracy 0.4375, macro_f1 0.3454545455, brier 0.2608962298, ECE4 0.1120249445. Baselines: majority accuracy 0.50/macro-F1 0.33333; constant-prevalence Brier 0.25. Result is exploratory, accuracy below majority and Brier worse than prevalence baseline; not evidence of predictive skill. Verification for coordinator/eval fixes: 131 tests pass (one optional cryptography test skipped), compileall, JSON/YAML/notebook parsing and diff checks pass. No training dispatch by this agent.",
+  "next_step": "Evaluator implementation is ready on review/p2-async-evaluation: per-checkpoint runs use a deterministic, balanced 256-row slice (128 UP/128 DOWN), paired adapter/base predictions, seeded 95% bootstrap intervals for accuracy/macro-F1/Brier, per-class precision/recall, invalid-output rate, and comparable trend rows. Full suite: 136 tests passed, one optional cryptography test skipped; compileall, JSON/notebook parsing and diff checks passed. The remote evaluator now refuses a slice under 256 rows. No run was dispatched. Wait for session 7 run 44008832505 completion and Liaison review/integration before evaluating checkpoint 300.",
   "commits": [
     "855cad8",
     "baf7261",
