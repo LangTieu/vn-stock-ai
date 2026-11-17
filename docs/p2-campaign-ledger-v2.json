@@ -6,7 +6,7 @@
   "campaign_ref": "main",
   "legacy_cutoff_run_id": 43580242658,
   "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
-  "ledger_revision": 24,
+  "ledger_revision": 25,
   "seen_source_run_ids": [
     43822902254,
     43823006285,
@@ -31,7 +31,8 @@
     44037555631,
     44055116985,
     44057390018,
-    44060028074
+    44060028074,
+    44065421208
   ],
   "events": [
     {
@@ -249,6 +250,15 @@
       "conclusion": "failure",
       "decision": "manual_recovery_review",
       "recorded_at": "2026-11-17T10:00:24Z"
+    },
+    {
+      "source_run_id": 44065421208,
+      "source_ref": "main",
+      "source_sha": "54009bbd09742f66ed7b1d8d23f470607ad7f360",
+      "status": "completed",
+      "conclusion": "failure",
+      "decision": "manual_recovery_review",
+      "recorded_at": "2026-11-17T10:30:51Z"
     }
   ],
   "dispatch_intents": [
@@ -873,5 +883,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 73
+  "state_revision": 74
 }
