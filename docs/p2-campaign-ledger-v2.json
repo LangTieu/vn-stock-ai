@@ -440,7 +440,7 @@
       "resume_checkpoint": "checkpoint-300",
       "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
-      "status": "prepared",
+      "status": "dispatching",
       "inputs": {
         "notebook": "notebooks/p2a_train.ipynb",
         "mode": "full",
@@ -456,7 +456,8 @@
         "campaign_id": "p2a-v2-full",
         "campaign_chain_source_run_id": "43994816307"
       },
-      "prepared_at": "2026-11-17T03:00:06Z"
+      "prepared_at": "2026-11-17T03:00:06Z",
+      "dispatching_at": "2026-11-17T03:14:49Z"
     }
   ],
   "sessions": [
@@ -545,5 +546,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 44
+  "state_revision": 45
 }
