@@ -20,6 +20,13 @@ def validate_eval_label_versions(train_manifest, holdout_spec):
                          f'{holdout_version!r}')
 
 
+def load_eval_tokenizer(auto_tokenizer=None):
+    if auto_tokenizer is None:
+        from transformers import AutoTokenizer
+        auto_tokenizer = AutoTokenizer
+    return auto_tokenizer.from_pretrained(MODEL_ID)
+
+
 def calibration(records):
     bins = []
     for level in range(4):
@@ -116,7 +123,7 @@ def main():
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, set_seed
     from peft import PeftModel
     set_seed(42)
-    tok = AutoTokenizer.from_pretrained(a.adapter)
+    tok = load_eval_tokenizer(AutoTokenizer)
     base = AutoModelForCausalLM.from_pretrained(MODEL_ID, device_map={'': 0},
         torch_dtype=torch.float16, quantization_config=BitsAndBytesConfig(load_in_4bit=True,
         bnb_4bit_quant_type='nf4', bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.float16))
