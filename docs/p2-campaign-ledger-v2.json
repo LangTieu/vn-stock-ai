@@ -1031,7 +1031,7 @@
       "resume_checkpoint": "checkpoint-550",
       "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
-      "status": "dispatching",
+      "status": "completed",
       "inputs": {
         "notebook": "notebooks/p2a_train.ipynb",
         "mode": "full",
@@ -1050,7 +1050,36 @@
       "retry_of_intent_id": "p2a-v2-full:44087509604",
       "retry_after_run_id": 44103066731,
       "prepared_at": "2026-11-17T14:35:17Z",
-      "dispatching_at": "2026-11-17T14:35:19Z"
+      "dispatching_at": "2026-11-17T14:35:19Z",
+      "child_run_id": 44104811891,
+      "child_sha": "6acb1a2726462ebe7a672db3fea65a1101169fe8",
+      "completed_at": "2026-11-17T16:39:18Z"
+    },
+    {
+      "intent_id": "p2a-v2-full:44104811891",
+      "source_run_id": 44104811891,
+      "source_sha": "6acb1a2726462ebe7a672db3fea65a1101169fe8",
+      "target_max_steps": 650,
+      "resume_checkpoint": "checkpoint-600",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "status": "prepared",
+      "inputs": {
+        "notebook": "notebooks/p2a_train.ipynb",
+        "mode": "full",
+        "training_approval_ref": "henrry-train-approval-2026-11-16-1446-ict",
+        "gpu": "T4",
+        "timeout": "28800",
+        "max_steps": "650",
+        "resume_checkpoint": "checkpoint-600",
+        "p2a_v2_dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+        "save_steps": "25",
+        "executor": "lv1",
+        "train_profile": "train_tk6",
+        "campaign_id": "p2a-v2-full",
+        "campaign_chain_source_run_id": "44104811891"
+      },
+      "prepared_at": "2026-11-17T16:39:18Z"
     }
   ],
   "sessions": [
@@ -1185,11 +1214,23 @@
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
       "campaign_chain_source_run_id": "44066192196",
       "profile": "train_tk4"
+    },
+    {
+      "source_run_id": 44104811891,
+      "source_sha": "6acb1a2726462ebe7a672db3fea65a1101169fe8",
+      "start_step": 550,
+      "end_step": 600,
+      "steps": 50,
+      "checkpoint_name": "checkpoint-600",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "campaign_chain_source_run_id": "44087509604",
+      "profile": "train_tk6"
     }
   ],
   "latest_v2_compatible_checkpoint": {
-    "name": "checkpoint-550",
-    "step": 550
+    "name": "checkpoint-600",
+    "step": 600
   },
   "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
   "approved_by": "Henrry",
@@ -1199,5 +1240,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 102
+  "state_revision": 103
 }
