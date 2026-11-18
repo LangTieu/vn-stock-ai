@@ -22,7 +22,7 @@ V2_CAMPAIGN_MANIFEST = Path(__file__).resolve().parents[1] / 'docs/p2-campaign.j
 LOCK_ROOT = Path.home() / '.cache/vn-stock-ai/p2-eval'
 QUEUE_ROOT = LOCK_ROOT / 'queue'
 RESULT_ROOT = Path(os.environ.get('P2_EVAL_OUTPUT_DIR', str(Path.home() / 'p2-evaluations')))
-ACCOUNT_ORDER = ('tk3', 'tk5')
+ACCOUNT_ORDER = ('tk2', 'tk3')
 EVAL_SLICE_PER_CLASS = 128
 TREND_CSV_COLUMNS = (
     'checkpoint_step', 'full_holdout', 'n', 'direction_accuracy',
