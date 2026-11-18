@@ -39,7 +39,7 @@ def validate_manifest(manifest):
         raise ValueError('campaign limits must remain 104 sessions, 50 steps/session, 5,198 total')
     profiles = manifest.get('profiles') or {}
     for key, expected in (('training_order', ['train_tk4', 'train_tk5', 'train_tk1', 'train_tk6']),
-                          ('evaluation_order', ['eval_tk2', 'eval_tk5'])):
+                          ('evaluation_order', ['eval_tk3', 'eval_tk5'])):
         if profiles.get(key) != expected:
             raise ValueError(f'{key} must be {expected!r}')
     if 'token' in json.dumps(manifest, ensure_ascii=True).lower():

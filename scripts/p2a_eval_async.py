@@ -22,7 +22,7 @@ V2_CAMPAIGN_MANIFEST = Path(__file__).resolve().parents[1] / 'docs/p2-campaign.j
 LOCK_ROOT = Path.home() / '.cache/vn-stock-ai/p2-eval'
 QUEUE_ROOT = LOCK_ROOT / 'queue'
 RESULT_ROOT = Path(os.environ.get('P2_EVAL_OUTPUT_DIR', str(Path.home() / 'p2-evaluations')))
-ACCOUNT_ORDER = ('tk2', 'tk5')
+ACCOUNT_ORDER = ('tk3', 'tk5')
 EVAL_SLICE_PER_CLASS = 128
 TREND_CSV_COLUMNS = (
     'checkpoint_step', 'full_holdout', 'n', 'direction_accuracy',
@@ -566,8 +566,8 @@ def run_one(request):
         except Exception as error:  # noqa: BLE001 — only switch profile after confirmed assign 503
             last_error = error
             text = str(error)
-            if profile == 'tk2' and '503' in text and '/tun/m/assign' in text:
-                print('P2_EVAL_TK2_ASSIGN_503 switching_once_to_tk5', flush=True)
+            if profile != configured_order[-1] and '503' in text and '/tun/m/assign' in text:
+                print(f'P2_EVAL_{profile.upper()}_ASSIGN_503 switching_once_to_next', flush=True)
                 continue
             print(f'P2_EVAL_FAILED step={step} mode={mode} account={profile} '
                   f'{type(error).__name__}: {error}', flush=True)

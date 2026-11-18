@@ -61,7 +61,7 @@ class CampaignPlannerTests(unittest.TestCase):
     def test_evaluate_plan_uses_separate_runtime_profile_order(self):
         plan = plan_operation(self.manifest, 'evaluate', '50')
         self.assertEqual(plan['workflow'], 'p2-eval.yml')
-        self.assertEqual(plan['profile_order'], ['eval_tk2', 'eval_tk5'])
+        self.assertEqual(plan['profile_order'], ['eval_tk3', 'eval_tk5'])
         self.assertEqual(plan['fallback_only_on'], 'confirmed /tun/m/assign HTTP 503')
         self.assertFalse(plan['full_holdout'])
 
