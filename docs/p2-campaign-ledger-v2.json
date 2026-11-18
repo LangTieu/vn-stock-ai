@@ -1073,7 +1073,7 @@
       "resume_checkpoint": "checkpoint-600",
       "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
       "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
-      "status": "submitted",
+      "status": "failed",
       "inputs": {
         "notebook": "notebooks/p2a_train.ipynb",
         "mode": "full",
@@ -1091,7 +1091,39 @@
       },
       "prepared_at": "2026-11-17T16:39:18Z",
       "dispatching_at": "2026-11-17T16:39:37Z",
-      "submitted_at": "2026-11-17T16:39:40Z"
+      "submitted_at": "2026-11-17T16:39:40Z",
+      "child_run_id": 44128283274,
+      "child_conclusion": "failure",
+      "failed_at": "2026-11-18T01:14:03Z"
+    },
+    {
+      "intent_id": "p2a-v2-full:44104811891:retry:1",
+      "source_run_id": 44104811891,
+      "source_sha": "6acb1a2726462ebe7a672db3fea65a1101169fe8",
+      "target_max_steps": 650,
+      "resume_checkpoint": "checkpoint-600",
+      "dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+      "approval_reference": "henrry-train-approval-2026-11-16-1446-ict",
+      "status": "dispatching",
+      "inputs": {
+        "notebook": "notebooks/p2a_train.ipynb",
+        "mode": "full",
+        "training_approval_ref": "henrry-train-approval-2026-11-16-1446-ict",
+        "gpu": "T4",
+        "timeout": "28800",
+        "max_steps": "650",
+        "resume_checkpoint": "checkpoint-600",
+        "p2a_v2_dataset_revision": "4e00aefe775509fdd69fe1e70c6232468d4041d8",
+        "save_steps": "25",
+        "executor": "lv1",
+        "train_profile": "train_tk5",
+        "campaign_id": "p2a-v2-full",
+        "campaign_chain_source_run_id": "44104811891"
+      },
+      "retry_of_intent_id": "p2a-v2-full:44104811891",
+      "retry_after_run_id": 44128283274,
+      "prepared_at": "2026-11-18T01:14:03Z",
+      "dispatching_at": "2026-11-18T01:14:04Z"
     }
   ],
   "sessions": [
@@ -1252,5 +1284,5 @@
   "max_sessions": 104,
   "steps_per_session": 50,
   "max_total_steps": 5198,
-  "state_revision": 106
+  "state_revision": 109
 }
