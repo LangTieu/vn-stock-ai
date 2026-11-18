@@ -23,7 +23,7 @@ concurrency:
 jobs:
   evaluate:
     runs-on: [self-hosted, colab-driver-lv1]
-    timeout-minutes: 360
+    timeout-minutes: 720
     steps:
       - uses: actions/checkout@v4
       - name: Evaluate checkpoint on separate Colab account (TK3, then TK5 only on assign 503)
