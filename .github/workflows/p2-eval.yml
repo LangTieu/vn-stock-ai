@@ -26,13 +26,14 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - name: Evaluate checkpoint on separate Colab account (TK2, then TK5 only on assign 503)
+      - name: Evaluate checkpoint on separate Colab account (TK3, then TK5 only on assign 503)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           P2_EVAL_OUTPUT_DIR: ${{ github.workspace }}/p2-evaluations
-          P2_EVAL_ACCOUNT_ORDER: tk2,tk5
+          P2_EVAL_ACCOUNT_ORDER: tk3,tk5
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
           P2_EVAL_TK5_EMAIL: ${{ vars.P2_EVAL_TK5_EMAIL }}
+          P2_EVAL_TK3_EMAIL: ${{ vars.P2_EVAL_TK3_EMAIL }}
           CHECKPOINT_STEP: ${{ inputs.checkpoint_step }}
           FULL_HOLDOUT: ${{ inputs.full_holdout }}
         run: |

@@ -54,7 +54,7 @@
     ],
     "training_fallback_only_on": "confirmed /tun/m/assign HTTP 503",
     "evaluation_order": [
-      "eval_tk2",
+      "eval_tk3",
       "eval_tk5"
     ],
     "evaluation_fallback_only_on": "confirmed /tun/m/assign HTTP 503"

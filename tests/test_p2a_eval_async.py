@@ -164,5 +164,30 @@ class AsyncEvalBundleTests(unittest.TestCase):
         self.assertNotIn('.remote()', source)
 
 
+    def test_eval_falls_back_from_tk3_to_tk5_on_assign_503(self):
+        import os
+        from scripts.p2a_eval_async import run_one
+        fake_validation = {'dataset': {}, 'validation_sha256': 'x', 'validation_md5': 'y'}
+        calls = []
+
+        def fake_eval(step, full, profile, validation, ref=''):
+            calls.append(profile)
+            if profile == 'tk3':
+                raise RuntimeError('POST /tun/m/assign -> 503 Service Unavailable')
+            return {'checkpoint_step': step, 'full_holdout': False,
+                    'direction_accuracy': 0.5, 'dataset_sha256': 'x'}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch('scripts.p2a_eval_async.RESULT_ROOT', Path(tmp)), \
+                 patch('scripts.p2a_eval_async.load_v2_validation', return_value=fake_validation), \
+                 patch('scripts.p2a_eval_async.run_colab_eval', side_effect=fake_eval), \
+                 patch('scripts.p2a_eval_async.upload_results'), \
+                 patch('scripts.p2a_eval_async.write_trend'), \
+                 patch.dict(os.environ, {'P2_EVAL_ACCOUNT_ORDER': 'tk3,tk5'}):
+                self.assertTrue(run_one({'step': 300, 'full_holdout': False,
+                                         'source_run': 'test'}))
+        self.assertEqual(calls, ['tk3', 'tk5'])
+
 if __name__ == '__main__':
     unittest.main()
+

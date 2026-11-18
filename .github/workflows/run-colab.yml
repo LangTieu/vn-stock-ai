@@ -361,6 +361,7 @@ jobs:
           P2_TRAIN_TK6_EMAIL: ${{ vars.P2_TRAIN_TK6_EMAIL }}
           P2_EVAL_TK2_EMAIL: ${{ vars.P2_EVAL_TK2_EMAIL }}
           P2_EVAL_TK5_EMAIL: ${{ vars.P2_EVAL_TK5_EMAIL }}
+          P2_EVAL_TK3_EMAIL: ${{ vars.P2_EVAL_TK3_EMAIL }}
           DOWNLOAD_REMOTE: ${{ inputs.download_remote || format('/content/p2a-checkpoints/{0}', inputs.mode) }}
           DOWNLOAD_LOCAL: ${{ inputs.download_local || format('p2a-output-{0}.zip', inputs.mode) }}
         run: |
